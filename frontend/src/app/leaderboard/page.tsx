@@ -255,7 +255,7 @@ export default function LeaderboardPage() {
         )}
 
             <motion.h1 initial={reduceMotion ? false : {opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-4 max-w-full text-balance text-xl font-black tracking-tight sm:mb-5 sm:text-2xl md:text-4xl">
-          GLOBAL <span className="text-primary">AUTHORITY</span>
+          {t('lb.heroTitle1')} <span className="text-primary">{t('lb.heroTitle2')}</span>
         </motion.h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -285,7 +285,7 @@ export default function LeaderboardPage() {
                 </div>
               ) : podiumUsers.length < 3 ? (
                 <div className="py-10 text-center text-base-content/50 text-sm">
-                  Leaderboard ma'lumotlari hali yetarli emas
+                  {t('lb.notEnough')}
                 </div>
               ) : (
                 <motion.div
@@ -307,7 +307,7 @@ export default function LeaderboardPage() {
                 </div>
               ) : tableUsers.length === 0 ? (
                 <div className="py-8 text-center text-base-content/50 text-sm">
-                  Hozircha qo'shimcha foydalanuvchilar yo'q
+                  {t('lb.noMoreUsers')}
                 </div>
               ) : (
                 <motion.div key={activeTab+'-t'} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>

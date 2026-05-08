@@ -9,6 +9,7 @@ import { IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/
 import { FiRefreshCcw } from 'react-icons/fi';
 import { forgotPasswordApi } from '@api/forgotPasswordApi';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 import gsap from 'gsap';
 
 function ResetPasswordContent() {
@@ -20,6 +21,7 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const cardRef = useRef(null);
   const { t } = useLang();
+  const { isDark } = useTheme();
 
   const identifier = searchParams.get('identifier') || searchParams.get('email') || '';
   const token = searchParams.get('token');
@@ -77,40 +79,59 @@ function ResetPasswordContent() {
     }
   };
 
+  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const cardBg = isDark
+    ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
+    : 'bg-white border border-gray-200 shadow-xl';
+  const headTextMain = isDark ? 'text-white' : 'text-gray-900';
+  const headTextMuted = isDark ? 'text-gray-400' : 'text-gray-600';
+  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+  const iconCls = isDark ? 'text-gray-400' : 'text-gray-500';
+  const inputBase = 'w-full pl-11 pr-12 py-3 rounded-xl outline-none transition-all';
+  const inputCls = isDark
+    ? 'bg-white/5 text-white placeholder-gray-500 border focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+  const inputBorderOk = isDark ? 'border-white/10' : 'border-gray-200';
+  const inputBorderErr = isDark ? 'border-red-500/50' : 'border-red-400';
+  const eyeBtnCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
+  const strengthBarBg = isDark ? 'bg-gray-700' : 'bg-gray-200';
+  const backLinkCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
+  const inputCN = (hasErr: boolean) => `${inputBase} ${inputCls} ${hasErr ? inputBorderErr : inputBorderOk}`;
+
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans selection:bg-indigo-500/30">
-      <div className="w-full flex flex-col justify-center items-center p-3 sm:p-12 relative bg-[#0A0E1A]">
+    <div className={`min-h-screen flex font-sans selection:bg-indigo-500/30 ${pageBg} ${headTextMain}`}>
+      <div className={`w-full flex flex-col justify-center items-center p-3 sm:p-12 relative ${pageBg}`}>
         <div
           ref={cardRef}
-          className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-2xl sm:rounded-3xl border-0 lg:border lg:border-white/5 p-5 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
+          className={`w-full max-w-[420px] rounded-2xl sm:rounded-3xl p-5 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5 ${cardBg}`}
         >
           <div className="text-center mb-7 sm:mb-10">
-            <h2 className="text-[1.45rem] sm:text-[1.75rem] font-bold text-white mb-3">{t('reset.title')}</h2>
-            <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
+            <h2 className={`text-[1.45rem] sm:text-[1.75rem] font-bold mb-3 ${headTextMain}`}>{t('reset.title')}</h2>
+            <p className={`text-[0.95rem] px-2 leading-relaxed ${headTextMuted}`}>
               {identifier && <><strong>{identifier}</strong> — </>}{t('reset.newPassword').toLowerCase()}
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t('reset.newPassword')}</label>
+              <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('reset.newPassword')}</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
                   <IoLockClosedOutline className="w-5 h-5" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  {...register('password', { 
-                    required: t('reset.required'), 
-                    minLength: { value: 8, message: t('reset.minLength') } 
+                  {...register('password', {
+                    required: t('reset.required'),
+                    minLength: { value: 8, message: t('reset.minLength') },
                   })}
                   autoComplete="new-password"
-                  className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
+                  className={inputCN(Boolean(errors.password))}
                   placeholder="********"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
+                  className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
@@ -119,7 +140,7 @@ function ResetPasswordContent() {
 
               {password.length > 0 && (
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden">
+                  <div className={`h-1 flex-1 rounded-full overflow-hidden ${strengthBarBg}`}>
                     <div
                       className={`h-full transition-all duration-300 ${isWeak ? 'bg-red-500' : 'bg-green-500'}`}
                       style={{ width: `${isWeak ? Math.max(30, strengthPercentage) : 100}%` }}
@@ -133,24 +154,24 @@ function ResetPasswordContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t('reset.confirmPassword')}</label>
+              <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('reset.confirmPassword')}</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
                   <FiRefreshCcw className="w-4 h-4" />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...register('confirmPassword', {
                     required: true,
-                    validate: value => value === password || t('reset.mismatch')
+                    validate: value => value === password || t('reset.mismatch'),
                   })}
                   autoComplete="new-password"
-                  className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
+                  className={inputCN(Boolean(errors.confirmPassword))}
                   placeholder="********"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
+                  className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
@@ -168,7 +189,7 @@ function ResetPasswordContent() {
             </button>
 
             <div className="text-center pt-4">
-              <Link href="/login" className="text-gray-400 hover:text-white hover:underline text-sm font-medium transition-colors">
+              <Link href="/login" className={`hover:underline text-sm font-medium transition-colors ${backLinkCls}`}>
                 {t('reset.back')}
               </Link>
             </div>
@@ -181,7 +202,7 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0A0E1A] dark:bg-[#0A0E1A]"><span className="loading loading-spinner loading-lg text-primary"></span></div>}>
       <ResetPasswordContent />
     </Suspense>
   );

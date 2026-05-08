@@ -4,6 +4,8 @@ import { generateCoachReply } from '@/utils/coachAssistant';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const AI_GATEWAY_URL = process.env.AI_GATEWAY_URL;
+const AI_GATEWAY_KEY = process.env.AI_GATEWAY_KEY;
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
 // ------- Video & Course search helpers -------
@@ -232,7 +234,7 @@ async function tryGroq(messages: ChatMessage[], signal: AbortSignal): Promise<AI
 }
 
 async function generateAIReply(message: string, history: ChatMessage[]) {
-  if (!OPENAI_API_KEY && !ANTHROPIC_API_KEY && !GROQ_API_KEY) return null;
+  if (!OPENAI_API_KEY && !ANTHROPIC_API_KEY && !GROQ_API_KEY && !AI_GATEWAY_URL) return null;
 
   const systemInstruction = `Sen Aidevix IT-ta'lim platformasining senior dasturchi-mentorisan. 10+ yillik tajribaga ega full-stack muhandis sifatida o'quvchilarga professional maslahat berasan.
 
@@ -275,6 +277,27 @@ PLATFORMA:
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
+    if (AI_GATEWAY_URL && AI_GATEWAY_KEY) {
+      const gateway = await fetch(AI_GATEWAY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${AI_GATEWAY_KEY}`,
+        },
+        body: JSON.stringify({
+          messages,
+          preferredModels: ['claude', 'gpt-4o', 'llama-3.3-70b'],
+          temperature: 0.65,
+        }),
+        signal: controller.signal,
+      });
+      if (gateway.ok) {
+        const payload = await gateway.json();
+        const text = payload?.reply || payload?.content;
+        if (text) return { reply: text, provider: 'openai' };
+      }
+    }
+
     // Anthropic birinchi (eng sifatli), keyin OpenAI, Groq fallback
     const providers: Array<(msgs: ChatMessage[], signal: AbortSignal) => Promise<AIReplyResult>> = [
       tryAnthropic,

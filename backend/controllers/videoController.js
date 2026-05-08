@@ -373,7 +373,7 @@ const deleteVideo = async (req, res) => {
 const askQuestion = async (req, res) => {
   try {
     const { id: videoId } = req.params;
-    const { question } = req.body;
+    const { question, parentId = null, mentions = [] } = req.body;
 
     if (!question || question.trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Savol matni kiritilishi shart' });
@@ -392,6 +392,8 @@ const askQuestion = async (req, res) => {
       courseId: video.course,
       userId: req.user._id,
       question: question.trim(),
+      parentId: parentId || null,
+      mentions: Array.isArray(mentions) ? mentions.slice(0, 8) : [],
     });
 
     await qa.populate('userId', 'username');
@@ -420,9 +422,27 @@ const getVideoQuestions = async (req, res) => {
       VideoQuestion.countDocuments({ videoId }),
     ]);
 
+    const roots = questions.filter((q) => !q.parentId);
+    const repliesMap = {};
+    questions.forEach((q) => {
+      if (q.parentId) {
+        const key = q.parentId.toString();
+        if (!repliesMap[key]) repliesMap[key] = [];
+        repliesMap[key].push(q);
+      }
+    });
+    const threaded = roots.map((q) => ({
+      ...q.toObject(),
+      upvotesCount: q.upvotes?.length || 0,
+      replies: (repliesMap[q._id.toString()] || []).map((r) => ({
+        ...r.toObject(),
+        upvotesCount: r.upvotes?.length || 0,
+      })),
+    }));
+
     res.json({
       success: true,
-      data: { questions, total, page, pages: Math.ceil(total / limit) },
+      data: { questions: threaded, total, page, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -458,6 +478,45 @@ const answerQuestion = async (req, res) => {
     res.json({ success: true, message: 'Savol javoblandi', data: { question: qa } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const upvoteQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const qa = await VideoQuestion.findById(questionId);
+    if (!qa) return res.status(404).json({ success: false, message: 'Savol topilmadi' });
+    const userId = req.user._id.toString();
+    const exists = qa.upvotes.some((id) => id.toString() === userId);
+    if (exists) {
+      qa.upvotes = qa.upvotes.filter((id) => id.toString() !== userId);
+    } else {
+      qa.upvotes.push(req.user._id);
+    }
+    await qa.save();
+    return res.json({
+      success: true,
+      data: { upvoted: !exists, upvotesCount: qa.upvotes.length },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const markBestAnswer = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const target = await VideoQuestion.findById(questionId);
+    if (!target) return res.status(404).json({ success: false, message: 'Javob topilmadi' });
+    if (!target.parentId) {
+      return res.status(400).json({ success: false, message: 'Best answer faqat reply uchun' });
+    }
+    await VideoQuestion.updateMany({ parentId: target.parentId }, { $set: { isBestAnswer: false } });
+    target.isBestAnswer = true;
+    await target.save();
+    return res.json({ success: true, message: 'Best answer belgilandi' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -660,6 +719,8 @@ module.exports = {
   askQuestion,
   getVideoQuestions,
   answerQuestion,
+  upvoteQuestion,
+  markBestAnswer,
   getUploadCredentialsForVideo,
   checkVideoStatus,
   linkToBunny,

@@ -34,7 +34,7 @@ export default function LoginForm() {
 
   const onSubmit = async (data: any) => {
     if (captchaRequired && !captchaToken) {
-      toast.error('Iltimos, robot emasligingizni tasdiqlang');
+      toast.error(t('auth.captcha.required'));
       return;
     }
     setIsSubmitting(true);
@@ -58,13 +58,25 @@ export default function LoginForm() {
           router.push(`/auth/verify-email?email=${encodeURIComponent(payload.email || data.email)}`);
           return;
         }
-        toast.success('Muvaffaqiyatli kirdingiz!');
+        toast.success(t('auth.login.success'));
         router.push('/');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Theme-aware classes
+  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+  const inputCls = isDark
+    ? 'bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+  const eyeBtnCls = isDark
+    ? 'text-gray-400 hover:text-gray-200'
+    : 'text-gray-500 hover:text-gray-700';
+  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-gray-200';
+  const dividerTextCls = isDark ? 'text-gray-500' : 'text-gray-400';
+  const noAccountCls = isDark ? 'text-gray-400' : 'text-gray-600';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
@@ -77,59 +89,59 @@ export default function LoginForm() {
       {/* Email input */}
       <div className="form-control w-full">
         <label className="label pt-0 pb-1 px-1">
-          <span className={`label-text font-medium text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('auth.login.email')}</span>
+          <span className={`label-text font-medium text-sm ${labelCls}`}>{t('auth.login.email')}</span>
         </label>
         <div className="relative">
-          <input 
-            type="email" 
-            placeholder="email@example.com" 
-            className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all ${errors.email ? 'ring-2 ring-error' : ''}`}
-            {...register('email', { 
-              required: 'Email manzilini kiritish majburiy',
+          <input
+            type="email"
+            placeholder={t('auth.login.emailPlaceholder')}
+            className={`w-full px-5 py-3.5 rounded-full outline-none transition-all ${inputCls} ${errors.email ? '!ring-2 !ring-red-500/50' : ''}`}
+            {...register('email', {
+              required: t('auth.validation.emailRequired'),
               pattern: {
                 value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
-                message: 'Noto\'g\'ri email formati'
-              }
-            })} 
+                message: t('auth.validation.emailFormat'),
+              },
+            })}
           />
         </div>
-        {errors.email && <p className="text-error text-xs mt-1 ml-4">{(errors.email as any).message}</p>}
+        {errors.email && <p className="text-red-500 text-xs mt-1 ml-4">{(errors.email as any).message}</p>}
       </div>
 
       {/* Parol input */}
       <div className="form-control w-full">
         <div className="flex justify-between items-center pb-1 px-1">
           <label className="label pt-0 pb-0">
-            <span className={`label-text font-medium text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('auth.login.password')}</span>
+            <span className={`label-text font-medium text-sm ${labelCls}`}>{t('auth.login.password')}</span>
           </label>
-          <Link href="/forgot-password" className="text-indigo-400 text-xs hover:underline">
+          <Link href="/forgot-password" className="text-indigo-500 hover:text-indigo-400 text-xs hover:underline">
             {t('auth.login.forgot')}
           </Link>
         </div>
         <div className="relative flex items-center">
-           <input 
-            type={showPass ? "text" : "password"} 
-            placeholder="••••••••" 
+          <input
+            type={showPass ? 'text' : 'password'}
+            placeholder={t('auth.login.passwordPlaceholder')}
             autoComplete="current-password"
-            className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all pr-12 ${errors.password ? 'ring-2 ring-error' : ''}`}
+            className={`w-full px-5 py-3.5 rounded-full outline-none transition-all pr-12 ${inputCls} ${errors.password ? '!ring-2 !ring-red-500/50' : ''}`}
             {...register('password', {
-              required: 'Parolni kiritish majburiy',
+              required: t('auth.validation.passwordRequired'),
               minLength: {
                 value: 6,
                 message: t('auth.login.passwordMinLength'),
               },
             })}
           />
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setShowPass(!showPass)}
-            className="absolute right-5 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className={`absolute right-5 focus:outline-none ${eyeBtnCls}`}
             data-testid="login-toggle-password"
           >
             {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
         </div>
-        {errors.password && <p className="text-error text-xs mt-1 ml-4">{(errors.password as any).message}</p>}
+        {errors.password && <p className="text-red-500 text-xs mt-1 ml-4">{(errors.password as any).message}</p>}
       </div>
 
       {captchaRequired && (
@@ -150,8 +162,8 @@ export default function LoginForm() {
           className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 border-none w-full rounded-full normal-case text-base font-medium h-12 flex justify-center items-center text-white disabled:opacity-60"
         >
           {isSubmitting ? (
-             <span className="loading loading-spinner loading-md"></span>
-           ) : (
+            <span className="loading loading-spinner loading-md"></span>
+          ) : (
             <>
               {t('auth.login.submit')} <span className="ml-2 font-bold">→</span>
             </>
@@ -161,17 +173,17 @@ export default function LoginForm() {
 
       {/* Divider */}
       <div className="flex items-center gap-3 pt-2">
-        <div className={`flex-1 h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>yoki</span>
-        <div className={`flex-1 h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+        <div className={`flex-1 h-px ${dividerLineCls}`} />
+        <span className={`text-xs ${dividerTextCls}`}>{t('auth.divider.or')}</span>
+        <div className={`flex-1 h-px ${dividerLineCls}`} />
       </div>
 
       {/* Google OAuth */}
       <GoogleAuthButton mode="login" />
 
       <div className="text-center pt-2">
-        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('auth.login.noAccount')} </span>
-        <Link href="/register" className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors">
+        <span className={`text-sm ${noAccountCls}`}>{t('auth.login.noAccount')} </span>
+        <Link href="/register" className="text-indigo-500 hover:text-indigo-400 hover:underline text-sm font-medium transition-colors">
           {t('auth.login.register')}
         </Link>
       </div>

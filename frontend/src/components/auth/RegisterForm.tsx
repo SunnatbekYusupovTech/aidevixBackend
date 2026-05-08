@@ -29,7 +29,7 @@ export default function RegisterForm() {
   const authError = useSelector(selectAuthError);
   const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const captchaRequired = Boolean(captchaSiteKey);
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
@@ -47,7 +47,6 @@ export default function RegisterForm() {
 
   const password = watch('password', '');
 
-  // Parol mustahkamligini hisoblash
   const getPasswordStrength = (pass: string) => {
     let strength = 0;
     if (pass.length > 5) strength += 1;
@@ -55,7 +54,7 @@ export default function RegisterForm() {
     if (/[A-Z]/.test(pass)) strength += 1;
     if (/[0-9]/.test(pass)) strength += 1;
     if (/[^A-Za-z0-9]/.test(pass)) strength += 1;
-    return strength; // 0 dan 5gacha
+    return strength;
   };
 
   const strength = getPasswordStrength(password);
@@ -65,19 +64,18 @@ export default function RegisterForm() {
   const onSubmit = async (data: any) => {
     dispatch(clearError());
 
-    // Shartlarni qabul qilganini tekshirish
     if (!data.terms) {
-      toast.error("Iltimos, Foydalanish shartlari va Maxfiylik siyosati bilan tanishib chiqing.");
+      toast.error(t('auth.register.toastTerms'));
       return;
     }
 
     if (data.password !== data.confirmPassword) {
-      toast.error("Parollar mos kelmadi.");
+      toast.error(t('auth.register.toastMismatch'));
       return;
     }
 
     if (captchaRequired && !captchaToken) {
-      toast.error("Iltimos, robot emasligingizni tasdiqlang");
+      toast.error(t('auth.captcha.required'));
       return;
     }
 
@@ -85,18 +83,15 @@ export default function RegisterForm() {
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-    // Username: a-z 0-9 _ . - only (matches backend usernameRegex).
-    // Strip everything else so people with non-ASCII names or apostrophes still register cleanly.
     let username = data.fullName
       .trim()
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')  // strip combining diacritical marks
+      .replace(/[̀-ͯ]/g, '')
       .replace(/\s+/g, '_')
       .replace(/[^a-z0-9._-]/g, '')
       .slice(0, 50);
     if (username.length < 3) {
-      // Fall back to email local-part if name-derived username is too short
       username = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 50);
     }
     const email = data.email.trim().toLowerCase();
@@ -108,15 +103,36 @@ export default function RegisterForm() {
       firstName,
       lastName,
       referralCode: data.referralCode || undefined,
-      ...(captchaToken ? { captchaToken } : {})
+      ...(captchaToken ? { captchaToken } : {}),
     }));
 
     if (registerUser.fulfilled.match(result)) {
       forgotPasswordFlow.rememberEmail(email);
-      toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
+      toast.success(t('auth.register.success'));
       router.push('/');
     }
   };
+
+  // Theme-aware classes
+  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+  const subLabelCls = isDark ? 'text-gray-500' : 'text-gray-400';
+  const iconCls = isDark ? 'text-gray-400' : 'text-gray-500';
+  const inputBase = 'w-full pl-11 pr-4 py-3 rounded-xl outline-none transition-all';
+  const inputCls = isDark
+    ? 'bg-[#0A0E1A]/50 text-white placeholder-gray-500 border focus:ring-1'
+    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border focus:ring-1';
+  const inputBorderOk = isDark ? 'border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/50' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/30';
+  const inputBorderErr = isDark ? 'border-red-500/50' : 'border-red-400';
+  const eyeBtnCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
+  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-gray-200';
+  const dividerTextCls = isDark ? 'text-gray-500' : 'text-gray-400';
+  const checkboxCls = isDark
+    ? 'border-white/20 bg-[#0A0E1A]/50 text-indigo-500 focus:ring-indigo-500/50'
+    : 'border-gray-300 bg-white text-indigo-500 focus:ring-indigo-500/30';
+  const termsTextCls = isDark ? 'text-gray-400' : 'text-gray-600';
+  const strengthBarBg = isDark ? 'bg-gray-700' : 'bg-gray-200';
+
+  const inputCN = (hasErr: boolean) => `${inputBase} ${inputCls} ${hasErr ? inputBorderErr : inputBorderOk}`;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -125,25 +141,25 @@ export default function RegisterForm() {
           {authError}
         </div>
       )}
-      
+
       {/* Ism */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">To'liq ism</label>
+        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.fullNameLabel')}</label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoPersonOutline className="w-5 h-5" />
           </div>
           <input
             type="text"
             {...register('fullName', {
-              required: "To'liq ism majburiy",
-              minLength: { value: 3, message: "Kamida 3 ta belgi kiriting" },
-              maxLength: { value: 40, message: "Ko'pi bilan 40 ta belgi kiriting" },
-              validate: (v) => v.trim().length >= 3 || "To'liq ism juda qisqa"
+              required: t('auth.validation.fullNameRequired'),
+              minLength: { value: 3, message: t('auth.validation.fullNameMin') },
+              maxLength: { value: 40, message: t('auth.validation.fullNameMax') },
+              validate: (v) => v.trim().length >= 3 || t('auth.validation.fullNameShort'),
             })}
             autoComplete="name"
-            className={`w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border ${errors.fullName ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
-            placeholder="Ismingizni kiriting"
+            className={inputCN(Boolean(errors.fullName))}
+            placeholder={t('auth.register.fullNamePlaceholder')}
           />
         </div>
         {errors.fullName && <span className="text-red-500 text-xs mt-1 block">{(errors.fullName as any).message}</span>}
@@ -151,23 +167,23 @@ export default function RegisterForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Email manzil</label>
+        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.emailLabel')}</label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoMailOutline className="w-5 h-5" />
           </div>
           <input
             type="email"
             {...register('email', {
-              required: 'Email manzil majburiy',
+              required: t('auth.validation.emailRequired'),
               pattern: {
                 value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/,
-                message: "Email formati noto'g'ri"
-              }
+                message: t('auth.validation.emailFormat'),
+              },
             })}
             autoComplete="username"
-            className={`w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border ${errors.email ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
-            placeholder="name@example.com"
+            className={inputCN(Boolean(errors.email))}
+            placeholder={t('auth.register.emailPlaceholder')}
           />
         </div>
         {errors.email && <span className="text-red-500 text-xs mt-1 block">{(errors.email as any).message}</span>}
@@ -175,48 +191,47 @@ export default function RegisterForm() {
 
       {/* Parol */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Parol</label>
+        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.passwordLabel')}</label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <IoLockClosedOutline className="w-5 h-5" />
           </div>
           <input
-            type={showPassword ? "text" : "password"}
+            type={showPassword ? 'text' : 'password'}
             {...register('password', {
-              required: 'Parol majburiy',
-              minLength: { value: 8, message: "Kamida 8 ta belgi bo'lishi kerak" },
+              required: t('auth.validation.passwordRequired'),
+              minLength: { value: 8, message: t('auth.validation.passwordMin8') },
               validate: {
-                hasUpper: v => /[A-Z]/.test(v) || "Kamida 1 ta katta harf kerak",
-                hasLower: v => /[a-z]/.test(v) || "Kamida 1 ta kichik harf kerak",
-                hasDigit: v => /\d/.test(v) || "Kamida 1 ta raqam kerak",
-                hasSpecial: v => /[^A-Za-z0-9]/.test(v) || "Kamida 1 ta maxsus belgi kerak"
-              }
+                hasUpper: v => /[A-Z]/.test(v) || t('auth.validation.passwordUpper'),
+                hasLower: v => /[a-z]/.test(v) || t('auth.validation.passwordLower'),
+                hasDigit: v => /\d/.test(v) || t('auth.validation.passwordDigit'),
+                hasSpecial: v => /[^A-Za-z0-9]/.test(v) || t('auth.validation.passwordSpecial'),
+              },
             })}
             autoComplete="new-password"
-            className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.password ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
-            placeholder="********"
+            className={`${inputCN(Boolean(errors.password))} pr-12`}
+            placeholder={t('auth.register.passwordPlaceholder')}
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
+            className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
           </button>
         </div>
         {errors.password && <span className="text-red-500 text-xs mt-1 block">{(errors.password as any).message}</span>}
-        
-        {/* Parol kiritilgandan keyin ko'rinadigan kuchlilik indikatori */}
+
         {password.length > 0 && (
           <div className="mt-2 flex items-center gap-3">
-            <div className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden">
-              <div 
+            <div className={`h-1 flex-1 rounded-full overflow-hidden ${strengthBarBg}`}>
+              <div
                 className={`h-full transition-all duration-300 ${isWeak ? 'bg-red-500' : 'bg-green-500'}`}
                 style={{ width: `${isWeak ? Math.max(30, strengthPercentage) : 100}%` }}
               ></div>
             </div>
             <span className={`text-[11px] font-medium ${isWeak ? 'text-red-500' : 'text-green-500'}`}>
-              {isWeak ? 'Zaif' : 'Mustahkam'}
+              {isWeak ? t('auth.register.passwordWeak') : t('auth.register.passwordStrong')}
             </span>
           </div>
         )}
@@ -224,60 +239,74 @@ export default function RegisterForm() {
 
       {/* Parolni tasdiqlash */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Parolni tasdiqlash</label>
+        <label className={`block text-sm font-medium mb-1.5 ${labelCls}`}>{t('auth.register.confirmLabel')}</label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${iconCls}`}>
             <FiRefreshCcw className="w-4 h-4" />
           </div>
           <input
-            type={showConfirmPassword ? "text" : "password"}
-            {...register('confirmPassword', { 
-              required: "Parolni tasdiqlash majburiy",
-              validate: value => value === password || "Parollar mos emas"
+            type={showConfirmPassword ? 'text' : 'password'}
+            {...register('confirmPassword', {
+              required: t('auth.validation.confirmRequired'),
+              validate: value => value === password || t('auth.validation.passwordMismatch'),
             })}
             autoComplete="new-password"
-            className={`w-full pl-11 pr-12 py-3 bg-[#0A0E1A]/50 border ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all`}
-            placeholder="********"
+            className={`${inputCN(Boolean(errors.confirmPassword))} pr-12`}
+            placeholder={t('auth.register.passwordPlaceholder')}
           />
+          <button
+            type="button"
+            className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${eyeBtnCls}`}
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? <IoEyeOffOutline className="w-5 h-5" /> : <IoEyeOutline className="w-5 h-5" />}
+          </button>
         </div>
-        {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">{(errors.confirmPassword as any).message || "Parollar mos emas"}</span>}
+        {errors.confirmPassword && <span className="text-red-500 text-xs mt-1 block">{(errors.confirmPassword as any).message || t('auth.validation.passwordMismatch')}</span>}
       </div>
 
-      {/* Referral yozish */}
+      {/* Referral */}
       <div>
-        <label className="flex justify-between text-sm font-medium text-gray-300 mb-1.5">
+        <label className={`flex justify-between text-sm font-medium mb-1.5 ${labelCls}`}>
           <span>{t('auth.register.ref')}</span>
-          <span className="text-xs text-gray-500 font-normal">{t('auth.register.refOptional')}</span>
+          <span className={`text-xs font-normal ${subLabelCls}`}>{t('auth.register.refOptional')}</span>
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <span className="text-emerald-500 font-bold mb-1">🎁</span>
           </div>
           <input
             type="text"
             defaultValue={refCodeParam}
             {...register('referralCode')}
-            className="w-full pl-11 pr-4 py-3 bg-[#0A0E1A]/50 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all uppercase"
+            className={`${inputBase} ${inputCls} ${isDark ? 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/30'} uppercase`}
             placeholder={t('auth.register.refPlaceholder')}
           />
         </div>
-        {refCodeParam && <span className="text-emerald-400 text-xs mt-1 block tracking-wide">{t('auth.register.refBonus')}</span>}
+        {refCodeParam && <span className="text-emerald-500 text-xs mt-1 block tracking-wide">{t('auth.register.refBonus')}</span>}
       </div>
 
-      {/* Shartlar Checkbox */}
+      {/* Shartlar */}
       <div className="flex items-start gap-3 mt-4">
         <div className="flex items-center h-5 mt-1">
           <input
             type="checkbox"
-            {...register('terms', { required: "Shartlarni tasdiqlash majburiy" })}
-            className="w-4 h-4 rounded border-white/20 bg-[#0A0E1A]/50 text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0 transition-all cursor-pointer"
+            {...register('terms', { required: t('auth.validation.termsRequired') })}
+            className={`w-4 h-4 rounded transition-all cursor-pointer focus:ring-offset-0 ${checkboxCls}`}
           />
         </div>
-        <label className="text-sm text-gray-400 leading-relaxed cursor-pointer" onClick={() => {
-          const checkbox = document.querySelector('input[name="terms"]');
-          if (checkbox) (checkbox as any).click();
-        }}>
-          Men <span className="text-indigo-400 hover:underline">Foydalanish shartlari</span> va <span className="text-indigo-400 hover:underline">Maxfiylik siyosati</span> bilan tanishib chiqdim va qabul qilaman.
+        <label
+          className={`text-sm leading-relaxed cursor-pointer ${termsTextCls}`}
+          onClick={() => {
+            const checkbox = document.querySelector('input[name="terms"]');
+            if (checkbox) (checkbox as any).click();
+          }}
+        >
+          {t('auth.register.termsAgree')}{' '}
+          <span className="text-indigo-500 hover:text-indigo-400 hover:underline">{t('auth.register.termsLink')}</span>{' '}
+          {t('auth.register.termsAnd')}{' '}
+          <span className="text-indigo-500 hover:text-indigo-400 hover:underline">{t('auth.register.privacyLink')}</span>{' '}
+          {t('auth.register.termsAccept')}
         </label>
       </div>
       {errors.terms && <span className="text-red-500 text-xs -mt-2 block">{(errors.terms as any).message}</span>}
@@ -298,19 +327,19 @@ export default function RegisterForm() {
         disabled={loading || (captchaRequired && !captchaToken)}
         className="w-full mt-6 py-3.5 bg-indigo-500 hover:bg-indigo-600 focus:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] active:scale-[0.98] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Kutib turing...' : "Ro'yxatdan o'tish"}
+        {loading ? t('auth.register.loading') : t('auth.register.submit')}
         {!loading && (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
 
       {/* Divider */}
       <div className="flex items-center gap-3 mt-2">
-        <div className="flex-1 h-px bg-white/10" />
-        <span className="text-xs text-gray-500">yoki</span>
-        <div className="flex-1 h-px bg-white/10" />
+        <div className={`flex-1 h-px ${dividerLineCls}`} />
+        <span className={`text-xs ${dividerTextCls}`}>{t('auth.divider.or')}</span>
+        <div className={`flex-1 h-px ${dividerLineCls}`} />
       </div>
 
       {/* Google OAuth */}

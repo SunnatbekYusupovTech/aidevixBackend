@@ -89,6 +89,19 @@ const projectSchema = new mongoose.Schema({
       githubUrl: { type: String, default: null },
     },
   ],
+  reviews: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      githubUrl: { type: String, default: null },
+      codeSnippet: { type: String, default: '' },
+      score: { type: Number, min: 0, max: 100, default: 0 },
+      summary: { type: String, default: '' },
+      strengths: [{ type: String, trim: true }],
+      improvements: [{ type: String, trim: true }],
+      model: { type: String, default: 'llama-3.3-70b-versatile' },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   isActive: {
     type: Boolean,
     default: true,

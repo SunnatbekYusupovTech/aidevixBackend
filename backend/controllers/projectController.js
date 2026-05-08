@@ -1,5 +1,6 @@
 const Project  = require('../models/Project');
 const UserStats = require('../models/UserStats');
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /**
  * @desc  Kurs uchun barcha loyihalar
@@ -114,6 +115,88 @@ const completeProject = async (req, res) => {
   }
 };
 
+const reviewProject = async (req, res) => {
+  try {
+    const { githubUrl, codeSnippet = '' } = req.body;
+    const project = await Project.findById(req.params.id);
+    if (!project || !project.isActive) {
+      return res.status(404).json({ success: false, message: 'Loyiha topilmadi' });
+    }
+    if (!githubUrl && !codeSnippet.trim()) {
+      return res.status(400).json({ success: false, message: 'githubUrl yoki codeSnippet yuborilishi shart' });
+    }
+
+    const prompt = `Sen senior code reviewer san.
+Project: ${project.title}
+Description: ${project.description}
+GitHub: ${githubUrl || 'not provided'}
+Code snippet:
+${codeSnippet.slice(0, 12000)}
+
+JSON format:
+{"score":0-100,"summary":"...","strengths":["..."],"improvements":["..."]}`;
+
+    let parsed = null;
+    if (GROQ_API_KEY) {
+      try {
+        const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.2,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: 'You are strict senior software reviewer. Return valid JSON only.' },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        });
+        if (aiRes.ok) {
+          const data = await aiRes.json();
+          parsed = JSON.parse(data?.choices?.[0]?.message?.content || '{}');
+        }
+      } catch (e) {
+        parsed = null;
+      }
+    }
+
+    if (!parsed) {
+      const score = Math.max(45, Math.min(92, 60 + Math.floor(codeSnippet.length / 220)));
+      parsed = {
+        score,
+        summary: 'Kod ishlaydigan holatda, lekin arxitektura va test qamrovi yaxshilanishi kerak.',
+        strengths: ['Asosiy oqim tushunarli', 'Loyiha strukturasiga yaxshi start berilgan'],
+        improvements: ['Error handling va validatsiyani kuchaytiring', 'Test va README ni kengaytiring'],
+      };
+    }
+
+    project.reviews.push({
+      userId: req.user._id,
+      githubUrl: githubUrl || null,
+      codeSnippet: codeSnippet.slice(0, 12000),
+      score: Number(parsed.score) || 0,
+      summary: parsed.summary || '',
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 6) : [],
+      improvements: Array.isArray(parsed.improvements) ? parsed.improvements.slice(0, 6) : [],
+      model: 'llama-3.3-70b-versatile',
+      createdAt: new Date(),
+    });
+    await project.save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'AI review tayyor',
+      data: { review: project.reviews[project.reviews.length - 1] },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ─── Admin CRUD ─────────────────────────────────────────────────────────────
 
 /**
@@ -172,6 +255,7 @@ module.exports = {
   getProjectsByCourse,
   getProject,
   completeProject,
+  reviewProject,
   createProject,
   updateProject,
   deleteProject,

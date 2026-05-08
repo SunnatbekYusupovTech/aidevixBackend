@@ -1,15 +1,21 @@
 'use client';
 
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function OfflinePage() {
   const { t } = useLang();
+  const { isDark } = useTheme();
+
+  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const titleCls = isDark ? 'text-white' : 'text-gray-900';
+  const descCls = isDark ? 'text-slate-400' : 'text-gray-600';
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] flex flex-col items-center justify-center p-6 text-center">
+    <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${bg}`}>
       <div className="text-6xl mb-6">📡</div>
-      <h1 className="text-3xl font-black text-white mb-3">{t('offline.title')}</h1>
-      <p className="text-slate-400 max-w-md mb-8">
+      <h1 className={`text-3xl font-black mb-3 ${titleCls}`}>{t('offline.title')}</h1>
+      <p className={`max-w-md mb-8 ${descCls}`}>
         {t('offline.desc')}
       </p>
       <button

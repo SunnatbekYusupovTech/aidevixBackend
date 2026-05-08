@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { selectIsLoggedIn } from '@store/slices/authSlice';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 import { ROUTES } from '@utils/constants';
 import { bugReportApi, type BugReportMine } from '@api/bugReportApi';
 import { toast } from 'react-hot-toast';
@@ -17,6 +18,7 @@ function statusLabel(status: string, t: (k: string) => string) {
 
 export default function BugReportPage() {
   const { t } = useLang();
+  const { isDark } = useTheme();
   const isAuth = useSelector(selectIsLoggedIn);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -41,15 +43,15 @@ export default function BugReportPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuth) {
-      toast.error('Avval tizimga kiring');
+      toast.error(t('bugReport.errLogin'));
       return;
     }
     if (title.trim().length < 5) {
-      toast.error('Sarlavha kamida 5 belgi');
+      toast.error(t('bugReport.errTitleShort'));
       return;
     }
     if (description.trim().length < 20) {
-      toast.error('Tavsif kamida 20 belgi');
+      toast.error(t('bugReport.errDescShort'));
       return;
     }
     try {
@@ -68,21 +70,41 @@ export default function BugReportPage() {
       setMine(data.data || []);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || 'Xato');
+      toast.error(msg || t('bugReport.errGeneric'));
     } finally {
       setSending(false);
     }
   };
 
+  // Theme-aware
+  const pageBg = isDark ? 'bg-[#050507] text-slate-200' : 'bg-gray-50 text-gray-800';
+  const titleCls = isDark ? 'text-white' : 'text-gray-900';
+  const subCls = isDark ? 'text-slate-400' : 'text-gray-600';
+  const cardCls = isDark ? 'border-white/10 bg-white/[0.03]' : 'border-gray-200 bg-white shadow-sm';
+  const cardTextCls = isDark ? 'text-slate-400' : 'text-gray-600';
+  const labelCls = isDark ? 'text-slate-500' : 'text-gray-500';
+  const inputCls = isDark
+    ? 'border-white/10 bg-white/5 text-white focus:border-indigo-500/50'
+    : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-indigo-500';
+  const histCardCls = isDark
+    ? 'border-white/10 bg-[#0a0c14]/80'
+    : 'border-gray-200 bg-white';
+  const histTitleCls = isDark ? 'text-white' : 'text-gray-900';
+  const histStatusCls = isDark ? 'bg-white/10 text-slate-400' : 'bg-gray-100 text-gray-500';
+  const histSubCls = isDark ? 'text-slate-500' : 'text-gray-500';
+  const histNoteCls = isDark ? 'text-slate-400' : 'text-gray-600';
+  const dividerCls = isDark ? 'border-white/10' : 'border-gray-200';
+  const hintCls = isDark ? 'text-slate-500' : 'text-gray-500';
+
   return (
-    <div className="min-h-screen bg-[#050507] px-3 pb-20 pt-24 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pt-28 md:px-6">
+    <div className={`min-h-screen px-3 pb-20 pt-24 selection:bg-indigo-500/30 sm:px-4 sm:pt-28 md:px-6 ${pageBg}`}>
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">{t('bugReport.pageTitle')}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">{t('bugReport.subtitle')}</p>
+        <h1 className={`text-2xl font-black tracking-tight sm:text-3xl ${titleCls}`}>{t('bugReport.pageTitle')}</h1>
+        <p className={`mt-2 text-sm leading-relaxed ${subCls}`}>{t('bugReport.subtitle')}</p>
 
         {!isAuth ? (
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
-            <p className="mb-4 text-slate-400">{t('nav.login')} — bug xabar berish uchun akkaunt kerak.</p>
+          <div className={`mt-10 rounded-2xl border p-8 text-center ${cardCls}`}>
+            <p className={`mb-4 ${cardTextCls}`}>{t('nav.login')} — {t('bugReport.loginRequired')}</p>
             <Link
               href={ROUTES.LOGIN}
               className="inline-flex rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white hover:bg-indigo-500"
@@ -93,7 +115,7 @@ export default function BugReportPage() {
         ) : (
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${labelCls}`}>
                 {t('bugReport.fieldTitle')}
               </label>
               <input
@@ -101,11 +123,11 @@ export default function BugReportPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={160}
                 required
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-indigo-500/50"
+                className={`w-full rounded-2xl border px-4 py-3 outline-none ${inputCls}`}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${labelCls}`}>
                 {t('bugReport.fieldDesc')}
               </label>
               <textarea
@@ -114,31 +136,31 @@ export default function BugReportPage() {
                 rows={6}
                 maxLength={8000}
                 required
-                className="w-full resize-y rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                className={`w-full resize-y rounded-2xl border px-4 py-3 text-sm outline-none ${inputCls}`}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${labelCls}`}>
                 {t('bugReport.fieldUrl')}
               </label>
               <input
                 value={pageUrl}
                 onChange={(e) => setPageUrl(e.target.value)}
                 maxLength={800}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none ${inputCls}`}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${labelCls}`}>
                 {t('bugReport.fieldSuggestion')}
               </label>
-              <p className="mb-1 text-[11px] text-slate-500">{t('bugReport.hintSuggestion')}</p>
+              <p className={`mb-1 text-[11px] ${hintCls}`}>{t('bugReport.hintSuggestion')}</p>
               <textarea
                 value={suggestion}
                 onChange={(e) => setSuggestion(e.target.value)}
                 rows={4}
                 maxLength={4000}
-                className="w-full resize-y rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                className={`w-full resize-y rounded-2xl border px-4 py-3 text-sm outline-none ${inputCls}`}
               />
             </div>
             <button
@@ -152,21 +174,21 @@ export default function BugReportPage() {
         )}
 
         {isAuth && mine.length > 0 && (
-          <section className="mt-14 border-t border-white/10 pt-10">
-            <h2 className="mb-4 text-lg font-bold text-white">{t('bugReport.history')}</h2>
+          <section className={`mt-14 border-t pt-10 ${dividerCls}`}>
+            <h2 className={`mb-4 text-lg font-bold ${titleCls}`}>{t('bugReport.history')}</h2>
             <ul className="space-y-3">
               {mine.map((r) => (
                 <li
                   key={r._id}
-                  className="rounded-2xl border border-white/10 bg-[#0a0c14]/80 px-4 py-3 text-sm"
+                  className={`rounded-2xl border px-4 py-3 text-sm ${histCardCls}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold text-white">{r.title}</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400">
+                    <span className={`font-semibold ${histTitleCls}`}>{r.title}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${histStatusCls}`}>
                       {statusLabel(r.status, t)}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                  <div className={`mt-1 flex flex-wrap gap-3 text-xs ${histSubCls}`}>
                     <span>
                       {t('bugReport.bugXp')}: {r.bugXpGranted ? '+100' : '—'}
                     </span>
@@ -174,7 +196,7 @@ export default function BugReportPage() {
                       {t('bugReport.sugXp')}: {r.suggestionXpGranted ? '+100' : '—'}
                     </span>
                   </div>
-                  {r.adminNote ? <p className="mt-2 text-xs text-slate-400">{r.adminNote}</p> : null}
+                  {r.adminNote ? <p className={`mt-2 text-xs ${histNoteCls}`}>{r.adminNote}</p> : null}
                 </li>
               ))}
             </ul>

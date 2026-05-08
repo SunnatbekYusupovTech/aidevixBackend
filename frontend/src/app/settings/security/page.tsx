@@ -16,6 +16,7 @@ import {
 import SessionDevicesPanel from '@/components/settings/SessionDevicesPanel';
 import AccountDangerZone from '@/components/settings/AccountDangerZone';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 
 type DisableState = { open: boolean; password: string; code: string; submitting: boolean };
 type RegenState = { open: boolean; code: string; submitting: boolean; codes: string[] | null };
@@ -23,6 +24,7 @@ type ChangePwState = { open: boolean; current: string; next: string; confirm: st
 
 export default function SecuritySettingsPage() {
   const { t } = useLang();
+  const { isDark } = useTheme();
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
@@ -99,28 +101,41 @@ export default function SecuritySettingsPage() {
 
   if (authLoading || !user) return null;
 
+  // Theme classes
+  const pageBg = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-gray-50 text-gray-900';
+  const linkBack = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
+  const subTxt = isDark ? 'text-gray-400' : 'text-gray-600';
+  const sectionCls = isDark ? 'bg-[#0d1224]/40 border-white/5' : 'bg-white border-gray-200 shadow-sm';
+  const ghostBtn = isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-gray-100 hover:bg-gray-200 border-gray-200';
+  const inputCls = isDark
+    ? 'bg-[#0A0E1A]/50 border-white/10 text-white placeholder-gray-500'
+    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400';
+  const modalBg = isDark ? 'bg-[#0d1224] border-white/10' : 'bg-white border-gray-200 shadow-2xl';
+  const codeBoxBg = isDark ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200';
+  const codeCellBg = isDark ? 'bg-white/5 text-white' : 'bg-white text-gray-900 border border-gray-200';
+
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white py-10 px-4">
+    <div className={`min-h-screen py-10 px-4 ${pageBg}`}>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Link href="/profile" className="text-sm text-gray-400 hover:text-white">← {t('security.backProfile')}</Link>
+          <Link href="/profile" className={`text-sm ${linkBack}`}>← {t('security.backProfile')}</Link>
           <h1 className="text-3xl font-bold mt-2">{t('security.title')}</h1>
-          <p className="text-gray-400 text-sm mt-1">{t('security.subtitle')}</p>
+          <p className={`text-sm mt-1 ${subTxt}`}>{t('security.subtitle')}</p>
         </div>
 
         <SessionDevicesPanel />
 
         {/* Password */}
-        <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
+        <section className={`border rounded-2xl p-6 ${sectionCls}`}>
           <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-lg font-semibold">{t('security.password.title')}</h2>
-              <p className="text-gray-400 text-sm">{t('security.password.subtitle')}</p>
+              <p className={`text-sm ${subTxt}`}>{t('security.password.subtitle')}</p>
             </div>
             {!changePw.open && (
               <button
                 onClick={() => setChangePw((s) => ({ ...s, open: true }))}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm"
+                className={`px-4 py-2 border rounded-lg text-sm ${ghostBtn}`}
               >
                 {t('security.password.change')}
               </button>
@@ -133,32 +148,32 @@ export default function SecuritySettingsPage() {
                 type="password" placeholder={t('security.password.currentPlaceholder')}
                 value={changePw.current}
                 onChange={(e) => setChangePw((s) => ({ ...s, current: e.target.value }))}
-                className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
+                className={`w-full border rounded-xl px-4 py-3 ${inputCls}`}
                 autoComplete="current-password"
               />
               <input
                 type="password" placeholder={t('security.password.newPlaceholder')}
                 value={changePw.next}
                 onChange={(e) => setChangePw((s) => ({ ...s, next: e.target.value }))}
-                className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
+                className={`w-full border rounded-xl px-4 py-3 ${inputCls}`}
                 autoComplete="new-password"
               />
               <input
                 type="password" placeholder={t('security.password.confirmPlaceholder')}
                 value={changePw.confirm}
                 onChange={(e) => setChangePw((s) => ({ ...s, confirm: e.target.value }))}
-                className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
+                className={`w-full border rounded-xl px-4 py-3 ${inputCls}`}
                 autoComplete="new-password"
               />
               <div className="flex gap-2">
                 <button
                   type="submit" disabled={changePw.submitting}
-                  className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl disabled:opacity-50"
+                  className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl disabled:opacity-50"
                 >{changePw.submitting ? t('security.saving') : t('security.save')}</button>
                 <button
                   type="button"
                   onClick={() => setChangePw({ open: false, current: '', next: '', confirm: '', submitting: false })}
-                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
+                  className={`px-4 py-3 border rounded-xl ${ghostBtn}`}
                 >{t('security.cancel')}</button>
               </div>
             </form>
@@ -166,15 +181,15 @@ export default function SecuritySettingsPage() {
         </section>
 
         {/* 2FA */}
-        <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
+        <section className={`border rounded-2xl p-6 ${sectionCls}`}>
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold">{t('security.twofa.title')}</h2>
-                {totpOn && <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">{t('security.twofa.on')}</span>}
-                {!totpOn && <span className="text-xs bg-zinc-500/20 text-zinc-300 px-2 py-0.5 rounded-full">{t('security.twofa.off')}</span>}
+                {totpOn && <span className="text-xs bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">{t('security.twofa.on')}</span>}
+                {!totpOn && <span className="text-xs bg-zinc-500/20 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full">{t('security.twofa.off')}</span>}
               </div>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className={`text-sm mt-1 ${subTxt}`}>
                 {isAdmin
                   ? t('security.twofa.adminHint')
                   : t('security.twofa.userHint')}
@@ -185,7 +200,7 @@ export default function SecuritySettingsPage() {
           {!totpOn && (
             <Link
               href="/auth/2fa-setup"
-              className="inline-block px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-sm"
+              className="inline-block px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm"
             >
               {t('security.twofa.enable')}
             </Link>
@@ -195,14 +210,14 @@ export default function SecuritySettingsPage() {
             <div className="space-y-3 mt-4">
               <button
                 onClick={() => setRegen({ open: true, code: '', submitting: false, codes: null })}
-                className="w-full text-left px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm"
+                className={`w-full text-left px-4 py-3 border rounded-xl text-sm ${ghostBtn}`}
               >
                 {t('security.twofa.regen')}
               </button>
               {!isAdmin && (
                 <button
                   onClick={() => setDisable({ open: true, password: '', code: '', submitting: false })}
-                  className="w-full text-left px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-sm text-rose-300"
+                  className="w-full text-left px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-sm text-rose-600 dark:text-rose-300"
                 >
                   {t('security.twofa.disable')}
                 </button>
@@ -216,30 +231,30 @@ export default function SecuritySettingsPage() {
         {/* Disable modal */}
         {disable.open && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <form onSubmit={onDisable} className="w-full max-w-md bg-[#0d1224] border border-white/10 rounded-2xl p-6 space-y-3">
+            <form onSubmit={onDisable} className={`w-full max-w-md border rounded-2xl p-6 space-y-3 ${modalBg}`}>
               <h3 className="text-lg font-semibold">{t('security.disableModal.title')}</h3>
-              <p className="text-sm text-gray-400">{t('security.disableModal.subtitle')}</p>
+              <p className={`text-sm ${subTxt}`}>{t('security.disableModal.subtitle')}</p>
               <input
                 type="password" placeholder={t('security.password.currentPlaceholder')}
                 value={disable.password}
                 onChange={(e) => setDisable((s) => ({ ...s, password: e.target.value }))}
-                className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3"
+                className={`w-full border rounded-xl px-4 py-3 ${inputCls}`}
                 autoComplete="current-password"
               />
               <input
                 type="text" placeholder={t('security.disableModal.codePlaceholder')}
                 value={disable.code}
                 onChange={(e) => setDisable((s) => ({ ...s, code: e.target.value.toUpperCase() }))}
-                className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3 font-mono"
+                className={`w-full border rounded-xl px-4 py-3 font-mono ${inputCls}`}
               />
               <div className="flex gap-2">
-                <button type="submit" disabled={disable.submitting} className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 rounded-xl disabled:opacity-50">
+                <button type="submit" disabled={disable.submitting} className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl disabled:opacity-50">
                   {disable.submitting ? t('security.disabling') : t('security.disable')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDisable({ open: false, password: '', code: '', submitting: false })}
-                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
+                  className={`px-4 py-3 border rounded-xl ${ghostBtn}`}
                 >{t('security.cancel')}</button>
               </div>
             </form>
@@ -249,26 +264,26 @@ export default function SecuritySettingsPage() {
         {/* Regen backup codes modal */}
         {regen.open && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <div className="w-full max-w-md bg-[#0d1224] border border-white/10 rounded-2xl p-6 space-y-3">
+            <div className={`w-full max-w-md border rounded-2xl p-6 space-y-3 ${modalBg}`}>
               {!regen.codes && (
                 <form onSubmit={onRegen} className="space-y-3">
                   <h3 className="text-lg font-semibold">{t('security.backupModal.newTitle')}</h3>
-                  <p className="text-sm text-gray-400">{t('security.backupModal.newSubtitle')}</p>
+                  <p className={`text-sm ${subTxt}`}>{t('security.backupModal.newSubtitle')}</p>
                   <input
                     type="text" placeholder="000000" inputMode="numeric" maxLength={6}
                     value={regen.code}
                     onChange={(e) => setRegen((s) => ({ ...s, code: e.target.value.replace(/\D/g, '') }))}
-                    className="w-full bg-[#0A0E1A]/50 border border-white/10 rounded-xl px-4 py-3 text-center text-xl tracking-[6px] font-mono"
+                    className={`w-full border rounded-xl px-4 py-3 text-center text-xl tracking-[6px] font-mono ${inputCls}`}
                     autoFocus
                   />
                   <div className="flex gap-2">
-                    <button type="submit" disabled={regen.submitting || regen.code.length !== 6} className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl disabled:opacity-50">
+                    <button type="submit" disabled={regen.submitting || regen.code.length !== 6} className="flex-1 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl disabled:opacity-50">
                       {regen.submitting ? t('security.creating') : t('security.create')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setRegen({ open: false, code: '', submitting: false, codes: null })}
-                      className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl"
+                      className={`px-4 py-3 border rounded-xl ${ghostBtn}`}
                     >{t('security.cancel')}</button>
                   </div>
                 </form>
@@ -277,12 +292,12 @@ export default function SecuritySettingsPage() {
               {regen.codes && (
                 <div className="space-y-3">
                   <h3 className="text-lg font-semibold">{t('security.backupModal.generatedTitle')}</h3>
-                  <p className="text-sm text-amber-300/90">
+                  <p className="text-sm text-amber-600 dark:text-amber-300/90">
                     {t('security.backupModal.generatedSubtitle')}
                   </p>
-                  <div className="grid grid-cols-2 gap-2 bg-white/5 border border-white/10 rounded-xl p-4 font-mono">
+                  <div className={`grid grid-cols-2 gap-2 border rounded-xl p-4 font-mono ${codeBoxBg}`}>
                     {regen.codes.map((c) => (
-                      <div key={c} className="text-center text-sm py-1.5 bg-white/5 rounded">{c}</div>
+                      <div key={c} className={`text-center text-sm py-1.5 rounded ${codeCellBg}`}>{c}</div>
                     ))}
                   </div>
                   <button
@@ -290,11 +305,11 @@ export default function SecuritySettingsPage() {
                       navigator.clipboard.writeText(regen.codes!.join('\n'));
                       toast.success(t('security.toast.copied'));
                     }}
-                    className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm"
+                    className={`w-full py-3 border rounded-xl text-sm ${ghostBtn}`}
                   >{t('security.backupModal.copyAll')}</button>
                   <button
                     onClick={() => setRegen({ open: false, code: '', submitting: false, codes: null })}
-                    className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl"
+                    className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl"
                   >{t('security.backupModal.savedClose')}</button>
                 </div>
               )}

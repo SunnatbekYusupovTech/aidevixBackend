@@ -53,10 +53,7 @@ frontend/public/
 !**/.env.example
 
 # Specific Heavy/Redundant Docs
-backend/docs/swagger/
 docs/students/
-backend/OQUVCHILAR_UCHUN.md
-backend/DEPLOY.md
 render.yaml
 extract-swagger.js
 **/__fixtures__/

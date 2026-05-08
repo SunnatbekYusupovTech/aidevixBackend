@@ -4,6 +4,7 @@ const {
   getProjectsByCourse,
   getProject,
   completeProject,
+  reviewProject,
   createProject,
   updateProject,
   deleteProject,
@@ -22,6 +23,7 @@ const optionalAuth = (req, res, next) => {
 router.get('/course/:courseId', optionalAuth, getProjectsByCourse);
 router.get('/:id', optionalAuth, getProject);
 router.post('/:id/complete', authenticate, completeProject);
+router.post('/:id/review', authenticate, reviewProject);
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 router.post('/', authenticate, requireAdmin, createProject);

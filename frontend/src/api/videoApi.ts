@@ -34,4 +34,11 @@ export const videoApi = {
 
   /** DELETE /videos/:id (admin) */
   delete: (id) => api.delete(`videos/${id}`),
+
+  /** Discussions */
+  getQuestions: (videoId: string) => api.get(`videos/${videoId}/questions`),
+  askQuestion: (videoId: string, payload: { question: string; parentId?: string; mentions?: string[] }) =>
+    api.post(`videos/${videoId}/questions`, payload),
+  upvoteQuestion: (videoId: string, questionId: string) =>
+    api.post(`videos/${videoId}/questions/${questionId}/upvote`),
 }

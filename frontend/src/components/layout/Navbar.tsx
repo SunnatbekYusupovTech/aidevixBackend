@@ -48,6 +48,7 @@ export default function Navbar() {
   ]
   const navMore: { label: string; to: string }[] = [
     { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
+    { label: 'Mentorship', to: ROUTES.MENTORSHIP },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },

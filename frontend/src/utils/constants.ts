@@ -95,6 +95,7 @@ export const ROUTES = {
   CHALLENGES:     '/challenges',
   LEADERBOARD:    '/leaderboard',
   REFERRAL:       '/referral',
+  MENTORSHIP:     '/mentorship',
   PROMPTS:        '/prompts',
   TEAM:           '/team',
   ROADMAP:        '/roadmap',

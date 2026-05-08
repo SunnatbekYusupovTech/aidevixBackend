@@ -254,6 +254,10 @@ app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
 app.use('/api/users',        require('./routes/userRoutes'));
+app.use('/api/jobs',         require('./routes/jobRoutes'));
+app.use('/api/mentorship',   require('./routes/mentorshipRoutes'));
+app.use('/api/teams',        require('./routes/teamRoutes'));
+app.use('/api/spaced-repetition', require('./routes/spacedRepetitionRoutes'));
 
 // Health check route
 /**

@@ -731,7 +731,7 @@ export default function PromptsPage() {
                 </button>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-xs font-medium text-slate-400 sm:text-sm">
-                  {promptAccess === 'checking' ? t('prompts.checkingSub') : 'Telegram va Instagram obunasi kerak'}
+                  {promptAccess === 'checking' ? t('prompts.checkingSub') : t('prompts.subRequired')}
                 </div>
               )}
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-400">
@@ -790,10 +790,10 @@ export default function PromptsPage() {
               </div>
 
               <h2 id="prompts-tg-gate-title" className="mb-3 text-xl font-black text-white sm:text-2xl">
-                Promptlar uchun ijtimoiy obuna talab qilinadi
+                {t('prompts.subGateTitle')}
               </h2>
               <p className="mb-2 text-sm leading-relaxed text-slate-400">
-                Promptlarni ko&apos;rish uchun Telegram va Instagram obunangiz faol bo&apos;lishi shart.
+                {t('prompts.subGateBody')}
               </p>
 
               {/* social badges */}

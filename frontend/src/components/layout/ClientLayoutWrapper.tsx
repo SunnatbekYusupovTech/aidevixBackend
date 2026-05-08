@@ -13,6 +13,7 @@ const AICoach = dynamic(() => import('@components/common/AICoach'), { ssr: false
 const ExitIntentModal = dynamic(() => import('@components/common/ExitIntentModal'), { ssr: false });
 const BetaWelcomeModal = dynamic(() => import('@components/common/BetaWelcomeModal'), { ssr: false });
 const PWAInstallPrompt = dynamic(() => import('@components/common/PWAInstallPrompt'), { ssr: false });
+const CookieConsent = dynamic(() => import('@components/common/CookieConsent'), { ssr: false });
 
 export default function ClientLayoutWrapper({
   children,
@@ -114,6 +115,7 @@ export default function ClientLayoutWrapper({
       {showDeferredPrompts && <PWAInstallPrompt />}
       {isMounted && !hideLayout && <Footer />}
       {isMounted && <ScrollToTop />}
+      {isMounted && <CookieConsent />}
     </>
   );
 }

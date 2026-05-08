@@ -61,7 +61,7 @@ function VerifyCodeContent() {
       setLoading(true);
       const res = await forgotPasswordApi.verifyCode({ identifier, method, code: data.code });
       const resetToken = res.data?.data?.resetToken;
-      if (!resetToken) throw new Error('Serverdan reset token olinmadi.');
+      if (!resetToken) throw new Error(t('verify.resetTokenError'));
       toast.success(t('verify.confirmed'));
       router.push(`/reset-password?token=${encodeURIComponent(resetToken)}&identifier=${encodeURIComponent(identifier)}`);
     } catch (error: any) {
@@ -108,16 +108,29 @@ function VerifyCodeContent() {
     }
   };
 
+  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const cardBg = isDark
+    ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
+    : 'bg-white border border-gray-200 shadow-xl';
+  const headTextMain = isDark ? 'text-white' : 'text-gray-900';
+  const headTextMuted = isDark ? 'text-gray-400' : 'text-gray-600';
+  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+  const inputCls = isDark
+    ? 'bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+  const timerCls = isDark ? 'text-gray-400' : 'text-gray-500';
+  const backLinkCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
+
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans selection:bg-indigo-500/30">
-      <div className="w-full flex flex-col justify-center items-center p-3 sm:p-12 relative bg-[#0A0E1A]">
+    <div className={`min-h-screen flex font-sans selection:bg-indigo-500/30 ${pageBg} ${headTextMain}`}>
+      <div className={`w-full flex flex-col justify-center items-center p-3 sm:p-12 relative ${pageBg}`}>
         <div
           ref={cardRef}
-          className="w-full max-w-[420px] bg-[#0A0E1A] lg:bg-[#0d1224]/40 rounded-2xl sm:rounded-3xl border-0 lg:border lg:border-white/5 p-5 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5"
+          className={`w-full max-w-[420px] rounded-2xl sm:rounded-3xl p-5 sm:p-10 opacity-0 shadow-2xl shadow-indigo-500/5 ${cardBg}`}
         >
           <div className="text-center mb-7 sm:mb-10">
-            <h2 className="text-[1.45rem] sm:text-[1.75rem] font-bold text-white mb-3">{t('verify.title')}</h2>
-            <p className="text-gray-400 text-[0.95rem] px-2 leading-relaxed">
+            <h2 className={`text-[1.45rem] sm:text-[1.75rem] font-bold mb-3 ${headTextMain}`}>{t('verify.title')}</h2>
+            <p className={`text-[0.95rem] px-2 leading-relaxed ${headTextMuted}`}>
               <strong>{isTelegram ? '@' + identifier : identifier}</strong>{' '}
               {isTelegram ? t('verify.descTelegram') : t('verify.descEmail')}
             </p>
@@ -126,14 +139,14 @@ function VerifyCodeContent() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
             <div className="form-control w-full">
               <label className="label pt-0 pb-1 px-1">
-                <span className="label-text text-gray-300 font-medium text-sm">{t('verify.label')}</span>
+                <span className={`label-text font-medium text-sm ${labelCls}`}>{t('verify.label')}</span>
               </label>
               <input
                 type="text"
                 maxLength={6}
                 placeholder="000000"
                 style={{ letterSpacing: '6px', textAlign: 'center' }}
-                className={`w-full bg-white text-gray-900 px-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-primary transition-all text-xl font-bold ${errors.code ? 'ring-2 ring-error' : ''}`}
+                className={`w-full px-5 py-3.5 rounded-full outline-none transition-all text-xl font-bold ${inputCls} ${errors.code ? '!ring-2 !ring-red-500/50' : ''}`}
                 {...register('code', {
                   required: t('verify.codeRequired'),
                   pattern: {
@@ -142,7 +155,7 @@ function VerifyCodeContent() {
                   },
                 })}
               />
-              {errors.code && <p className="text-error text-xs mt-1 text-center">{(errors.code as any).message}</p>}
+              {errors.code && <p className="text-red-500 text-xs mt-1 text-center">{(errors.code as any).message}</p>}
             </div>
 
             <div className="pt-4">
@@ -161,7 +174,7 @@ function VerifyCodeContent() {
 
             <div className="text-center pt-6">
               {timeLeft > 0 ? (
-                <p className="text-gray-400 text-sm">
+                <p className={`text-sm ${timerCls}`}>
                   {t('verify.resend')} ({timeLeft}s)
                 </p>
               ) : (
@@ -181,7 +194,7 @@ function VerifyCodeContent() {
                     type="button"
                     onClick={handleResend}
                     disabled={resendLoading || (captchaRequired && !captchaToken)}
-                    className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors disabled:opacity-50"
+                    className="text-indigo-500 hover:text-indigo-400 hover:underline text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {resendLoading ? t('verify.sending') : t('verify.resend')}
                   </button>
@@ -190,7 +203,7 @@ function VerifyCodeContent() {
             </div>
 
             <div className="text-center pt-4">
-              <Link href="/forgot-password" className="text-gray-400 hover:text-white hover:underline text-sm font-medium transition-colors">
+              <Link href="/forgot-password" className={`hover:underline text-sm font-medium transition-colors ${backLinkCls}`}>
                 {t('verify.useOther')}
               </Link>
             </div>
@@ -203,7 +216,7 @@ function VerifyCodeContent() {
 
 export default function VerifyCodePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0A0E1A]"><span className="loading loading-spinner loading-lg text-primary"></span></div>}>
       <VerifyCodeContent />
     </Suspense>
   );

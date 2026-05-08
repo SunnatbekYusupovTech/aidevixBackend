@@ -6,12 +6,9 @@
       "Bash(cd \"C:/Users/User/OneDrive/Рабочий стол/AidevixBackend\" && git push origin main 2>&1)",
       "mcp__plugin_playwright_playwright__browser_navigate",
       "mcp__plugin_playwright_playwright__browser_press_key",
-<<<<<<< HEAD
-      "Bash(npm install:*)"
-=======
+      "Bash(npm install:*)",
       "Bash(node --check backend/controllers/authController.js)",
       "Bash(node --check backend/controllers/xpController.js)"
->>>>>>> 351adc5df9410ba300fb780c0e6ee8a4c8882b80
     ]
   }
 }

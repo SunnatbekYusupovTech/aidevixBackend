@@ -87,6 +87,18 @@ FRONTEND_URL=http://localhost:3000
 
 ---
 
+## Loyiha Dokumentatsiyasi
+
+| Hujjat | Mazmuni |
+|--------|---------|
+| [`docs/AUTOFIX.md`](docs/AUTOFIX.md) | AutoFix sistemasi — chokidar + Claude CLI orqali avtomatik bug fix |
+| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Lighthouse 40% → 75%+ optimizatsiyalari |
+| [`CLAUDE.md`](CLAUDE.md) | Agent va contributor uchun arxitektura xulosasi |
+| [`VIDEO_INTEGRATION.md`](VIDEO_INTEGRATION.md) | Bunny.net video integratsiyasi |
+| [`mobile.md`](mobile.md) | Mobil yondashuv qaydlari |
+
+---
+
 ## API Dokumentatsiya
 
 - **Swagger UI:** `http://localhost:5000/api-docs` (login: Aidevix / sunnatbee)

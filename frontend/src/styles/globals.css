@@ -422,3 +422,20 @@ html[data-theme='light'] {
   .placeholder-slate-500::placeholder { color: #94a3b8; }
   .placeholder-white\/40::placeholder { color: rgba(15, 23, 42, 0.4); }
 }
+
+/* Legacy `bg-dark-*` palette overrides — declared at top level (not nested)
+   so Tailwind @apply can still resolve these class names in components. */
+html.light-mode .bg-dark-base,
+html[data-theme='light'] .bg-dark-base    { background-color: #f7f8fc !important; }
+html.light-mode .bg-dark-surface,
+html[data-theme='light'] .bg-dark-surface { background-color: #ffffff !important; }
+html.light-mode .bg-dark-card,
+html[data-theme='light'] .bg-dark-card    { background-color: #ffffff !important; }
+html.light-mode .bg-dark-border,
+html[data-theme='light'] .bg-dark-border  { background-color: #e5e7eb !important; }
+html.light-mode .bg-dark-muted,
+html[data-theme='light'] .bg-dark-muted   { background-color: #f1f5f9 !important; }
+html.light-mode .border-dark-border,
+html[data-theme='light'] .border-dark-border { border-color: #e5e7eb !important; }
+html.light-mode .border-dark-base,
+html[data-theme='light'] .border-dark-base   { border-color: #e2e8f0 !important; }

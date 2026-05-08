@@ -109,7 +109,8 @@ module.exports = {
   daisyui: {
     themes: [
       {
-        aidevix: {
+        dark: {
+          'color-scheme':    'dark',
           primary:           '#6366f1',
           'primary-focus':   '#4f46e5',
           'primary-content': '#ffffff',
@@ -119,14 +120,35 @@ module.exports = {
           'base-100':        '#0d0d0f',
           'base-200':        '#111113',
           'base-300':        '#18181b',
+          'base-content':    '#f8fafc',
           info:              '#3b82f6',
           success:           '#22c55e',
           warning:           '#f59e0b',
           error:             '#ef4444',
         },
       },
+      {
+        light: {
+          'color-scheme':    'light',
+          primary:           '#6366f1',
+          'primary-focus':   '#4f46e5',
+          'primary-content': '#ffffff',
+          secondary:         '#8b5cf6',
+          accent:            '#06b6d4',
+          neutral:           '#e5e7eb',
+          'neutral-content': '#1f2937',
+          'base-100':        '#ffffff',
+          'base-200':        '#f8fafc',
+          'base-300':        '#e2e8f0',
+          'base-content':    '#0f172a',
+          info:              '#3b82f6',
+          success:           '#16a34a',
+          warning:           '#d97706',
+          error:             '#dc2626',
+        },
+      },
     ],
-    darkTheme: 'aidevix',
+    darkTheme: 'dark',
     base: true,
     styled: true,
     utils: true,

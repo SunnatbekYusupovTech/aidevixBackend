@@ -38,8 +38,11 @@ export default function VideoComments({ videoId }: { videoId: string }) {
       if (replace) setQuestions(list);
       else setQuestions(prev => [...prev, ...list]);
       setHasMore(list.length === 10);
-    } catch {
-      // silent
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('VideoComments fetch xato:', err);
+      }
+      if (replace) toast.error('Savol-javoblarni yuklab bo\'lmadi');
     } finally {
       setLoading(false);
     }

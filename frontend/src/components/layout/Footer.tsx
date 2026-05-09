@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { FaInstagram, FaTelegram, FaYoutube } from 'react-icons/fa'
 import SiteLogoMark from '@components/common/SiteLogoMark'
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants'
@@ -63,12 +62,7 @@ export default function Footer() {
     <footer className={`border-t ${shell}`} style={{ borderTopColor: borderClr }}>
       <div className="mx-auto max-w-7xl px-3 pt-12 pb-8 sm:px-4 sm:pt-16 sm:pb-10 md:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.15fr_0.85fr_0.85fr_0.85fr] lg:gap-8">
-          <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          >
+          <div>
             <div className="section-kicker text-indigo-400">Aidevix</div>
             <Link href={ROUTES.HOME} className="group mt-5 flex w-fit items-center gap-2">
               <SiteLogoMark
@@ -93,15 +87,11 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-          </motion.div>
+          </div>
 
-          {FOOTER_LINKS.map((group, idx) => (
-            <motion.div
+          {FOOTER_LINKS.map((group) => (
+            <div
               key={group.title}
-              initial={{ y: 40, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.1 * (idx + 1), ease: 'easeOut' }}
               className="border-t pt-5 lg:border-0 lg:pt-0"
               style={{ borderColor: borderClr }}
             >
@@ -115,16 +105,12 @@ export default function Footer() {
                   </li>
                 ))}
               </ul>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, delay: 0.5 }}
+      <div
         className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-3 py-3 text-center sm:flex-row sm:px-6 sm:text-left lg:px-8"
         style={{ borderTop: `1px solid ${borderClr}` }}
       >
@@ -137,7 +123,7 @@ export default function Footer() {
             {t('footer.status')}
           </span>
         </div>
-      </motion.div>
+      </div>
     </footer>
   )
 }

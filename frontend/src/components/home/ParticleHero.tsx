@@ -28,6 +28,22 @@ export default function ParticleHero() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Reduce-motion afzalligi va sahifa ko'rinmaydigan holda animatsiyani to'xtatamiz.
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) return;
+
+    let isRunning = true;
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false;
+        cancelAnimationFrame(animFrameRef.current);
+      } else if (!isRunning) {
+        isRunning = true;
+        draw();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     const resize = () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
@@ -102,12 +118,14 @@ export default function ParticleHero() {
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener('resize', resize);
       canvas.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
       className="absolute inset-0 w-full h-full pointer-events-auto"
       style={{ zIndex: 0 }}
     />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useSelector } from 'react-redux'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { HiBolt } from 'react-icons/hi2'
@@ -63,7 +64,15 @@ function PodiumCard({ user, rank }: { user: any, rank: number }) {
         {rank===1 && <FaTrophy className="text-yellow-400 text-3xl mb-2 drop-shadow-lg" />}
         <div className={`${s.sz} rounded-full border-2 ${s.ab} flex items-center justify-center font-bold text-lg overflow-hidden bg-base-300 flex-shrink-0`}>
           {user.user?.avatar || user.avatar
-            ? <img src={user.user?.avatar||user.avatar} alt={username} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+            ? <Image
+                src={user.user?.avatar || user.avatar}
+                alt={username}
+                width={96}
+                height={96}
+                sizes="(max-width: 360px) 64px, 96px"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
             : <span>{getInitials(username)}</span>}
         </div>
         <p className={`${rank===1?'text-sm min-[360px]:text-base font-black':'text-xs min-[360px]:text-sm font-bold'} mt-2 text-center truncate w-full`}>{username}</p>
@@ -153,20 +162,30 @@ export default function LeaderboardPage() {
     try {
       const { data } = await api.get(`/ranking/users/${currentUser._id}/position`)
       setUserPosition(data?.data?.position || data?.data || null)
-    } catch {}
+    } catch (err: any) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('ranking position:', err?.message || err)
+      }
+    }
   }
 
   useEffect(() => {
     setIsMounted(true)
     fetchUsers(1, true)
-    userApi.getWeeklyPrizes().then(({ data }) => setWeeklyData(data?.data)).catch(() => {})
+    userApi.getWeeklyPrizes()
+      .then(({ data }) => setWeeklyData(data?.data))
+      .catch((err) => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('weekly prizes:', err?.message || err)
+        }
+      })
   }, [])
 
   useEffect(() => {
     if (!weeklyData?.nextReset) return
     const update = () => {
       const ms = new Date(weeklyData.nextReset).getTime() - Date.now()
-      if (ms <= 0) { setCountdown('0d 0h 0m'); return }
+      if (ms <= 0) { setCountdown('0k 0s 0d'); return }
       const d = Math.floor(ms / 86400000)
       const h = Math.floor((ms % 86400000) / 3600000)
       const m = Math.floor((ms % 3600000) / 60000)
@@ -210,22 +229,23 @@ export default function LeaderboardPage() {
             className="mb-5 sm:mb-6 w-full overflow-hidden rounded-xl border border-primary/30"
             style={{background:'linear-gradient(135deg,rgba(99,102,241,0.2) 0%,rgba(139,92,246,0.12) 50%,rgba(15,15,25,0.98) 100%)'}}
           >
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
-              <div className="flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center"
+            {/* Top row: Rank box + rating bar */}
+            <div className="flex items-center gap-3 px-3 py-3 sm:px-4">
+              <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg"
                 style={{background:'rgba(99,102,241,0.3)',border:'1px solid rgba(99,102,241,0.5)'}}>
-                <span className="text-xl font-black text-white leading-none">{rank??'—'}</span>
-                <span className="text-[8px] text-indigo-300/60 uppercase">{t('lb.rank')}</span>
+                <span className="text-xl font-black leading-none text-white">{rank??'—'}</span>
+                <span className="text-[8px] uppercase text-indigo-300/60">{t('lb.rank')}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs font-bold text-white uppercase">{t('lb.myRating')}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/30">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase text-white">{t('lb.myRating')}</span>
+                  <span className="rounded border border-indigo-500/30 bg-indigo-500/30 px-1.5 py-0.5 text-[10px] font-bold text-indigo-300">
                     {getLevelName(level, t).toUpperCase()}
                   </span>
-                  {topPercent && <span className="text-[10px] text-primary font-semibold">Top {topPercent}%</span>}
+                  {topPercent && <span className="text-[10px] font-semibold text-primary">Top {topPercent}%</span>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{background:'rgba(255,255,255,0.08)'}}>
                     <motion.div
                       initial={{width:0}} animate={{width:`${progressPct}%`}}
                       transition={{duration:1.2,ease:'easeOut'}}
@@ -233,22 +253,25 @@ export default function LeaderboardPage() {
                       style={{background:'linear-gradient(90deg,#6366f1,#ec4899)'}}
                     />
                   </div>
-                  <span className="text-[10px] text-white/40 whitespace-nowrap">
+                  <span className="whitespace-nowrap text-[10px] text-white/40">
                     {currentLevelXP.toLocaleString()} / {nextLevelXP.toLocaleString()} XP
                   </span>
                 </div>
               </div>
-              <div className="flex-shrink-0 text-right px-3 border-l border-white/10">
-                <p className="text-[10px] text-white/40 uppercase">{t('lb.totalXp')}</p>
-                <p className="font-black text-primary text-sm">{xp.toLocaleString()}</p>
+            </div>
+            {/* Bottom row: 3 stats split equally with dividers */}
+            <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
+              <div className="px-3 py-2 text-center">
+                <p className="text-[10px] uppercase text-white/40">{t('lb.totalXp')}</p>
+                <p className="text-sm font-black text-primary">{xp.toLocaleString()}</p>
               </div>
-              <div className="flex-shrink-0 text-center px-3 border-l border-white/10">
-                <p className="text-[10px] text-white/40 uppercase">{t('general.streak').toUpperCase()}</p>
-                <p className="font-bold text-sm text-orange-400">🔥 {streak}</p>
+              <div className="px-3 py-2 text-center">
+                <p className="text-[10px] uppercase text-white/40">{t('general.streak').toUpperCase()}</p>
+                <p className="text-sm font-bold text-orange-400">🔥 {streak}</p>
               </div>
-              <div className="flex-shrink-0 text-center px-3 border-l border-white/10">
-                <p className="text-[10px] text-white/40 uppercase">BADGE</p>
-                <p className="font-bold text-sm text-yellow-400">🏆 {badges?.length??0}</p>
+              <div className="px-3 py-2 text-center">
+                <p className="text-[10px] uppercase text-white/40">BADGE</p>
+                <p className="text-sm font-bold text-yellow-400">🏆 {badges?.length??0}</p>
               </div>
             </div>
           </motion.div>
@@ -258,14 +281,14 @@ export default function LeaderboardPage() {
           {t('lb.heroTitle1')} <span className="text-primary">{t('lb.heroTitle2')}</span>
         </motion.h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-5">
-            <div className="flex gap-2 flex-wrap">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-5 lg:col-span-2">
+            <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {TABS.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => { setActiveTab(tab.key); setPageNum(1) }}
-                  className={`btn btn-sm rounded-lg font-bold transition-all ${
+                  className={`btn btn-sm shrink-0 rounded-lg font-bold transition-all ${
                     activeTab===tab.key
                       ? 'btn-primary shadow-lg shadow-primary/30'
                       : 'btn-ghost border border-base-300 text-base-content/50'
@@ -316,9 +339,13 @@ export default function LeaderboardPage() {
               )}
             </AnimatePresence>
 
-            {pagination && pageNum < (pagination.totalPages||pagination.pages||1) && (
+            {pagination && pageNum < Math.min(pagination.totalPages||pagination.pages||1, 10) && (
               <div className="text-center py-4">
-                <button onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }} disabled={loading} className="btn btn-outline btn-sm px-4 sm:px-10 gap-2 font-bold tracking-wider">
+                <button
+                  onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }}
+                  disabled={loading}
+                  className="btn btn-outline btn-sm px-4 sm:px-10 gap-2 font-bold tracking-wider"
+                >
                   {loading && <span className="loading loading-spinner loading-xs" />}
                   {t('lb.loadMore')}
                 </button>

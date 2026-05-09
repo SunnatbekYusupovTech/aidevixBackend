@@ -182,6 +182,8 @@ export default function AICoach() {
     setInput('');
     setIsTyping(true);
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch('/api/coach', {
         method: 'POST',
@@ -190,6 +192,7 @@ export default function AICoach() {
           message: trimmed,
           history: buildHistory(),
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) throw new Error(`Coach API error: ${response.status}`);
@@ -217,7 +220,10 @@ export default function AICoach() {
       } else {
         throw new Error('Empty reply');
       }
-    } catch {
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('AICoach fetch:', err);
+      }
       const fallback = generateCoachReply(trimmed);
       setMessages((current) => [
         ...current,
@@ -230,6 +236,7 @@ export default function AICoach() {
         },
       ]);
     } finally {
+      window.clearTimeout(timeoutId);
       setIsTyping(false);
     }
   };

@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion'
 import CourseCard from './CourseCard'
 import CourseSkeleton from './CourseSkeleton'
 import { useLang } from '@/context/LangContext'
@@ -17,33 +16,21 @@ export default function CourseGrid({ courses = [], loading = false, emptyText = 
 
   if (!courses.length) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center py-20 text-center"
-      >
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
         <div className="w-16 h-16 rounded-2xl bg-base-200 flex items-center justify-center mb-4 text-3xl">
           🔍
         </div>
         <p className="text-base-content/40 text-base font-medium">{emptyText}</p>
         <p className="text-base-content/25 text-sm mt-1">{t('courses.emptyHint')}</p>
-      </motion.div>
+      </div>
     )
   }
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={courses.map(c => c._id).join(',')}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5"
-      >
-        {courses.map((course, i) => (
-          <CourseCard key={course._id} course={course} index={i} />
-        ))}
-      </motion.div>
-    </AnimatePresence>
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+      {courses.map((course, i) => (
+        <CourseCard key={course._id} course={course} index={i} />
+      ))}
+    </div>
   )
 }

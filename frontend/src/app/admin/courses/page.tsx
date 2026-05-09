@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllCourses, deleteCourse, createCourse, updateCourse, unwrapAdmin } from '@/api/adminApi';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FiEdit2, FiTrash2, FiPlus, FiBook, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -102,8 +103,10 @@ export default function AdminCoursesPage() {
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-slate-800 flex items-center bg-slate-900/80 backdrop-blur-sm">
           <div className="relative w-full max-w-md">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-            <input 
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" aria-hidden="true" />
+            <label htmlFor="admin-courses-search" className="sr-only">Search courses</label>
+            <input
+              id="admin-courses-search"
               type="text"
               placeholder="Search courses..."
               value={search}
@@ -117,10 +120,10 @@ export default function AdminCoursesPage() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-slate-950/50 text-xs uppercase text-slate-500 font-semibold">
               <tr>
-                <th className="px-6 py-4">Course</th>
-                <th className="px-6 py-4">Price / Level</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th scope="col" className="px-6 py-4">Course</th>
+                <th scope="col" className="px-6 py-4">Price / Level</th>
+                <th scope="col" className="px-6 py-4">Status</th>
+                <th scope="col" className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -143,7 +146,14 @@ export default function AdminCoursesPage() {
                     <td className="px-6 py-4 font-medium text-white flex items-center gap-4">
                       <div className="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shrink-0">
                         {course.thumbnail ? (
-                          <img src={course.thumbnail.url || course.thumbnail} alt="" className="w-full h-full object-cover" />
+                          <Image
+                            src={course.thumbnail.url || course.thumbnail}
+                            alt={`${course.title} thumbnail`}
+                            width={48}
+                            height={48}
+                            sizes="48px"
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-600"><FiBook className="w-5 h-5"/></div>
                         )}

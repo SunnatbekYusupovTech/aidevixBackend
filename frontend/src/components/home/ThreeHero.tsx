@@ -1,109 +1,38 @@
 'use client';
 
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, MeshDistortMaterial, PerspectiveCamera } from '@react-three/drei';
-import * as THREE from 'three';
-
-const FloatingShape = ({ position, color, speed, distort, radius }: any) => {
-  const mesh = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    if (mesh.current) {
-      mesh.current.rotation.x = Math.cos(time / 4) * speed;
-      mesh.current.rotation.y = Math.sin(time / 2) * speed;
-      mesh.current.position.y = position[1] + Math.sin(time / 2) * 0.5;
-    }
-  });
-
-  return (
-    <Float speed={speed} rotationIntensity={1.5} floatIntensity={2}>
-      <mesh ref={mesh} position={position}>
-        <sphereGeometry args={[radius, 32, 32]} />
-        <MeshDistortMaterial
-          color={color}
-          speed={speed * 2}
-          distort={distort}
-          radius={radius}
-          roughness={0.2}
-          metalness={0.8}
-        />
-      </mesh>
-    </Float>
-  );
-};
-
-const BackgroundParticles = ({ count = 200 }) => {
-  const points = useMemo(() => {
-    const p = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-        p[i * 3] = (Math.random() - 0.5) * 40;
-        p[i * 3 + 1] = (Math.random() - 0.5) * 40;
-        p[i * 3 + 2] = (Math.random() - 0.5) * 40;
-    }
-    return p;
-  }, [count]);
-
-  return (
-    <points>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={points.length / 3}
-          array={points}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial size={0.08} color="#4f46e5" transparent opacity={0.4} />
-    </points>
-  );
-};
-
-const Scene = ({ isDark }: { isDark: boolean }) => {
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-      <pointLight position={[-10, -10, -10]} />
-      
-      <BackgroundParticles count={150} />
-
-      <group position={[0, 0, -5]}>
-        <FloatingShape 
-          position={[-4, 2, 0]} 
-          color={isDark ? "#6366f1" : "#4f46e5"} 
-          speed={1.5} 
-          distort={0.4} 
-          radius={1.5} 
-        />
-        <FloatingShape 
-          position={[5, -1, -2]} 
-          color={isDark ? "#a855f7" : "#8b5cf6"} 
-          speed={1} 
-          distort={0.3} 
-          radius={1.2} 
-        />
-        <FloatingShape 
-          position={[-2, -3, -4]} 
-          color={isDark ? "#06b6d4" : "#0891b2"} 
-          speed={2} 
-          distort={0.5} 
-          radius={0.8} 
-        />
-      </group>
-
-    </>
-  );
-};
-
+/**
+ * Three.js variant olib tashlandi (~3MB bundle). Endi sof CSS animatsiya
+ * — radial gradient pulslari + blur'langan blob-lar. `prefers-reduced-motion`
+ * bilan animatsiya o'chiriladi.
+ */
 export default function ThreeHero({ isDark }: { isDark: boolean }) {
+  const blobOne = isDark ? 'rgba(99,102,241,0.55)' : 'rgba(79,70,229,0.45)';
+  const blobTwo = isDark ? 'rgba(168,85,247,0.45)' : 'rgba(139,92,246,0.35)';
+  const blobThree = isDark ? 'rgba(6,182,212,0.40)' : 'rgba(8,145,178,0.30)';
+
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-      <Canvas dpr={[1, 2]} gl={{ powerPreference: 'high-performance' }}>
-        <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
-        <Scene isDark={isDark} />
-      </Canvas>
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-70 motion-reduce:animate-none"
+    >
+      <div
+        className="absolute -top-32 -left-24 h-[55%] w-[55%] rounded-full blur-3xl animate-blob-slow"
+        style={{ background: `radial-gradient(circle at 30% 30%, ${blobOne}, transparent 70%)` }}
+      />
+      <div
+        className="absolute top-1/3 -right-24 h-[55%] w-[55%] rounded-full blur-3xl animate-blob-slow [animation-delay:-6s]"
+        style={{ background: `radial-gradient(circle at 70% 30%, ${blobTwo}, transparent 70%)` }}
+      />
+      <div
+        className="absolute -bottom-24 left-1/4 h-[50%] w-[50%] rounded-full blur-3xl animate-blob-slow [animation-delay:-12s]"
+        style={{ background: `radial-gradient(circle at 50% 50%, ${blobThree}, transparent 70%)` }}
+      />
+      <div
+        className="absolute inset-0 mix-blend-overlay opacity-30"
+        style={{
+          backgroundImage: `radial-gradient(circle at 50% 50%, transparent 0, transparent 60%, rgba(0,0,0,0.4) 100%)`,
+        }}
+      />
     </div>
   );
 }

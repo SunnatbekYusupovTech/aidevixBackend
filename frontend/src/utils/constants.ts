@@ -72,11 +72,10 @@ export const PAGE_SIZE = 12
 export const MAX_RATING = 5
 
 
+// Tokenlar faqat HttpOnly cookie orqali saqlanadi (CLAUDE.md). Bu yerda token kalitlari yo'q.
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN:  'aidevix_access_token',
-  REFRESH_TOKEN: 'aidevix_refresh_token',
-  USER:          'aidevix_user',
-  THEME:         'aidevix_theme',
+  USER:  'aidevix_user',
+  THEME: 'aidevix_theme',
 }
 
 

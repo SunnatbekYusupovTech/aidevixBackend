@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import Link from 'next/link';
 import { IoTrophy, IoFlame, IoVideocam, IoCheckmarkCircle, IoShareSocial, IoArrowBack } from 'react-icons/io5';
 import { useTheme } from '@/context/ThemeContext';
@@ -48,7 +49,14 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             {/* Avatar */}
             <div className="w-24 h-24 rounded-2xl flex-shrink-0 overflow-hidden bg-indigo-500/20 flex items-center justify-center text-3xl font-black text-indigo-400">
               {user.avatar
-                ? <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                ? <Image
+                    src={user.avatar}
+                    alt={user.username}
+                    width={96}
+                    height={96}
+                    sizes="96px"
+                    className="w-full h-full object-cover"
+                  />
                 : user.username?.[0]?.toUpperCase()
               }
             </div>

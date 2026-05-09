@@ -39,7 +39,7 @@ export default function CourseFilter() {
   return (
     <div className="space-y-4">
       {/* Category Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
         {displayedCategories.map((cat) => {
           const active = filters.category === cat.id
           return (
@@ -48,10 +48,10 @@ export default function CourseFilter() {
               onMouseEnter={playHoverSound}
               onClick={() => dispatch(setFilter({ category: cat.id }))}
               className={
-                'w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 text-center ' +
+                'w-full rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-all duration-300 sm:text-sm ' +
                 (active
-                  ? 'bg-primary text-primary-content shadow-[0_8px_25px_rgba(99,102,241,0.3)] scale-[1.02]'
-                  : 'bg-base-200/50 border border-base-content/5 text-base-content/60 hover:bg-base-300 hover:text-base-content hover:scale-[1.01]')
+                  ? 'scale-[1.02] bg-indigo-500 text-white shadow-[0_8px_25px_rgba(99,102,241,0.3)]'
+                  : 'border border-base-content/5 bg-base-200/50 text-base-content/60 hover:scale-[1.01] hover:bg-base-300 hover:text-base-content')
               }
             >
               {t(`cat.${cat.id}`, cat.label)}
@@ -63,18 +63,18 @@ export default function CourseFilter() {
           <button
             onClick={() => setExpanded(!expanded)}
             onMouseEnter={playHoverSound}
-            className="w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 text-center bg-base-200/80 border border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+            className="w-full rounded-xl border border-dashed border-primary/30 bg-base-200/80 px-3 py-2.5 text-center text-xs font-bold text-primary transition-all duration-300 hover:border-primary/50 hover:bg-primary/10 sm:text-sm"
           >
             {expanded ? t('filter.collapse') : t('filter.expand')}
           </button>
         )}
       </div>
 
-      {/* Level + Rating + Sort row */}
-      <div className="flex items-center gap-3 flex-wrap">
+      {/* Level + Rating + Sort — stacked on mobile, inline on tablet+ */}
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
         {/* Level filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.level')}</span>
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto no-scrollbar">
+          <span className="shrink-0 whitespace-nowrap text-xs text-base-content/40">{t('filter.level')}</span>
           <div className="flex gap-1">
             {LEVELS.map((lvl) => {
               const active = (filters.level || 'all') === lvl.id
@@ -84,10 +84,10 @@ export default function CourseFilter() {
                   onMouseEnter={playHoverSound}
                   onClick={() => dispatch(setFilter({ level: lvl.id === 'all' ? undefined : lvl.id }))}
                   className={
-                    'px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ' +
+                    'shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'bg-primary/15 text-primary border border-primary/30'
-                      : 'bg-base-200 border border-base-content/8 text-base-content/45 hover:bg-base-300')
+                      ? 'border border-primary/30 bg-primary/15 text-primary'
+                      : 'border border-base-content/8 bg-base-200 text-base-content/45 hover:bg-base-300')
                   }
                 >
                   {lvl.label}
@@ -98,8 +98,8 @@ export default function CourseFilter() {
         </div>
 
         {/* Rating filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.rating')}</span>
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto no-scrollbar">
+          <span className="shrink-0 whitespace-nowrap text-xs text-base-content/40">{t('filter.rating')}</span>
           <div className="flex gap-1">
             {RATINGS.map((r) => {
               const active = (filters.minRating || 0) === r.value
@@ -109,13 +109,13 @@ export default function CourseFilter() {
                   onMouseEnter={playHoverSound}
                   onClick={() => dispatch(setFilter({ minRating: r.value || undefined }))}
                   className={
-                    'flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 ' +
+                    'flex shrink-0 items-center gap-0.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-base-200 border border-base-content/8 text-base-content/45 hover:bg-base-300')
+                      ? 'border border-yellow-500/30 bg-yellow-500/15 text-yellow-400'
+                      : 'border border-base-content/8 bg-base-200 text-base-content/45 hover:bg-base-300')
                   }
                 >
-                  {r.value > 0 && <IoStar className="text-yellow-400 text-[10px]" />}
+                  {r.value > 0 && <IoStar className="text-[10px] text-yellow-400" />}
                   {r.label}
                 </button>
               )
@@ -124,12 +124,12 @@ export default function CourseFilter() {
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <span className="text-xs text-base-content/40 whitespace-nowrap">{t('filter.sort')}</span>
+        <div className="flex items-center gap-2 md:ml-auto">
+          <span className="shrink-0 whitespace-nowrap text-xs text-base-content/40">{t('filter.sort')}</span>
           <select
             value={filters.sort || 'newest'}
             onChange={(e) => dispatch(setFilter({ sort: e.target.value }))}
-            className="select select-xs sm:select-sm bg-base-200 border-base-content/10 text-xs sm:text-sm max-w-[180px] rounded-xl"
+            className="select select-xs sm:select-sm w-full max-w-[220px] rounded-xl border-base-content/10 bg-base-200 text-xs sm:text-sm md:w-auto"
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{t(`sort.${opt.value}`, opt.label)}</option>

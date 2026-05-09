@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { STORAGE_KEYS } from '@utils/constants';
 import SiteLogoMark from '@components/common/SiteLogoMark';
 
 function TelegramLoginContent() {
@@ -20,17 +19,14 @@ function TelegramLoginContent() {
       return;
     }
 
-    try {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-      setStatus('success');
-      setMessage('Muvaffaqiyatli! Profilga yo\'naltirilmoqda...');
-      setTimeout(() => {
-        router.replace('/profile');
-      }, 1500);
-    } catch (err) {
-      setStatus('error');
-      setMessage('Tizimga kirishda xatolik. Iltimos, qayta urunib ko\'ring.');
-    }
+    // Auth tokenlari faqat HttpOnly cookie orqali saqlanadi (CLAUDE.md qoidasi).
+    // Bot orqali login flow backenddan cookie o'rnatadi; bu sahifa shunchaki redirect qiladi.
+    setStatus('success');
+    setMessage('Muvaffaqiyatli! Profilga yo\'naltirilmoqda...');
+    const timer = setTimeout(() => {
+      router.replace('/profile');
+    }, 1200);
+    return () => clearTimeout(timer);
   }, [searchParams, router]);
 
   return (

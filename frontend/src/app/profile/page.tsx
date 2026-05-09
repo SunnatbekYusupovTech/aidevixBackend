@@ -28,6 +28,7 @@ import {
   FiShield
 } from 'react-icons/fi';
 import { userApi } from '@api/userApi';
+import api from '@api/axiosInstance';
 import SavedPromptsSection from '@components/profile/SavedPromptsSection';
 import { ROUTES } from '@utils/constants';
 
@@ -121,11 +122,18 @@ export default function ProfilePage() {
   }, [user?.aiStack]);
 
   useEffect(() => {
-    import('@api/axiosInstance').then(({ default: api }) => {
-      api.get('xp/stats').then(({ data }) => {
+    const controller = new AbortController();
+    api.get('xp/stats', { signal: controller.signal })
+      .then(({ data }) => {
         setStreakFreezes(data?.data?.streakFreezes ?? 0);
-      }).catch(() => {});
-    });
+      })
+      .catch((err) => {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('xp/stats:', err?.message || err);
+        }
+      });
+    return () => controller.abort();
   }, []);
 
   const handleUseFreeze = async () => {
@@ -250,24 +258,24 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050507] text-slate-200 pt-28 pb-20 px-4 sm:px-6 lg:px-12 selection:bg-indigo-500/30">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#050507] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-6 sm:pb-20 sm:pt-28 lg:px-12">
+      <div className="mx-auto max-w-6xl">
 
         {/* --- HERO SECTION --- */}
-        <div className="relative mb-12">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl rounded-full -z-10 translate-y-[-20%]"></div>
+        <div className="relative mb-8 sm:mb-12">
+          <div className="absolute inset-0 -z-10 translate-y-[-20%] rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl"></div>
 
-          <div className="relative bg-[#0d101a] border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl overflow-hidden">
-            <div className="flex flex-col md:flex-row items-center gap-10">
+          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-[#0d101a] p-5 shadow-2xl sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12">
+            <div className="flex flex-col items-center gap-6 md:flex-row md:gap-8 lg:gap-10">
 
               {/* Avatar Section */}
-              <div className="relative group">
-                <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-                  <div className="w-full h-full rounded-full bg-[#0d101a] p-1 overflow-hidden">
+              <div className="group relative shrink-0">
+                <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:h-32 sm:w-32 md:h-40 md:w-40">
+                  <div className="h-full w-full overflow-hidden rounded-full bg-[#0d101a] p-1">
                     <img
                       src={avatarPreview || avatar || user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'U'}&background=312e81&color=fff&size=200`}
                       alt="Profile"
-                      className="w-full h-full rounded-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="h-full w-full rounded-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
                 </div>
@@ -275,60 +283,62 @@ export default function ProfilePage() {
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
-                  className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-indigo-500 hover:bg-indigo-400 text-white flex items-center justify-center shadow-lg border-4 border-[#0d101a] transition-all hover:scale-110 active:scale-95 disabled:opacity-50"
+                  className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-[#0d101a] bg-indigo-500 text-white shadow-lg transition-all hover:scale-110 hover:bg-indigo-400 active:scale-95 disabled:opacity-50 sm:bottom-2 sm:right-2 sm:h-10 sm:w-10"
+                  aria-label="Change avatar"
                 >
-                  <FiCamera size={18} />
+                  <FiCamera size={16} className="sm:hidden" />
+                  <FiCamera size={18} className="hidden sm:block" />
                 </button>
                 <input ref={avatarInputRef} type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
               </div>
 
               {/* User Identity Info */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-                  <h1 className="max-w-full text-balance text-2xl font-black tracking-tight text-white sm:text-3xl md:text-5xl">
+              <div className="min-w-0 flex-1 text-center md:text-left">
+                <div className="mb-3 flex flex-col items-center gap-2 sm:gap-3 md:mb-4 md:flex-row md:items-center md:gap-4">
+                  <h1 className="max-w-full text-balance break-words text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl lg:text-5xl">
                     {user?.firstName || user?.username} {user?.lastName || ''}
                   </h1>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 uppercase tracking-widest">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400 sm:px-3 sm:text-xs">
                     <FiCheckCircle size={12} /> {t('profile.badge.active')}
                   </span>
                 </div>
 
-                <p className="text-xl text-slate-400 font-medium mb-6">
+                <p className="mb-5 text-base font-medium text-slate-400 sm:mb-6 sm:text-lg md:text-xl">
                   {user?.jobTitle || t('profile.default.job')}
                 </p>
 
-                <div className="flex flex-wrap justify-center md:justify-start gap-8">
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 sm:gap-x-8 md:justify-start">
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">{t('profile.stat.level')}</span>
-                    <span className="text-2xl font-black text-indigo-400 flex items-center gap-2">
-                       <FiZap size={20} className="fill-indigo-400" /> {level || 1}
+                    <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 sm:text-xs">{t('profile.stat.level')}</span>
+                    <span className="flex items-center gap-1.5 text-xl font-black text-indigo-400 sm:text-2xl">
+                       <FiZap size={18} className="fill-indigo-400" /> {level || 1}
                     </span>
                   </div>
-                  <div className="w-px h-10 bg-white/5 hidden md:block"></div>
+                  <div className="hidden h-10 w-px bg-white/5 md:block"></div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">{t('profile.stat.xp')}</span>
-                    <span className="text-2xl font-black text-white">{xp || 0}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 sm:text-xs">{t('profile.stat.xp')}</span>
+                    <span className="text-xl font-black text-white sm:text-2xl">{xp || 0}</span>
                   </div>
-                  <div className="w-px h-10 bg-white/5 hidden md:block"></div>
+                  <div className="hidden h-10 w-px bg-white/5 md:block"></div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">{t('profile.stat.videos')}</span>
-                    <span className="text-2xl font-black text-white">{videosWatched || 0}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 sm:text-xs">{t('profile.stat.videos')}</span>
+                    <span className="text-xl font-black text-white sm:text-2xl">{videosWatched || 0}</span>
                   </div>
                 </div>
               </div>
 
               {/* Edit + security */}
-              <div className="self-center md:self-start mt-4 flex flex-col sm:flex-row gap-3">
+              <div className="flex w-full flex-col gap-2.5 self-stretch sm:flex-row md:w-auto md:flex-col md:self-start lg:flex-row">
                 <button
                   onClick={() => setEditOpen(true)}
-                  className="py-3 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-200 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
+                  className="group flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition-all hover:bg-white/10 sm:px-6"
                 >
-                  <FiEdit2 className="group-hover:text-indigo-400 transition-colors" />
+                  <FiEdit2 className="transition-colors group-hover:text-indigo-400" />
                   {t('profile.btn.edit')}
                 </button>
                 <Link
                   href={ROUTES.SETTINGS_SECURITY}
-                  className="py-3 px-6 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-indigo-200 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 px-5 py-3 text-sm font-bold text-indigo-200 transition-all hover:bg-indigo-500/20 sm:px-6"
                 >
                   <FiShield size={18} />
                   {profileLocalText.security2fa}
@@ -339,15 +349,15 @@ export default function ProfilePage() {
         </div>
 
         {/* --- TABS --- */}
-        <div className="flex gap-2 mb-10 overflow-x-auto no-scrollbar pb-2">
+        <div className="no-scrollbar -mx-3 mb-8 flex gap-2 overflow-x-auto px-3 pb-2 sm:mx-0 sm:mb-10 sm:px-0">
           {TABS.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-8 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
+              className={`shrink-0 whitespace-nowrap rounded-2xl px-5 py-2.5 text-xs font-bold transition-all sm:px-8 sm:py-3 sm:text-sm ${
                 activeTab === tab
                   ? 'bg-indigo-600 text-white shadow-[0_4px_20px_rgba(79,70,229,0.3)]'
-                  : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
+                  : 'border border-transparent bg-white/5 text-slate-500 hover:border-white/5 hover:text-slate-300'
               }`}
             >
               {tab}
@@ -365,90 +375,90 @@ export default function ProfilePage() {
               className="grid grid-cols-1 lg:grid-cols-3 gap-8"
             >
               {/* Left Details */}
-              <div className="lg:col-span-2 space-y-8">
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+              <div className="space-y-6 sm:space-y-8 lg:col-span-2">
+                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                  <h3 className="mb-6 flex items-center gap-3 text-lg font-bold text-white sm:mb-8 sm:text-xl">
                     <FiUser className="text-indigo-500" />
                     {t('profile.section.info')}
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                  <div className="mb-6 grid grid-cols-1 gap-5 sm:mb-8 sm:grid-cols-2 sm:gap-6">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{t('profile.field.firstName')}</label>
-                      <p className="text-lg font-bold text-white">{user?.firstName || t('profile.notSet')}</p>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('profile.field.firstName')}</label>
+                      <p className="break-words text-base font-bold text-white sm:text-lg">{user?.firstName || t('profile.notSet')}</p>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{t('profile.field.lastName')}</label>
-                      <p className="text-lg font-bold text-white">{user?.lastName || t('profile.notSet')}</p>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('profile.field.lastName')}</label>
+                      <p className="break-words text-base font-bold text-white sm:text-lg">{user?.lastName || t('profile.notSet')}</p>
                     </div>
                   </div>
 
-                  <div className="space-y-1 mb-8">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{t('profile.field.job')}</label>
-                    <p className="text-lg font-bold text-white">{user?.jobTitle || t('profile.default.job')}</p>
+                  <div className="mb-6 space-y-1 sm:mb-8">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('profile.field.job')}</label>
+                    <p className="break-words text-base font-bold text-white sm:text-lg">{user?.jobTitle || t('profile.default.job')}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{t('profile.field.bio')}</label>
-                    <p className="text-slate-400 leading-relaxed italic">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-600">{t('profile.field.bio')}</label>
+                    <p className="break-words italic leading-relaxed text-slate-400">
                       &ldquo;{bio || t('profile.noBio')}&rdquo;
                     </p>
                   </div>
                 </div>
 
                 {/* Skills Section */}
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                  <h3 className="mb-6 flex items-center gap-3 text-lg font-bold text-white sm:mb-8 sm:text-xl">
                     <FiAward className="text-indigo-500" />
                     {t('profile.section.skills')}
                   </h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     {skills?.length > 0 ? skills.map((skill, i) => (
-                      <span key={i} className="px-4 py-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                      <span key={i} className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-300 sm:px-4 sm:py-2 sm:text-xs">
                         {skill}
                       </span>
                     )) : (
-                      <p className="text-slate-500 italic">{t('profile.noSkills')}</p>
+                      <p className="italic text-slate-500">{t('profile.noSkills')}</p>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Right Side Info */}
-              <div className="space-y-8">
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                  <h3 className="text-xl font-bold text-white mb-8">{t('profile.section.contact')}</h3>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-slate-400">
+              <div className="space-y-6 sm:space-y-8">
+                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                  <h3 className="mb-6 text-lg font-bold text-white sm:mb-8 sm:text-xl">{t('profile.section.contact')}</h3>
+                  <div className="space-y-5 sm:space-y-6">
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-slate-400 sm:h-12 sm:w-12">
                         <FiMail size={20} />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-600 uppercase">Email</p>
-                        <p className="font-bold text-slate-200">{user?.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase text-slate-600">Email</p>
+                        <p className="truncate font-bold text-slate-200">{user?.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/5 flex items-center justify-center text-indigo-400">
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/5 text-indigo-400 sm:h-12 sm:w-12">
                         <FiInstagram size={20} />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-600 uppercase">Instagram</p>
-                        <p className="font-bold text-slate-200">@{sub?.instagram?.username || t('profile.needsLink')}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase text-slate-600">Instagram</p>
+                        <p className="truncate font-bold text-slate-200">@{sub?.instagram?.username || t('profile.needsLink')}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 p-5 text-white shadow-2xl sm:rounded-3xl sm:p-8">
                    <div className="relative z-10">
-                      <h4 className="text-2xl font-black mb-2 italic">Aidevix Pro</h4>
-                      <p className="text-white/70 text-sm mb-6">{t('profile.pro.desc')}</p>
-                      <button className="w-full py-3 bg-white text-indigo-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
+                      <h4 className="mb-2 text-xl font-black italic sm:text-2xl">Aidevix Pro</h4>
+                      <p className="mb-5 text-sm text-white/70 sm:mb-6">{t('profile.pro.desc')}</p>
+                      <button className="w-full rounded-2xl bg-white py-3 text-xs font-black uppercase tracking-widest text-indigo-600 transition-transform hover:scale-[1.02]">
                         {profileLocalText.upgradeNow}
                       </button>
                    </div>
-                   <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+                   <div className="absolute right-[-20%] top-[-20%] h-48 w-48 rounded-full bg-white/10 blur-3xl transition-transform duration-700 group-hover:scale-150"></div>
                 </div>
               </div>
             </motion.div>
@@ -465,32 +475,32 @@ export default function ProfilePage() {
           )}
 
           {activeTab === t('profile.tab.achievements') && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 sm:space-y-8">
               {/* Streak Shield Card */}
-              <div className="bg-[#0d101a] border border-indigo-500/20 rounded-3xl p-8">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl flex-shrink-0">
+              <div className="rounded-2xl border border-indigo-500/20 bg-[#0d101a] p-5 sm:rounded-3xl sm:p-8">
+                <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
+                  <div className="flex w-full min-w-0 flex-1 items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-2xl sm:h-14 sm:w-14 sm:text-3xl">
                       🛡️
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="flex flex-wrap items-center gap-2 text-base font-bold text-white sm:text-lg">
                         {profileLocalText.streakShieldTitle}
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                        <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-xs font-bold text-indigo-400">
                           {streakFreezes} / 5
                         </span>
                       </h3>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="mt-1 text-sm text-slate-400">
                         {profileLocalText.streakShieldDesc}
                       </p>
-                      <div className="flex gap-1.5 mt-3">
+                      <div className="mt-3 flex gap-1.5">
                         {[...Array(5)].map((_, i) => (
                           <div
                             key={i}
-                            className={`w-8 h-8 rounded-lg border flex items-center justify-center text-base ${
+                            className={`flex h-7 w-7 items-center justify-center rounded-lg border text-sm sm:h-8 sm:w-8 sm:text-base ${
                               i < streakFreezes
-                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                                : 'bg-white/3 border-white/5 text-slate-700'
+                                ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
+                                : 'border-white/5 bg-white/[0.03] text-slate-700'
                             }`}
                           >
                             🛡️
@@ -502,7 +512,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleUseFreeze}
                     disabled={usingFreeze || streakFreezes <= 0}
-                    className="flex-shrink-0 px-6 py-3 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 text-white font-bold rounded-2xl transition-all active:scale-95 text-sm whitespace-nowrap"
+                    className="w-full shrink-0 whitespace-nowrap rounded-2xl bg-indigo-500 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-indigo-400 active:scale-95 disabled:opacity-40 sm:w-auto"
                   >
                     {usingFreeze ? profileLocalText.streakUsing : profileLocalText.streakUse}
                   </button>
@@ -510,12 +520,12 @@ export default function ProfilePage() {
               </div>
 
               {/* Badges Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 md:gap-6">
                 {badges?.length > 0 ? badges.map((badge, i) => (
-                  <div key={i} className="bg-[#0d101a] border border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-4xl mb-3">{badge.icon || '🏆'}</div>
-                    <h5 className="font-bold text-sm text-white">{badge.name}</h5>
-                    <p className="text-[10px] text-slate-500 mt-1 uppercase">{new Date(badge.earnedAt).toLocaleDateString()}</p>
+                  <div key={i} className="rounded-2xl border border-white/5 bg-[#0d101a] p-4 text-center sm:rounded-3xl sm:p-6">
+                    <div className="mb-2 text-3xl sm:mb-3 sm:text-4xl">{badge.icon || '🏆'}</div>
+                    <h5 className="break-words text-sm font-bold text-white">{badge.name}</h5>
+                    <p className="mt-1 text-[10px] uppercase text-slate-500">{new Date(badge.earnedAt).toLocaleDateString()}</p>
                   </div>
                 )) : (
                   <div className="col-span-full py-16 text-center text-slate-500">{t('profile.noAchievements')}</div>
@@ -525,36 +535,36 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'AI Stack' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-              <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8 shadow-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 sm:space-y-8">
+              <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-white sm:gap-3 sm:text-xl">
                     <span className="text-2xl">⚡</span> {profileLocalText.aiStackTitle}
                   </h3>
                   <span className="text-xs text-slate-500">{selectedTools.length} / {AI_TOOLS.length} {profileLocalText.selectedCount}</span>
                 </div>
-                <p className="text-sm text-slate-500 mb-8">{profileLocalText.aiStackSub}</p>
+                <p className="mb-6 text-sm text-slate-500 sm:mb-8">{profileLocalText.aiStackSub}</p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+                <div className="mb-8 grid grid-cols-2 gap-3 min-[420px]:grid-cols-3 sm:gap-4 lg:grid-cols-5 sm:mb-10">
                   {AI_TOOLS.map((tool) => {
                     const active = selectedTools.includes(tool.name);
                     return (
                       <button
                         key={tool.name}
                         onClick={() => toggleTool(tool.name)}
-                        className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border bg-gradient-to-br transition-all duration-200 ${
+                        className={`relative flex flex-col items-center gap-2 rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 sm:gap-3 sm:p-5 ${
                           active
                             ? `${tool.color} scale-[1.03] shadow-lg`
-                            : 'border-white/5 bg-white/3 text-slate-500 hover:border-white/10 hover:bg-white/5'
+                            : 'border-white/5 bg-white/[0.03] text-slate-500 hover:border-white/10 hover:bg-white/5'
                         }`}
                       >
                         {active && (
-                          <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
-                            <span className="text-[8px] text-white font-black">✓</span>
+                          <div className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500">
+                            <span className="text-[8px] font-black text-white">✓</span>
                           </div>
                         )}
-                        <span className="text-3xl">{tool.icon}</span>
-                        <span className="text-xs font-bold text-center leading-tight">{tool.name}</span>
+                        <span className="text-2xl sm:text-3xl">{tool.icon}</span>
+                        <span className="text-center text-[11px] font-bold leading-tight sm:text-xs">{tool.name}</span>
                       </button>
                     );
                   })}
@@ -563,20 +573,20 @@ export default function ProfilePage() {
                 <button
                   onClick={handleSaveStack}
                   disabled={savingStack}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+                  className="w-full rounded-2xl bg-indigo-600 py-3.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 sm:py-4"
                 >
                   {savingStack ? profileLocalText.aiStackSaving : profileLocalText.aiStackSave}
                 </button>
               </div>
 
               {selectedTools.length > 0 && (
-                <div className="bg-[#0d101a] border border-white/5 rounded-3xl p-8">
-                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">{profileLocalText.yourStack}</h4>
-                  <div className="flex flex-wrap gap-3">
+                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 sm:rounded-3xl sm:p-8">
+                  <h4 className="mb-5 text-xs font-bold uppercase tracking-widest text-slate-400 sm:mb-6 sm:text-sm">{profileLocalText.yourStack}</h4>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     {selectedTools.map(tool => {
                       const t = AI_TOOLS.find(a => a.name === tool);
                       return (
-                        <span key={tool} className={`flex items-center gap-2 px-4 py-2 rounded-xl border bg-gradient-to-r text-sm font-bold ${t?.color || 'border-white/10 text-slate-300'}`}>
+                        <span key={tool} className={`flex items-center gap-2 rounded-xl border bg-gradient-to-r px-3 py-1.5 text-xs font-bold sm:px-4 sm:py-2 sm:text-sm ${t?.color || 'border-white/10 text-slate-300'}`}>
                           <span>{t?.icon}</span> {tool}
                         </span>
                       );
@@ -592,7 +602,7 @@ export default function ProfilePage() {
       {/* --- EDIT MODAL --- */}
       <AnimatePresence>
         {editOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[1000] flex items-end justify-center p-2 sm:items-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -602,79 +612,79 @@ export default function ProfilePage() {
             />
 
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0d101a] border border-white/10 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0d101a] p-5 shadow-2xl sm:max-h-[88vh] sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12"
             >
               {/* Decoration */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl -z-10"></div>
+              <div className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 bg-indigo-500/5 blur-3xl"></div>
 
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-3xl font-black text-white italic">{t('profile.modal.title')}</h2>
-                <button onClick={() => setEditOpen(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+              <div className="mb-6 flex items-center justify-between gap-3 sm:mb-10">
+                <h2 className="min-w-0 truncate text-xl font-black italic text-white sm:text-2xl md:text-3xl">{t('profile.modal.title')}</h2>
+                <button onClick={() => setEditOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-slate-400 transition-colors hover:text-white sm:h-10 sm:w-10">
                    <FiX size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <form onSubmit={handleSave} className="space-y-5 sm:space-y-8">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase px-1">{t('profile.field.firstName')}</label>
+                    <label className="px-1 text-[10px] font-black uppercase text-slate-500">{t('profile.field.firstName')}</label>
                     <input
                       type="text"
                       value={editDraft.ism}
                       onChange={(e) => setEditDraft({...editDraft, ism: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-white transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 sm:px-5 sm:py-4"
                       placeholder={t('profile.modal.firstPlaceholder')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase px-1">{t('profile.field.lastName')}</label>
+                    <label className="px-1 text-[10px] font-black uppercase text-slate-500">{t('profile.field.lastName')}</label>
                     <input
                       type="text"
                       value={editDraft.familiya}
                       onChange={(e) => setEditDraft({...editDraft, familiya: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-white transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 sm:px-5 sm:py-4"
                       placeholder={t('profile.modal.lastPlaceholder')}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase px-1">{t('profile.modal.jobLabel')}</label>
+                  <label className="px-1 text-[10px] font-black uppercase text-slate-500">{t('profile.modal.jobLabel')}</label>
                   <input
                     type="text"
                     value={editDraft.kasb}
                     onChange={(e) => setEditDraft({...editDraft, kasb: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium"
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-white transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 sm:px-5 sm:py-4"
                     placeholder={t('profile.modal.jobPlaceholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase px-1">{t('profile.modal.bioLabel')}</label>
+                  <label className="px-1 text-[10px] font-black uppercase text-slate-500">{t('profile.modal.bioLabel')}</label>
                   <textarea
                     rows={4}
                     value={editDraft.bio}
                     onChange={(e) => setEditDraft({...editDraft, bio: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium resize-none"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-white transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 sm:px-5 sm:py-4"
                     placeholder={t('profile.modal.bioPlaceholder')}
                   />
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:gap-4 sm:pt-4">
                   <button
                     type="button"
                     onClick={() => setEditOpen(false)}
-                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 font-bold uppercase text-[10px] tracking-widest transition-all"
+                    className="flex-1 rounded-2xl bg-white/5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-all hover:bg-white/10 sm:py-4"
                   >
                     {t('profile.modal.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+                    className="flex-1 rounded-2xl bg-indigo-600 py-3.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 sm:py-4"
                   >
                     {isSaving ? t('profile.modal.saving') : t('profile.modal.save')}
                   </button>

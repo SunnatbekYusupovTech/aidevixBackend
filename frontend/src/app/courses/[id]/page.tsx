@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   IoChevronForward, IoStar, IoPeople, IoTime, IoBookOutline,
@@ -523,7 +524,13 @@ function DesktopPriceCard(props) {
     <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-2xl shadow-base-content/5">
       <div className="relative h-44 bg-base-300 overflow-hidden">
         {course.thumbnail
-          ? <img src={course.thumbnail} alt={localizeCourseText(props.uiText.dateLocale === 'ru-RU' ? 'ru' : props.uiText.dateLocale === 'en-US' ? 'en' : 'uz', course.title).title} className="w-full h-full object-cover" />
+          ? <Image
+              src={course.thumbnail}
+              alt={localizeCourseText(props.uiText.dateLocale === 'ru-RU' ? 'ru' : props.uiText.dateLocale === 'en-US' ? 'en' : 'uz', course.title).title}
+              fill
+              sizes="(max-width: 768px) 100vw, 400px"
+              className="object-cover"
+            />
           : <div className={'w-full h-full flex items-center justify-center text-5xl font-black opacity-10 ' + catColor}>{course.category?.toUpperCase().slice(0, 2)}</div>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-base-200/90 to-transparent" />

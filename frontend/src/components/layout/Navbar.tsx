@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { useSelector } from 'react-redux'
 import { selectIsAdmin } from '@/store/slices/authSlice'
@@ -308,7 +309,14 @@ export default function Navbar() {
                     <label tabIndex={0} className="group flex min-w-0 cursor-pointer items-center gap-2">
                       {avatarSrc ? (
                         <div className="relative">
-                          <img src={avatarSrc} alt="avatar" className="h-10 w-10 rounded-full border-2 border-indigo-500/30 object-cover transition-colors group-hover:border-indigo-400" />
+                          <Image
+                            src={avatarSrc}
+                            alt={user?.username ? `${user.username} avatar` : 'avatar'}
+                            width={40}
+                            height={40}
+                            sizes="40px"
+                            className="h-10 w-10 rounded-full border-2 border-indigo-500/30 object-cover transition-colors group-hover:border-indigo-400"
+                          />
                           {(user as any)?.rankTitle && (
                             <span className="absolute -bottom-1 -right-1 rounded-md border border-black bg-amber-400 px-1 text-[10px] font-black uppercase text-black">
                               {(user as any)?.rankTitle.substring(0, 3)}

@@ -183,6 +183,98 @@ code, pre, kbd {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Mobile-first safe paddings (work with iOS safe-area-inset) */
+  .safe-px {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  @media (min-width: 640px) {
+    .safe-px {
+      padding-left: max(1.5rem, env(safe-area-inset-left));
+      padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+  }
+  .safe-pb {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Touch target floor — interactive elements never under 44x44 on mobile */
+  @media (max-width: 640px) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Fluid typography helpers — replace cramped jumps text-2xl→text-5xl */
+  .text-fluid-h1 {
+    font-size: clamp(1.75rem, 5vw + 1rem, 3.25rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .text-fluid-h2 {
+    font-size: clamp(1.5rem, 3.5vw + 0.75rem, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  .text-fluid-h3 {
+    font-size: clamp(1.125rem, 1.5vw + 0.85rem, 1.5rem);
+    line-height: 1.2;
+  }
+  .text-fluid-body {
+    font-size: clamp(0.875rem, 0.4vw + 0.78rem, 1rem);
+    line-height: 1.6;
+  }
+
+  /* Container with universal mobile-safe padding (replaces bare max-w-*) */
+  .container-pro {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: clamp(0.75rem, 2vw, 2rem);
+  }
+
+  /* Card — adaptive radius + padding without breakpoint juggling */
+  .card-pro {
+    padding: clamp(1rem, 2.4vw, 2rem);
+    border-radius: clamp(1rem, 1.5vw + 0.5rem, 2rem);
+  }
+
+  /* Hide horizontal scroll while preserving touch swipe (e.g. tab rows) */
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .scroll-snap-x > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Wrap long words (URLs, usernames) without breaking layout */
+  .text-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Stack collapse — flex row that becomes column under threshold */
+  .stack-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.5rem, 1vw, 1rem);
+  }
+}
+
+/* Reduce motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 canvas {
@@ -294,9 +386,13 @@ html[data-theme='light'] {
   [class*="bg-[#0A0E1A]"],
   [class*="bg-[#08090d]"],
   [class*="bg-[#050507]"],
+  [class*="bg-[#060a12]"],
+  [class*="bg-[#070a10]"],
   [class*="bg-[#080914]"],
+  [class*="bg-[#080b10]"],
   [class*="bg-[#090b10]"],
   [class*="bg-[#0a0c14]"],
+  [class*="bg-[#0c1018]"],
   [class*="bg-[#0d0f1a]"],
   [class*="bg-[#0d1017]"],
   [class*="bg-[#0d101a]"],
@@ -322,6 +418,7 @@ html[data-theme='light'] {
   /* Page wrappers (min-h-screen) get a soft neutral instead of stark white */
   .min-h-screen[class*="bg-[#0A0E1A]"],
   .min-h-screen[class*="bg-[#050507]"],
+  .min-h-screen[class*="bg-[#060a12]"],
   .min-h-screen[class*="bg-[#08090d]"],
   .min-h-screen[class*="bg-[#090b10]"] {
     background-color: #f7f8fc;
@@ -335,6 +432,15 @@ html[data-theme='light'] {
   .bg-white\/12 { background-color: rgba(15, 23, 42, 0.07); }
   .bg-white\/15 { background-color: rgba(15, 23, 42, 0.08); }
   .bg-white\/20 { background-color: rgba(15, 23, 42, 0.10); }
+  /* Arbitrary opacity variants used in pages (bg-white/[0.04] etc.) */
+  .bg-white\/\[0\.02\] { background-color: rgba(15, 23, 42, 0.025); }
+  .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.03); }
+  .bg-white\/\[0\.04\] { background-color: rgba(15, 23, 42, 0.04); }
+  .bg-white\/\[0\.05\] { background-color: rgba(15, 23, 42, 0.045); }
+  .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.05); }
+  .bg-white\/\[0\.07\] { background-color: rgba(15, 23, 42, 0.06); }
+  .bg-white\/\[0\.08\] { background-color: rgba(15, 23, 42, 0.07); }
+  .bg-white\/\[0\.10\] { background-color: rgba(15, 23, 42, 0.08); }
 
   /* === White borders → dark borders === */
   .border-white\/5 { border-color: rgba(15, 23, 42, 0.06); }
@@ -344,9 +450,24 @@ html[data-theme='light'] {
   .border-white\/15 { border-color: rgba(15, 23, 42, 0.12); }
   .border-white\/20 { border-color: rgba(15, 23, 42, 0.15); }
   .border-white\/30 { border-color: rgba(15, 23, 42, 0.20); }
+  /* Arbitrary opacity border variants */
+  .border-white\/\[0\.07\] { border-color: rgba(15, 23, 42, 0.08); }
+  .border-white\/\[0\.08\] { border-color: rgba(15, 23, 42, 0.08); }
+  .border-white\/\[0\.10\] { border-color: rgba(15, 23, 42, 0.09); }
 
   /* === Text colors: dark-only → readable on light bg === */
   .text-white         { color: #1e293b; }   /* slate-800 */
+  .text-white\/95     { color: #1e293b; }
+  .text-white\/90     { color: #1e293b; }
+  .text-white\/80     { color: #334155; }   /* slate-700 */
+  .text-white\/70     { color: #475569; }   /* slate-600 */
+  .text-white\/60     { color: #64748b; }   /* slate-500 */
+  .text-white\/50     { color: #64748b; }
+  .text-white\/45     { color: #64748b; }
+  .text-white\/40     { color: #94a3b8; }   /* slate-400 */
+  .text-white\/30     { color: #94a3b8; }
+  .text-white\/25     { color: #94a3b8; }
+  .text-white\/20     { color: #94a3b8; }
   .text-slate-100     { color: #1e293b; }
   .text-slate-200     { color: #334155; }   /* slate-700 */
   .text-slate-300     { color: #475569; }   /* slate-600 */

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { IoHomeOutline } from 'react-icons/io5';
 import { useLang } from '@/context/LangContext';
 import SiteLogoMark from '@components/common/SiteLogoMark';
@@ -11,11 +10,7 @@ export default function NotFound() {
 
   return (
     <div className="flex min-h-screen w-full min-w-0 max-w-full flex-col items-center justify-center overflow-x-clip bg-[#0A0E1A] p-4 text-center font-sans selection:bg-indigo-500/30 sm:p-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="animate-fade-in-up">
         <div className="relative mb-8">
            <h1 className="select-none text-[clamp(6rem,42vw,14rem)] font-black italic leading-none text-white opacity-5 sm:text-[14rem]">404</h1>
            <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -44,8 +39,8 @@ export default function NotFound() {
             {t('notFound.courses')}
           </Link>
         </div>
-      </motion.div>
-      
+      </div>
+
       <div className="mt-20 opacity-20 hover:opacity-50 transition-opacity duration-500">
          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{t('notFound.brand')}</p>
       </div>

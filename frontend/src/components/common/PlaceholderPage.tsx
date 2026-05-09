@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useLang } from '@/context/LangContext';
 
 type KeyProps = { titleKey: string; descriptionKey: string };
@@ -19,21 +18,10 @@ export default function PlaceholderPage(props: PlaceholderPageProps) {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center">
-        <motion.h1
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-4xl font-black mb-6"
-        >
-          {title}
-        </motion.h1>
-        <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="text-lg text-base-content/60"
-        >
+        <h1 className="text-4xl font-black mb-6 animate-fade-in-up">{title}</h1>
+        <p className="text-lg text-base-content/60 animate-fade-in-up [animation-delay:0.1s]">
           {description}
-        </motion.p>
+        </p>
       </div>
     </div>
   );

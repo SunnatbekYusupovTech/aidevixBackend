@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
@@ -23,7 +23,15 @@ import SiteLogoMark from '@components/common/SiteLogoMark';
 import { SOCIAL_LINKS } from '@utils/constants';
 import { localizeNewsItem } from '@utils/newsTextFallback';
 
-const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), { ssr: false });
+const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), {
+  ssr: false,
+  loading: () => (
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 bg-gradient-to-b from-indigo-950/40 via-slate-900/30 to-slate-950/40 animate-pulse rounded-2xl"
+    />
+  ),
+});
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -97,14 +105,15 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   }, [isLoggedIn]);
 
   useEffect(() => {
-    let mounted = true;
-    fetch('/api/proxy/users/home-stats', { credentials: 'include' })
-      .then(async (r) => {
-        if (!r.ok) throw new Error('Failed to load home stats');
-        return r.json();
-      })
-      .then((json) => {
-        if (!mounted) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const r = await fetch('/api/proxy/users/home-stats', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        if (!r.ok) throw new Error(`home-stats HTTP ${r.status}`);
+        const json = await r.json();
         const data = json?.data || {};
         setHomeStats({
           students: Number(data.students || 0),
@@ -112,14 +121,16 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
           mentors: Number(data.mentors || 0),
           rating: Number(data.rating || 0),
         });
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (mounted) setHomeStatsLoaded(true);
-      });
-    return () => {
-      mounted = false;
-    };
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('home-stats:', err instanceof Error ? err.message : err);
+        }
+      } finally {
+        if (!controller.signal.aborted) setHomeStatsLoaded(true);
+      }
+    })();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -284,12 +295,12 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
   ];
 
 
-  const stats = [
+  const stats = useMemo(() => [
     { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
     { value: homeStats.videos, label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-400 to-indigo-400 bg-clip-text text-transparent', suffix: '+', decimals: 0 },
     { value: homeStats.mentors, label: t('stats.mentors'), color: isDark ? 'text-white' : 'text-gray-900', suffix: '+', decimals: 0 },
     { value: homeStats.rating, label: t('stats.rating'), color: 'text-orange-500', suffix: '', decimals: 1 },
-  ];
+  ], [homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating, isDark, t]);
 
   const pageBg = isDark ? 'text-slate-100' : 'text-slate-900';
   const heroText = isDark ? 'text-white' : 'text-slate-950';

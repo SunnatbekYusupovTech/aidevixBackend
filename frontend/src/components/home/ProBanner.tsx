@@ -2,7 +2,6 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { HiArrowRight, HiCheckCircle, HiLightningBolt } from 'react-icons/hi'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -20,12 +19,7 @@ const ProBanner = () => {
   ]
 
   return (
-    <motion.div
-      initial={{ opacity: 1, y: 0 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="relative mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl px-3 sm:rounded-[2rem] sm:px-4"
-    >
+    <div className="relative mx-auto w-full min-w-0 max-w-7xl overflow-hidden rounded-2xl px-3 sm:rounded-[2rem] sm:px-4">
       <div className={`absolute inset-4 rounded-[2rem] ${isDark ? 'bg-[linear-gradient(135deg,#0f1320_0%,#171b29_55%,#0f1320_100%)]' : 'bg-[linear-gradient(135deg,#f8f8fc_0%,#eef2ff_55%,#f7f8fc_100%)]'}`}></div>
       <div className={`absolute inset-y-4 left-4 w-1/2 rounded-[2rem] ${isDark ? 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.25),transparent_58%)]' : 'bg-[radial-gradient(circle_at_top_left,rgba(86,98,246,0.18),transparent_56%)]'}`}></div>
       <div className="absolute right-10 bottom-4 h-48 w-48 rounded-full bg-amber-400/10 blur-[100px]"></div>
@@ -115,7 +109,7 @@ const ProBanner = () => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

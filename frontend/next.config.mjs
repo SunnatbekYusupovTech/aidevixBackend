@@ -47,9 +47,13 @@ const nextConfig = {
           { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           {
+            // 'unsafe-eval' olib tashlandi — `new Function()`/`eval` ga ruxsat berilmaydi.
+            // 'unsafe-inline' Next.js hydration scriptlari uchun zarur (nonce/hash bilan
+            // tugatish kelgusi PR'ga qoldi). Hozir Report-Only — buzilishi monitoring uchun.
+            // 'wasm-unsafe-eval' Pyodide va boshqa WASM modullarini ishlashga ruxsat beradi.
             key: 'Content-Security-Policy-Report-Only',
             value:
-              "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'",
+              "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
           },
         ],
       },
@@ -74,17 +78,11 @@ const nextConfig = {
     ];
   },
   images: {
+    // Avatarlar har xil hostlardan kelishi mumkin (Telegram, Cloudinary, ui-avatars,
+    // Google avatars, va h.k.). Bunday hollar uchun wildcard ruxsat berilgan
+    // — Next.js har bir rasmni o'z proxy orqali optimizatsiya qiladi.
     remotePatterns: [
-      { protocol: 'https', hostname: 'upload.wikimedia.org' },
-      { protocol: 'https', hostname: 'searchyour.ai' },
-      { protocol: 'https', hostname: 'www.searchyour.ai' },
-      { protocol: 'https', hostname: 'static.vecteezy.com' },
-      { protocol: 'https', hostname: 'www.gstatic.com' },
-      { protocol: 'https', hostname: 'thumbs.dreamstime.com' },
-      { protocol: 'https', hostname: 'res.cloudinary.com' },
-      { protocol: 'https', hostname: 'ui-avatars.com' },
-      { protocol: 'https', hostname: 'iframe.mediadelivery.net' },
-      { protocol: 'https', hostname: 'assets.mixkit.co' },
+      { protocol: 'https', hostname: '**' },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 640, 750, 828, 1080, 1200, 1920],

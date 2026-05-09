@@ -106,64 +106,64 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         </div>
 
         {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute left-2.5 top-2.5 flex gap-2 sm:left-4 sm:top-4">
           {isNew && (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/90 text-white backdrop-blur-md shadow-lg shadow-emerald-500/20">
+            <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white shadow-lg shadow-emerald-500/20 backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-[10px]">
               {t('courses.newBadge')}
             </span>
           )}
         </div>
 
-        <div className={'absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
+        <div className={'absolute right-2.5 top-2.5 rounded-full border px-2 py-0.5 text-[9px] font-bold backdrop-blur-md sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
           {t(`cat.${course.category}`) || cat.label}
         </div>
       </div>
 
       {/* Body */}
-      <div className="flex h-auto flex-col justify-between p-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[10px] font-medium tracking-wide text-white/30">
-            <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
-              <IoBookOutline className="text-xs" />
+      <div className="flex h-auto flex-col justify-between p-4 sm:p-5 md:p-6">
+        <div className="space-y-2.5 sm:space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-medium tracking-wide text-white/30 sm:gap-2">
+            <span className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 px-2 py-0.5 sm:gap-1.5 sm:px-2.5 sm:py-1">
+              <IoBookOutline className="text-[10px] sm:text-xs" />
               {videoCount} {t('courses.lessons')}
             </span>
             {totalSecs > 0 && (
-              <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
-                <IoTime className="text-xs" />
+              <span className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 px-2 py-0.5 sm:gap-1.5 sm:px-2.5 sm:py-1">
+                <IoTime className="text-[10px] sm:text-xs" />
                 {formatDurationText(totalSecs)}
               </span>
             )}
           </div>
 
-          <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-[-0.03em] text-white transition-colors duration-300 group-hover:text-indigo-300">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.03em] text-white transition-colors duration-300 group-hover:text-indigo-300 sm:text-base md:text-lg">
             {localizedCourse.title}
           </h3>
 
-          <div className="flex items-center gap-2 group/author">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-600/20 text-[10px] font-bold text-indigo-300 transition-colors group-hover/author:bg-indigo-600/30">
+          <div className="group/author flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-600/20 text-[10px] font-bold text-indigo-300 transition-colors group-hover/author:bg-indigo-600/30 sm:h-7 sm:w-7">
               {instructorName?.[0]?.toUpperCase() || 'A'}
             </div>
-            <span className="truncate text-xs text-white/45 transition-colors group-hover/author:text-white/70">
+            <span className="truncate text-[11px] text-white/45 transition-colors group-hover/author:text-white/70 sm:text-xs">
               {instructorName || 'Aidevix Mentor'}
             </span>
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-white/8 pt-5">
+        <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 sm:mt-6 sm:pt-5">
           <div className="flex items-center gap-1.5">
             <div className="flex text-yellow-500">
               <IoStar className="text-xs" />
             </div>
-            <span className="text-sm font-bold text-white/80">
+            <span className="text-xs font-bold text-white/80 sm:text-sm">
               {rating > 0 ? Number(rating).toFixed(1) : '—'}
             </span>
             {ratingCount > 0 && (
-              <span className="text-xs text-white/20 font-medium">({ratingCount})</span>
+              <span className="text-[10px] font-medium text-white/20 sm:text-xs">({ratingCount})</span>
             )}
           </div>
-          
-          <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1">
-            <IoPlay className="text-xs" />
+
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-indigo-300 sm:text-xs">
+            <IoPlay className="text-[10px] sm:text-xs" />
             {t('courses.view')}
           </span>
         </div>

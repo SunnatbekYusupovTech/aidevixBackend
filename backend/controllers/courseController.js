@@ -149,8 +149,10 @@ const getCourse = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 
-    // Ko'rishlar sonini oshirish (background'da)
-    Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } }).exec();
+    // Ko'rishlar sonini oshirish (background'da) — unhandled rejection oldini olish
+    Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } })
+      .exec()
+      .catch((err) => console.error('[courseController] viewCount inc xato:', err.message));
 
     res.json({ success: true, data: { course } });
   } catch (error) {
@@ -332,20 +334,78 @@ const rateCourse = async (req, res) => {
 };
 
 /**
-
- * @desc  Foydalanuvchi uchun tavsiya etilgan kurslar (enrollment asosida)
+ * @desc  Foydalanuvchi uchun aqlli tavsiya — AI Stack + tugatilgan kurslar kategoriyasi
+ *        + yozilgan kurslarni chetlatib turish (collaborative filtering basic)
  * @route GET /api/courses/recommended
  * @access Private
  */
 const getUserRecommendedCourses = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 6;
-    const courses = await Course.find({ isActive: true })
-      .sort({ viewCount: -1 })
-      .limit(limit)
-      .select('-videos')
+    const User = require('../models/User');
+    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
+
+    const user = await User.findById(req.user._id).select('aiStack').lean();
+
+    // Foydalanuvchi yozilgan kurslar — duplikatlarni chetlatamiz
+    const myEnrollments = await Enrollment.find({ userId: req.user._id })
+      .select('courseId isCompleted')
       .lean();
-    res.json({ success: true, data: { courses } });
+    const enrolledIds = myEnrollments.map((e) => e.courseId);
+
+    // Tugatilgan kurslar kategoriyalarini olamiz (signal)
+    const completedCourseIds = myEnrollments.filter((e) => e.isCompleted).map((e) => e.courseId);
+    const completedCats = completedCourseIds.length
+      ? await Course.find({ _id: { $in: completedCourseIds } }).distinct('category')
+      : [];
+
+    // AI Stack → category mapping (AI yo'nalishini tushunish)
+    const aiStack = user?.aiStack || [];
+    const stackCats = [];
+    if (aiStack.length > 0) stackCats.push('ai');
+    if (aiStack.includes('Cursor') || aiStack.includes('Windsurf')) stackCats.push('javascript', 'typescript');
+    if (aiStack.includes('GitHub Copilot')) stackCats.push('javascript', 'nodejs');
+    if (aiStack.includes('Claude Code')) stackCats.push('ai', 'security');
+
+    const preferredCats = [...new Set([...completedCats, ...stackCats])];
+
+    let courses = [];
+    if (preferredCats.length > 0) {
+      courses = await Course.find({
+        isActive: true,
+        category: { $in: preferredCats },
+        _id: { $nin: enrolledIds },
+      })
+        .populate('instructor', 'username jobTitle')
+        .sort({ rating: -1, viewCount: -1 })
+        .limit(limit)
+        .select('-videos')
+        .lean();
+    }
+
+    // Yetarli emas bo'lsa — eng mashhurlardan to'ldiramiz (tartib saqlanadi)
+    if (courses.length < limit) {
+      const fill = await Course.find({
+        isActive: true,
+        _id: { $nin: [...enrolledIds, ...courses.map((c) => c._id)] },
+      })
+        .populate('instructor', 'username jobTitle')
+        .sort({ rating: -1, viewCount: -1 })
+        .limit(limit - courses.length)
+        .select('-videos')
+        .lean();
+      courses = [...courses, ...fill];
+    }
+
+    res.json({
+      success: true,
+      data: {
+        courses,
+        meta: {
+          basedOn: preferredCats,
+          enrolledExcluded: enrolledIds.length,
+        },
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -21,6 +21,7 @@ const sessionSchema = new mongoose.Schema(
     refreshTokenHash: {
       type: String,
       required: true,
+      select: false, // tasodifiy log/serializatsiyaga tushmasligi uchun
     },
     deviceHash: {
       type: String,
@@ -29,7 +30,6 @@ const sessionSchema = new mongoose.Schema(
     },
     ip: { type: String, default: null },
     ua: { type: String, default: null },
-    location: { type: String, default: null }, // optional geoip enrichment
     lastUsedAt: {
       type: Date,
       default: () => new Date(),

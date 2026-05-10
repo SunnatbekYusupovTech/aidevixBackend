@@ -52,6 +52,14 @@ connectDB().then(async () => {
   } catch (challengeError) {
     console.error('⚠️ Challenge Scheduler initialization failed:', challengeError.message);
   }
+
+  // Weekly Digest Scheduler — yakshanba 09:00 Toshkent
+  try {
+    const { startDigestScheduler } = require('./utils/digestScheduler');
+    startDigestScheduler();
+  } catch (digestError) {
+    console.error('⚠️ Digest Scheduler initialization failed:', digestError.message);
+  }
 }).catch(err => {
   console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
   console.error('   Reason:', err.message);
@@ -258,6 +266,7 @@ app.use('/api/jobs',         require('./routes/jobRoutes'));
 app.use('/api/mentorship',   require('./routes/mentorshipRoutes'));
 app.use('/api/teams',        require('./routes/teamRoutes'));
 app.use('/api/spaced-repetition', require('./routes/spacedRepetitionRoutes'));
+app.use('/api/playground',   require('./routes/playgroundRoutes'));
 
 // Health check route
 /**

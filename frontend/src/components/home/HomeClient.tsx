@@ -10,6 +10,8 @@ import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
+import ContinueWatching from '@/components/home/ContinueWatching';
+import RecommendedForYou from '@/components/home/RecommendedForYou';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useSound } from '@/context/SoundContext';
@@ -627,6 +629,10 @@ export default function HomeClient({ initialCourses = [], initialVideos = [] }) 
           ))}
         </div>
       </section>
+
+      {/* Personalized sections — faqat auth user uchun ko'rinadi */}
+      <ContinueWatching />
+      <RecommendedForYou limit={8} />
 
       <section data-direction="left" className="reveal-section px-3 py-16 sm:px-4 sm:py-28 md:py-36">
         <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">

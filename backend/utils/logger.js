@@ -36,15 +36,21 @@ const logger = {
   debug: (msg, meta)  => write('debug', msg, meta),
 
   /** HTTP request logi — middleware dan chaqiriladi */
-  request: (req, statusCode, durationMs) =>
+  request: (req, statusCode, durationMs) => {
+    // Sensitive query parametrlarni maskalash (token, code, password log'ga tushmasligi uchun)
+    const safePath = String(req.originalUrl || '').replace(
+      /([?&])(token|code|password|secret|access_token|refresh_token|authorization|api_key)=[^&]*/gi,
+      '$1$2=***'
+    );
     write('info', 'HTTP', {
       method:   req.method,
-      path:     req.originalUrl,
+      path:     safePath,
       status:   statusCode,
       ms:       durationMs,
       ip:       req.ip || req.headers['x-forwarded-for'],
       ua:       (req.headers['user-agent'] || '').slice(0, 80),
-    }),
+    });
+  },
 };
 
 module.exports = logger;

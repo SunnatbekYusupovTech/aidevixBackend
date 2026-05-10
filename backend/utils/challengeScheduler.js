@@ -81,22 +81,37 @@ async function createDailyChallenge() {
     const { DailyChallenge } = require('../models/DailyChallenge');
     const todayStr = getTodayStr();
 
-    // Allaqachon bor?
-    const existing = await DailyChallenge.findOne({ date: todayStr });
-    if (existing) return existing;
-
     // Pool dan ketma-ket tanlash (hafta kuni bo'yicha)
     const dayOfWeek = new Date().getDay(); // 0=Sunday
     const challenge = CHALLENGE_POOL[dayOfWeek % CHALLENGE_POOL.length];
 
-    const created = await DailyChallenge.create({
-      ...challenge,
-      date: todayStr,
-      isActive: true,
-    });
+    // Atomic upsert — bir nechta instance ishga tushsa ham faqat bittasi insertni "yutadi".
+    // `date` unique index borligi sababli MongoDB duplicate'ni o'zi cheklab beradi.
+    let created;
+    let isNew = false;
+    try {
+      created = await DailyChallenge.create({
+        ...challenge,
+        date: todayStr,
+        isActive: true,
+      });
+      isNew = true;
+    } catch (err) {
+      // 11000 = duplicate key — boshqa instance allaqachon yaratgan, mavjudni qaytaramiz
+      if (err && err.code === 11000) {
+        created = await DailyChallenge.findOne({ date: todayStr });
+        if (!created) throw err;
+      } else {
+        throw err;
+      }
+    }
 
-    console.log(`[ChallengeScheduler] Kunlik vazifa yaratildi: "${created.title}" (${todayStr})`);
-    await sendChallengeToChannel(created);
+    if (isNew) {
+      console.log(`[ChallengeScheduler] Kunlik vazifa yaratildi: "${created.title}" (${todayStr})`);
+      await sendChallengeToChannel(created);
+    } else {
+      console.log(`[ChallengeScheduler] Bugungi challenge allaqachon mavjud: "${created.title}" (${todayStr})`);
+    }
     return created;
   } catch (err) {
     console.error('[ChallengeScheduler] Challenge yaratishda xato:', err.message);

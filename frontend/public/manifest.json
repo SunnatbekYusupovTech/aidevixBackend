@@ -1,13 +1,53 @@
 {
-  "name": "Aidevix",
+  "name": "Aidevix — Dasturlashni o'rganing",
   "short_name": "Aidevix",
-  "description": "O'zbek tilida dasturlashni o'rganing",
-  "start_url": "/",
+  "description": "O'zbek tilida dasturlash, AI tools va Vibe Coding kurslari. XP, sertifikat, hamjamiyat.",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#0f0a1e",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0A0E1A",
   "theme_color": "#4f46e5",
+  "lang": "uz",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
-    { "src": "/Logo.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any maskable" },
-    { "src": "/Logo.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
+    { "src": "/Logo.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any" },
+    { "src": "/Logo.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any" },
+    { "src": "/Logo.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "maskable" },
+    { "src": "/Logo.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kurslar",
+      "short_name": "Kurslar",
+      "description": "Barcha kurslarni ko'rish",
+      "url": "/courses?utm_source=pwa_shortcut",
+      "icons": [{ "src": "/Logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Promptlar",
+      "short_name": "Promptlar",
+      "description": "Prompt Library",
+      "url": "/prompts?utm_source=pwa_shortcut",
+      "icons": [{ "src": "/Logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Reyting",
+      "description": "Reyting",
+      "url": "/leaderboard?utm_source=pwa_shortcut",
+      "icons": [{ "src": "/Logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Profil",
+      "short_name": "Profil",
+      "description": "Mening profilim",
+      "url": "/profile?utm_source=pwa_shortcut",
+      "icons": [{ "src": "/Logo.jpg", "sizes": "192x192" }]
+    }
   ]
 }

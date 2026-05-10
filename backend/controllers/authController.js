@@ -636,7 +636,9 @@ const refresh = asyncHandler(async (req, res, next) => {
 
   // Session-based path (new tokens carry `sid`)
   if (decoded.sid) {
-    const session = await Session.findOne({ _id: decoded.sid, userId: user._id });
+    // refreshTokenHash select:false — quyida solishtirish uchun explicit select
+    const session = await Session.findOne({ _id: decoded.sid, userId: user._id })
+      .select('+refreshTokenHash');
     if (!session) {
       // Session was already revoked / never existed → treat as reuse
       securityLogger.refreshTokenReuse(req, user._id);
@@ -1270,6 +1272,114 @@ const googleAuth = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Telegram Mini App login — `window.Telegram.WebApp.initData` orqali
+//          HMAC validatsiya + foydalanuvchini topish/yaratish + session.
+//
+//          Body: { initData: string }
+//          initData formati URL-encoded query string (Telegram beradi).
+const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
+  const { initData } = req.body;
+
+  if (!initData || typeof initData !== 'string' || initData.length > 8000) {
+    return next(new ErrorResponse('initData yaroqsiz', 400));
+  }
+
+  const { validateInitData } = require('../utils/telegramWebAppAuth');
+  const result = validateInitData(initData);
+
+  if (!result.valid) {
+    securityLogger.suspicious(req, 'telegram_initdata_invalid', { reason: result.reason });
+    return next(new ErrorResponse(`Telegram autentifikatsiya rad etildi (${result.reason})`, 401));
+  }
+
+  const tgUser = result.user; // { id, first_name, last_name, username, language_code, photo_url, is_premium }
+  const telegramUserId = String(tgUser.id);
+
+  // Avval Telegram ID bo'yicha qidiramiz
+  let user = await User.findOne({
+    $or: [
+      { telegramUserId },
+      { 'socialSubscriptions.telegram.telegramUserId': telegramUserId },
+    ],
+  }).select('+tokenVersion +totpEnabled');
+
+  let isNew = false;
+
+  if (!user) {
+    isNew = true;
+    // Yangi user yaratamiz — username Telegram dan, agar yo'q bo'lsa fallback
+    const tgUsername = (tgUser.username || `tg_${telegramUserId}`).toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const baseUsername = tgUsername.slice(0, 20) || `tg_${telegramUserId}`;
+    const suffix = crypto.randomBytes(2).toString('hex');
+    const username = `${baseUsername}_${suffix}`.slice(0, 30);
+
+    // Email yo'q (Telegram bermaydi) — placeholder bilan yaratamiz, keyin user qo'shadi
+    const placeholderEmail = `tg_${telegramUserId}@tg.aidevix.local`;
+    const referralCode =
+      username.substring(0, 4).toUpperCase() + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    user = await User.create({
+      username,
+      email: placeholderEmail,
+      firstName: tgUser.first_name || '',
+      lastName: tgUser.last_name || '',
+      emailVerified: false, // user keyin haqiqiy email qo'shishi mumkin
+      telegramUserId,
+      telegramChatId: telegramUserId,
+      avatar: tgUser.photo_url || null,
+      'socialSubscriptions.telegram.username': tgUser.username || null,
+      'socialSubscriptions.telegram.telegramUserId': telegramUserId,
+      'socialSubscriptions.telegram.verifiedAt': new Date(),
+      referralCode,
+      xp: 0,
+      rankTitle: 'AMATEUR',
+    });
+
+    UserStats.create({ userId: user._id, xp: 0 }).catch(() => {});
+    securityLogger.registerSuccess(req, user);
+
+    // Bot orqali admin'ga yangi user xabarini berish
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const bot = getBot();
+      if (bot && typeof bot.notifyNewRegistration === 'function') {
+        bot.notifyNewRegistration(user);
+      }
+    } catch (_) {}
+  } else {
+    if (!user.isActive) return next(new ErrorResponse('Account deactivated', 403));
+    // Telegram ID ulash (eski user'da bo'lmasa)
+    if (!user.telegramUserId) {
+      await User.updateOne({ _id: user._id }, { $set: { telegramUserId, telegramChatId: telegramUserId } });
+    }
+  }
+
+  // 2FA gate — Telegram first factor solves identity, lekin TOTP mustaqil
+  if (user.totpEnabled) {
+    const challengeId = generate2FAChallenge({ uid: String(user._id) });
+    securityLogger.loginSuccess(req, user);
+    return res.json({
+      success: true,
+      requires2FA: true,
+      challengeId,
+      isNewUser: isNew,
+    });
+  }
+
+  const { accessToken, refreshToken } = await issueTokens(user, req);
+  attachAuthCookies(res, accessToken, refreshToken);
+  await trackDeviceAndAlert(req, user);
+  securityLogger.loginSuccess(req, user);
+
+  const fresh = await User.findById(user._id).select('+password');
+  res.status(isNew ? 201 : 200).json({
+    success: true,
+    data: { user: sanitizeUser(fresh) },
+    isNewUser: isNew,
+    source: 'telegram-miniapp',
+  });
+});
+
 // @desc    Step-up reauth — issue 5-min reauth token.
 //
 // Accepts EITHER:
@@ -1354,7 +1464,10 @@ const deleteMyAccount = asyncHandler(async (req, res) => {
 
   securityLogger.accountDeleted(req, user, 'self');
   if (originalEmail && !originalEmail.endsWith('@deleted.aidevix.local')) {
-    sendAccountDeletedEmail(originalEmail, originalUsername).catch(() => {});
+    sendAccountDeletedEmail(originalEmail, originalUsername).catch((err) => {
+      // Email yuborilishi muvaffaqiyatsiz bo'lsa ham hisob o'chirilgan — operator ko'rinishi uchun log
+      console.error('[deleteMyAccount] account-deleted email failed:', err.message);
+    });
   }
   res.json({
     success: true,
@@ -1367,6 +1480,7 @@ module.exports = {
   login,
   verify2FALogin,
   googleAuth,
+  telegramMiniAppAuth,
   refreshToken: refresh,
   logout,
   logoutAll,

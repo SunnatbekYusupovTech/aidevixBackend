@@ -11,12 +11,13 @@ const errorHandler = (err, req, res, next) => {
     path:   req.originalUrl,
     method: req.method,
     status: err.statusCode || 500,
+    // Stack faqat serverga (logger), hech qachon client'ga emas.
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 
   if (err.name === 'CastError') {
-    const message = `Resource not found with id of ${err.value}`;
-    error = new ErrorResponse(message, 404);
+    // err.value clientga qaytarilmasin (ID enumeration / info leakage himoyasi)
+    error = new ErrorResponse('Resource not found', 404);
   }
 
   if (err.code === 11000) {
@@ -61,10 +62,17 @@ const errorHandler = (err, req, res, next) => {
     error = new ErrorResponse(err.message, 400);
   }
 
-  res.status(error.statusCode || 500).json({
+  // Stack trace clientga hech qachon qaytarilmaydi — debug uchun loglarda.
+  // Production'da `error.message` ham generic bo'lishi kerak agar statusCode 500 bo'lsa.
+  const status = error.statusCode || 500;
+  const isInternal = status >= 500;
+  const safeMessage = isInternal && process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : (error.message || 'Internal Server Error');
+
+  res.status(status).json({
     success: false,
-    message: error.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    message: safeMessage,
   });
 };
 

@@ -128,6 +128,15 @@ const googleLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
+// Telegram Mini App auth — HMAC validate'siz hech narsa o'tmaydi, lekin spam himoyasi
+const telegramAuthLimiter = rateLimit({
+  ...baseOpts('tg_auth'),
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: jsonMessage('Juda ko\'p Telegram autentifikatsiya urinishi.'),
+  keyGenerator: ipKey,
+});
+
 // 2FA verify — IP + challengeId kombinatsiyasi.
 // FIX [HIGH]: Faqat per-IP emas, per-challengeId ham keying qilinadi.
 // Yangi challengeId olish uchun qayta login kerak (loginLimiter cheklovida),
@@ -178,6 +187,7 @@ module.exports = {
   dailyRewardLimiter,
   verifyEmailLimiter,
   googleLimiter,
+  telegramAuthLimiter,
   totpLimiter,
   reauthLimiter,
   bugReportLimiter,

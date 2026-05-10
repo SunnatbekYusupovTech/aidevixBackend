@@ -247,6 +247,77 @@ const sendAccountDeletedEmail = async (email, username) => {
   }).catch(() => {});
 };
 
+/**
+ * Haftalik xulosa — yakshanba ertalab yuboriladi.
+ * @param {string} email
+ * @param {object} digest { username, weeklyXp, totalXp, rank, streak, newBadges, nextCourse }
+ */
+const sendWeeklyDigestEmail = async (email, digest) => {
+  const {
+    username,
+    weeklyXp = 0,
+    totalXp = 0,
+    rank,
+    streak = 0,
+    newBadges = [],
+    nextCourse = null,
+  } = digest;
+
+  const FE = process.env.FRONTEND_URL || 'https://aidevix.uz';
+
+  const badgesHtml = newBadges.length
+    ? `<p style="margin:18px 0 6px 0;"><strong>🏅 Bu hafta olingan badgelar:</strong></p>
+       <ul style="padding-left:20px;">${newBadges.slice(0, 5).map((b) => `<li>${b.icon || '🏆'} ${b.name}</li>`).join('')}</ul>`
+    : '';
+
+  const nextHtml = nextCourse
+    ? `<div style="margin:18px 0;padding:16px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6366f1;">Davom ettiring</div>
+        <div style="font-size:16px;font-weight:700;margin:6px 0 8px 0;">${nextCourse.title}</div>
+        <a href="${FE}/courses/${nextCourse._id}" style="display:inline-block;padding:8px 14px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Kursga o'tish →</a>
+       </div>`
+    : '';
+
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: `📊 Aidevix — Haftalik xulosa (${weeklyXp.toLocaleString()} XP)`,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+        <h1 style="font-size:22px;margin:0 0 6px 0;">Salom, ${username}! 👋</h1>
+        <p style="color:#475569;margin:0 0 18px 0;">Bu haftangizning qisqacha xulosasi:</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div style="padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.1em;">Bu hafta XP</div>
+            <div style="font-size:22px;font-weight:800;color:#6366f1;">${weeklyXp.toLocaleString()}</div>
+          </div>
+          <div style="padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.1em;">Streak 🔥</div>
+            <div style="font-size:22px;font-weight:800;color:#f97316;">${streak} kun</div>
+          </div>
+          <div style="padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.1em;">Jami XP</div>
+            <div style="font-size:22px;font-weight:800;">${totalXp.toLocaleString()}</div>
+          </div>
+          <div style="padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.1em;">Ranking</div>
+            <div style="font-size:22px;font-weight:800;color:#06b6d4;">#${rank || '—'}</div>
+          </div>
+        </div>
+
+        ${badgesHtml}
+        ${nextHtml}
+
+        <p style="margin-top:24px;padding-top:18px;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;">
+          Streak buzilmasligi uchun bugun ham kirib oling. <a href="${FE}/profile" style="color:#6366f1;">Profil →</a><br/>
+          <span style="font-size:11px;color:#94a3b8;">Bu xabardan obunani bekor qilish: <a href="${FE}/settings" style="color:#94a3b8;">Sozlamalar</a></span>
+        </p>
+      </div>
+    `,
+  }).catch((err) => console.error('[Digest] email failed:', err.message));
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendEmailVerificationCode,
@@ -259,4 +330,5 @@ module.exports = {
   sendResetCodeEmail,
   sendNewDeviceLoginEmail,
   sendAccountDeletedEmail,
+  sendWeeklyDigestEmail,
 };

@@ -5,6 +5,7 @@ const {
   login,
   verify2FALogin,
   googleAuth,
+  telegramMiniAppAuth,
   refreshToken,
   logout,
   logoutAll,
@@ -39,6 +40,7 @@ const {
   dailyRewardLimiter,
   verifyEmailLimiter,
   googleLimiter,
+  telegramAuthLimiter,
   totpLimiter,
   reauthLimiter,
 } = require('../middleware/rateLimiter');
@@ -48,6 +50,8 @@ router.post('/register', registerLimiter, captchaCheck, register);
 router.post('/login', loginLimiter, captchaCheck, login);
 router.post('/2fa/verify-login', totpLimiter, verify2FALogin);
 router.post('/google', googleLimiter, googleAuth);
+// Telegram Mini App auth — HMAC validate qilingan initData ostida login/register
+router.post('/telegram-init', telegramAuthLimiter, telegramMiniAppAuth);
 router.post('/refresh-token', refreshLimiter, refreshToken);
 router.post('/forgot-password', otpLimiter, captchaCheck, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
@@ -73,7 +77,9 @@ router.delete('/me', authenticate, requireRecentReauth, deleteMyAccount);
 // 2FA management (authenticated)
 router.post('/2fa/setup', authenticate, setup2FA);
 router.post('/2fa/enable', authenticate, enable2FA);
-router.post('/2fa/disable', authenticate, reauthLimiter, disable2FA);
-router.post('/2fa/backup-codes', authenticate, totpLimiter, regenerateBackupCodes);
+// 2FA disable — parol qayta tasdiqlash (step-up reauth) talab qilinadi (account takeover himoyasi)
+router.post('/2fa/disable', authenticate, reauthLimiter, requireRecentReauth, disable2FA);
+// Backup codes regenerate ham step-up reauth ostida bo'lishi xavfsizroq
+router.post('/2fa/backup-codes', authenticate, totpLimiter, requireRecentReauth, regenerateBackupCodes);
 
 module.exports = router;

@@ -10,6 +10,10 @@ export const authApi = {
   /** POST /auth/google — Google OAuth (credential = ID token) yoki (accessToken = access token) */
   googleAuth: (data: { credential?: string; accessToken?: string }) => api.post('auth/google', data),
 
+  /** POST /auth/telegram-init — Telegram Mini App login (initData HMAC validated) */
+  telegramMiniAppAuth: (data: { initData: string }) =>
+    api.post('auth/telegram-init', data),
+
   /** POST /auth/2fa/verify-login — exchange challengeId + TOTP code for session */
   verify2FALogin: (data: { challengeId: string; code: string }) =>
     api.post('auth/2fa/verify-login', data),

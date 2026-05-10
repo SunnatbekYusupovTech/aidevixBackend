@@ -2,6 +2,10 @@ const User = require('../models/User');
 const UserStats = require('../models/UserStats');
 const Course = require('../models/Course');
 const Video = require('../models/Video');
+const Certificate = require('../models/Certificate');
+const Prompt = require('../models/Prompt');
+const Follow = require('../models/Follow');
+const Enrollment = require('../models/Enrollment');
 
 /**
  * @desc  Home sahifa uchun ochiq statistika
@@ -67,6 +71,26 @@ const getPublicProfile = async (req, res) => {
       ? (await UserStats.countDocuments({ xp: { $gt: stats.xp || 0 } })) + 1
       : totalUsers;
 
+    // Sertifikatlar, promptlar, follow statistikasi — bitta Promise.all bilan
+    const [certCount, topCerts, promptCount, topPrompts, followersCount, followingCount, completedCourses] =
+      await Promise.all([
+        Certificate.countDocuments({ userId: user._id }),
+        Certificate.find({ userId: user._id })
+          .sort({ createdAt: -1 })
+          .limit(3)
+          .select('courseName certificateCode createdAt')
+          .lean(),
+        Prompt.countDocuments({ author: user._id }),
+        Prompt.find({ author: user._id, isPublic: true })
+          .sort({ likesCount: -1, viewsCount: -1 })
+          .limit(3)
+          .select('title category tool likesCount viewsCount')
+          .lean(),
+        Follow.countDocuments({ followingId: user._id }),
+        Follow.countDocuments({ followerId: user._id }),
+        Enrollment.countDocuments({ userId: user._id, isCompleted: true }),
+      ]);
+
     const getRankTitle = (level = 1) => {
       if (level >= 90) return 'GRANDMASTER';
       if (level >= 75) return 'VICE-ADMIRAL';
@@ -103,7 +127,18 @@ const getPublicProfile = async (req, res) => {
           rank,
           total:      totalUsers,
           rankTitle:  getRankTitle(stats?.level || 1),
-          topPercent: Math.round((rank / totalUsers) * 100),
+          topPercent: totalUsers > 0 ? Math.round((rank / totalUsers) * 100) : 100,
+        },
+        social: {
+          followers: followersCount,
+          following: followingCount,
+        },
+        achievements: {
+          certificatesCount: certCount,
+          completedCourses,
+          topCertificates: topCerts,
+          promptsCount: promptCount,
+          topPrompts,
         },
       },
     });

@@ -10,17 +10,30 @@
  */
 
 const TTL_MS = 5 * 60 * 1000; // 5 daqiqa
+const MAX_ENTRIES = 50000;    // unbounded growth himoyasi (DoS preventsiyasi)
 
 /** @type {Map<string, {data: object, expiresAt: number}>} */
 const store = new Map();
 
 // Eski yozuvlarni tozalash (memory leak oldini olish) — har 10 daqiqada
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
     if (now > entry.expiresAt) store.delete(key);
   }
+  // Hali ham juda katta bo'lsa, eng eski 20% ni o'chiramiz
+  if (store.size > MAX_ENTRIES) {
+    const overflow = store.size - Math.floor(MAX_ENTRIES * 0.8);
+    const keysIter = store.keys();
+    for (let i = 0; i < overflow; i++) {
+      const k = keysIter.next().value;
+      if (k === undefined) break;
+      store.delete(k);
+    }
+  }
 }, 10 * 60 * 1000);
+// Test environment'da Jest open handle qoldirmasligi uchun unref
+if (cleanupInterval.unref) cleanupInterval.unref();
 
 /**
  * @param {string|object} userId
@@ -42,6 +55,11 @@ const get = (userId) => {
  * @param {{instagramSubscribed: boolean, telegramSubscribed: boolean}} data
  */
 const set = (userId, data) => {
+  // Hot-path overflow guard — interval'gacha kutmasdan eng eski yozuvni o'chiramiz
+  if (store.size >= MAX_ENTRIES) {
+    const firstKey = store.keys().next().value;
+    if (firstKey !== undefined) store.delete(firstKey);
+  }
   store.set(userId.toString(), {
     data,
     expiresAt: Date.now() + TTL_MS,

@@ -21,8 +21,8 @@ const listMySessions = asyncHandler(async (req, res) => {
   const cookies = parseCookies(req.headers.cookie);
   const currentRefresh = cookies[REFRESH_COOKIE_NAME];
   const currentHash = currentRefresh ? hashToken(currentRefresh) : null;
-  // Note: the Session.refreshTokenHash field is select:true, but we already excluded it above.
-  // Re-query the matching one if we need to mark current.
+  // refreshTokenHash select:false — query filter sifatida ishlatish mumkin (returnda projection emas).
+  // Faqat _id kerak, demak select:false bilan muammo yo'q.
   let currentId = null;
   if (currentHash) {
     const cur = await Session.findOne({

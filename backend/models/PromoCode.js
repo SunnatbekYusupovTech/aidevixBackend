@@ -56,7 +56,7 @@ const promoCodeSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-promoCodeSchema.index({ code: 1 });
+// `code` field'da `unique: true` avtomatik unique index yaratadi — alohida `.index({code:1})` kerakmas.
 promoCodeSchema.index({ isActive: 1, expiresAt: 1 });
 
 module.exports = mongoose.model('PromoCode', promoCodeSchema);

@@ -849,6 +849,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'team.member.firdavs.roadmapRole': 'Auth & Session System',
     'team.member.firdavs.contribution':
       'Platforma autentifikatsiya tizimini noldan qurgan. Cookie-based JWT sessiyasi, login/register formlar, ProtectedRoute va AdminRoute komponentlari, email orqali parolni tiklash va kunlik mukofot modali — hammasi Firdavsning ishi.',
+    'team.member.abduvohid.badge': 'Home UI · Frontend',
+    'team.member.abduvohid.roadmapRole': 'Bosh sahifa · navigatsiya · vizual UX',
+    'team.member.abduvohid.contribution':
+      "Aidevix bosh sahifasining UI va foydalanuvchi tajribasini boshqaradi: hero, metrikalar, kurs va video bloklari, umumiy tartib va Navbar/Footer bilan uyg'un dizayn. Framer Motion va GSAP bilan silliq animatsiyalar va vizual ierarxiya — asosan uning hissasi.",
     'team.member.abduvoris.badge': 'Video Engineer',
     'team.member.abduvoris.roadmapRole': 'Video Platform & HLS Player',
     'team.member.abduvoris.contribution':
@@ -1811,6 +1815,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'team.member.firdavs.roadmapRole': 'Auth & Session System',
     'team.member.firdavs.contribution':
       'С нуля построил систему аутентификации платформы: cookie-based JWT-сессии, формы login/register, компоненты ProtectedRoute и AdminRoute, восстановление пароля по email и ежедневный reward modal.',
+    'team.member.abduvohid.badge': 'Home UI · Frontend',
+    'team.member.abduvohid.roadmapRole': 'Главная · навигация · визуальный UX',
+    'team.member.abduvohid.contribution':
+      'Отвечает за UI и UX главной страницы Aidevix: hero, метрики, блоки курсов и видео, общую композицию и согласованность с Navbar/Footer. Плавные анимации на Framer Motion и GSAP и визуальная иерархия — в основном его вклад.',
     'team.member.abduvoris.badge': 'Video Engineer',
     'team.member.abduvoris.roadmapRole': 'Video Platform & HLS Player',
     'team.member.abduvoris.contribution':
@@ -2764,6 +2772,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     'team.member.firdavs.roadmapRole': 'Auth & Session System',
     'team.member.firdavs.contribution':
       'Built platform authentication from scratch: cookie-based JWT sessions, login/register forms, ProtectedRoute and AdminRoute components, password reset via email, and the daily reward modal.',
+    'team.member.abduvohid.badge': 'Home UI · Frontend',
+    'team.member.abduvohid.roadmapRole': 'Home page · navigation · visual UX',
+    'team.member.abduvohid.contribution':
+      'Owns the Aidevix home page UI and user experience: hero, metrics, course and video sections, overall layout, and cohesion with Navbar and Footer. Smooth motion with Framer Motion and GSAP plus visual hierarchy are largely his contribution.',
     'team.member.abduvoris.badge': 'Video Engineer',
     'team.member.abduvoris.roadmapRole': 'Video Platform & HLS Player',
     'team.member.abduvoris.contribution':

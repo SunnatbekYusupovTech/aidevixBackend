@@ -22,6 +22,7 @@ Repo summary for agents and contributors. Read this before any work.
 | Video    | Bunny.net Stream (token-authenticated)            |
 | Bot      | Telegram Bot API (long polling, no webhook)       |
 | AI       | Groq API (llama-3.3-70b) — news generation, AI coach |
+| Email    | **Resend** (HTTPS API, port 443) — DKIM+SPF on `aidevix.uz` (2026-05-15) |
 
 ## Architecture
 
@@ -83,7 +84,7 @@ backend/
     ├── schedulerState.js             # Scheduler run state tracking
     ├── bunny.js                      # Bunny.net signed URL generator
     ├── jwt.js                        # Token sign/verify
-    ├── emailService.js               # Nodemailer (sendWeeklyDigestEmail kiritildi)
+    ├── emailService.js               # Resend HTTPS API (2026-05-15) — 11 ta premium brand template via renderLayout()
     ├── badgeService.js               # Auto badge award
     ├── authSecurity.js               # Auth security helpers
     ├── errorResponse.js              # Standardized error response helper
@@ -185,6 +186,67 @@ Frontend (TelegramVerify.tsx):
   Polling: checkVerifyToken every 3s until linked+subscribed
 ```
 
+## Auth Flow — Email Verification Gate (2026-05-15 yangi)
+
+Ro'yxatdan o'tish endi **email tasdiqlanmaguncha sessiya yaratmaydi**. Eski flow auto-login qilardi, hozir foydalanuvchi kodni kiritmaguncha cookie/token olmaydi.
+
+```
+1. RegisterForm submit → POST /api/auth/register
+   ├── validator.isEmail() — format check
+   ├── emailDomainHasMx() — DNS MX lookup (3s timeout, soft-fail on transient errors)
+   │     ENOTFOUND / NXDOMAIN / ENODATA → 400 "Email manzili mavjud emas"
+   ├── HIBP password breach check
+   ├── existingUser check:
+   │     ├── verified bo'lsa  → 400 "Email or username already exists"
+   │     └── unverified bo'lsa → kod qayta yuboriladi + 200 requiresEmailVerification (UX fix)
+   ├── User.create({ emailVerified: false, emailVerificationCode: hash(code), ... })
+   ├── sendEmailVerificationCode() — fire-and-forget (Resend)
+   └── 201 { requiresEmailVerification: true, email } — NO COOKIES, NO SESSION
+
+2. Frontend → router.push('/auth/verify-email?email=...')
+
+3. User kod kiritadi → POST /api/auth/verify-email-public { email, code }
+   ├── safeEqual(hash(code), user.emailVerificationCode) + expiry + attempt cap (5)
+   ├── emailVerified=true, kod tozalanadi
+   ├── Referral bonus payout (deferred): +1000 XP referrer, +500 XP new user, referralRewarded=true
+   ├── sendWelcomeEmail() + telegramBot.notifyNewRegistration() (faqat shu yerda)
+   └── 200 "Email tasdiqlandi. Endi login qiling."
+
+4. Frontend → router.push('/login')
+
+5. Login (POST /api/auth/login) — emailVerified=true bo'lgani uchun normal cookie session
+```
+
+### Login gate (Email Verification)
+
+Agar user emailini tasdiqlamasdan login urinsa (ya'ni eski unverified hisob):
+
+```
+POST /api/auth/login → bcrypt OK → user.emailVerified === false
+  ├── Yangi kod generatsiya + DB ga saqlash
+  ├── sendEmailVerificationCode() fire-and-forget
+  └── 403 { requiresEmailVerification: true, email }
+```
+
+Frontend `LoginForm` / Redux `register` thunk `requiresEmailVerification` ni `pendingEmailVerification` state'iga yozadi va `/auth/verify-email`'ga redirect qiladi.
+
+### Forgot Password Flow
+
+```
+1. POST /api/auth/forgot-password { identifier, method: 'email'|'telegram' }
+   ├── Generic response always (no enumeration): "If account exists, reset code sent"
+   ├── 6-digit code, hashed in DB, 10-min expire
+   └── sendResetCodeEmail() yoki sendOtpTelegram()
+2. POST /api/auth/verify-code { identifier, method, code }
+   ├── Attempt cap 5 (exceeded → kod tozalanadi)
+   └── resetToken JWT (15-min) + resetTokenHash DB'ga saqlanadi
+3. POST /api/auth/reset-password { resetToken, newPassword }
+   ├── deletedAt/isActive guard (2026-05-15)
+   ├── HIBP + passwordHistory(5) reuse check
+   ├── tokenVersion++ (pre-save hook), refreshToken=null
+   └── Session.deleteMany({ userId }) — barcha sessiyalar bekor qilinadi
+```
+
 ## News Scheduler (newsScheduler.js)
 
 - **Vaqt:** 10:00, 16:00, 20:00 Toshkent
@@ -200,6 +262,77 @@ Frontend (TelegramVerify.tsx):
 - **Pool:** Hafta kuni bo'yicha navbat bilan
 - **Env:** `CHALLENGE_SCHEDULER_ENABLED=false` — o'chirish
 - **Race-condition fix (2026-05-11):** `findOne → create` o'rniga atomic `create` + duplicate-key catch. `date` unique index multi-instance restart'da duplicate post oldini oladi.
+
+## Email Infrastructure (Resend) — 2026-05-15 yangi
+
+**Migration:** Gmail SMTP → **Resend HTTPS API**. Sabab — Railway konteynerlari outbound SMTP portlarini (25/465/587) bloklaydi. Hatto IPv4 force qilingach `ETIMEDOUT` qaytarardi. Resend port 443 (HTTPS) orqali ishlaydi → har doim ishlonadi.
+
+### Sozlash
+
+| Komponent | Qiymat |
+|-----------|--------|
+| Provider | [resend.com](https://resend.com) |
+| Plan | Free (3,000 email/oy, 100/kun) |
+| Region | `eu-west-1` (Ireland) |
+| Domain | `aidevix.uz` — DKIM + SPF + MX `send` subdomain'da |
+| DNS hosted at | **ahost.uz** (`rdns1/2/3.ahost.uz` nameservers) |
+
+### DNS yozuvlari (ahost.uz panelida)
+
+| Type | Name | Value | Priority |
+|------|------|-------|----------|
+| TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCi...` (DKIM public key) | — |
+| MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` | 10 |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` | — |
+
+> ⚠️ DNS yozuvlarni o'chirmang. Mavjud `default._domainkey`, root `@` SPF/MX `aidevix.uz` ga, `_dmarc` — boshqa email tizimi uchun. Resend'niki **alohida `send` subdomain'da** turadi, konflikt yo'q.
+
+### `emailService.js` arxitekturasi
+
+```js
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Public API (har bir send funksiya shu signaturedan foydalanadi):
+sendMail({ from, to, subject, html })  // returns { messageId, accepted, rejected, response }
+```
+
+**Premium brand layout** — barcha 11 ta email `renderLayout()` orqali tuziladi:
+- AIDEVIX gradient wordmark pill
+- 4px gradient accent strip (har email turi uchun alohida rang)
+- Dark mode awareness (`@media (prefers-color-scheme: dark)`)
+- Mobile breakpoint @600px
+- Hidden preheader text (Gmail preview snippet'ni boshqaradi)
+- Footer (tagline, Telegram/Instagram/site, copyright)
+
+Helper primitives: `h1()`, `greeting()`, `lede()`, `button()`, `codeBox()`, `statCard()`, `divider()`, `securityNote()`, `escapeHtml()`.
+
+### 11 ta transactional email
+
+| Funksiya | Maqsad | Trigger |
+|----------|--------|---------|
+| `sendEmailVerificationCode` | 6-digit kod | Register + Login (unverified) |
+| `sendResetCodeEmail` | 6-digit kod (orange accent) | Forgot password |
+| `sendWelcomeEmail` | Tabrik | **Faqat verifikatsiyadan keyin** |
+| `sendLevelUpEmail` | Daraja yutuq | Level up |
+| `sendCertificateEmail` | Sertifikat | Kurs yakunlash |
+| `sendEnrollmentEmail` | Yozildim | Kursga yozilish |
+| `sendStreakReminderEmail` | Streak xavf | Cron — streak risk |
+| `sendQuizResultEmail` | Kviz natijasi | Quiz submit |
+| `sendNewDeviceLoginEmail` | Yangi qurilma | Login yangi device'dan |
+| `sendAccountDeletedEmail` | GDPR o'chirish | DELETE /me |
+| `sendWeeklyDigestEmail` | Haftalik xulosa | Cron — Yakshanba 09:00 |
+
+### Verify Transport (boot probe)
+
+`verifyTransport()` server start'ida `/domains` endpoint'iga uradi. Restricted API key (Sending Access only) 401 `restricted_api_key` qaytaradi — buni "OK, sending-only key" deb qabul qiladi (false-positive emas).
+
+### Migration uchun olib tashlangan kod
+
+- `nodemailer` dependency (uninstalled)
+- IPv4-only DNS hacks (`dns.setDefaultResultOrder('ipv4first')`, `net.setDefaultAutoSelectFamily(false)`, `family:4`, custom `lookup`, `autoSelectFamily:false`, pre-resolve to IPv4) — Resend bilan kerak emas
+- Connection timeouts (Resend SDK o'zi boshqaradi)
+- `publicController.js` da nodemailer transport ham olib tashlandi (contact form `sendMail()`ga ko'chirildi)
 
 ## Weekly Digest Scheduler (digestScheduler.js) — 2026-05-11 yangi
 
@@ -473,6 +606,33 @@ Quyidagi xato/zaifliklar shu kuni tuzatildi — kelajakda regresslarga yo'l qo'y
 - **`courseController.getCourse`** — background `findByIdAndUpdate(...).exec().catch()` (unhandledRejection oldini olish)
 - **`PromoCode.js`** — `code` field'da `unique:true` + `.index({code:1})` duplicate index olib tashlandi (Mongoose warning)
 
+## Auth Audit (2026-05-15) — production `aidevix.uz` review
+
+Methodology: code review + Playwright smoke test (login/register/forgot/verify/reset sahifalari) + 14 ta curl API edge case probe.
+
+Topilgan va shu kuni tuzatilgan muammolar:
+
+- **`index.js` CORS** — disallowed origin uchun `callback(new Error(...))` → HTTP 500 (Railway log'larda noise + scanner'ga 500 leak). Fix: `callback(null, false)` — `cors` lib ACAO header'ni qo'shmaydi, brauzer o'zi bloklaydi
+- **`authController.register` referral abuse** — `referredBy` + `+1000 XP` referrer'ga **darhol** to'lanardi. Soxta signup'lar bilan XP farming mumkin edi. Fix: payout `verifyEmailPublic` ga ko'chirildi, `User.referralRewarded` boolean flag double-pay'dan saqlaydi
+- **`authController.register` stuck signup** — mavjud lekin tasdiqlanmagan email bilan qayta register → "already exists" → user holatga tushib qoladi (login ham qila olmaydi, register ham). Fix: unverified+same-email case'da kod qayta yuboriladi va `requiresEmailVerification:true` qaytariladi
+- **`authController.resetPassword` deactivated user** — `deletedAt`/`isActive` tekshirilmasdi. Eski reset link orqali GDPR-deleted accountni qayta tiklash mumkin edi. Fix: 403 guard qo'shildi
+- **`authController.register` MX check** — `dns.resolveMx()` (3s timeout, soft-fail on SERVFAIL/timeout) — soxta domenli signuplarni DB write'gacha bloklaydi
+- **`frontend/next.config.mjs`** — CSP Report-Only'da `upgrade-insecure-requests` direktivi — har sahifada console warning. Fix: olib tashlandi (no-op in report-only)
+- **`LoginForm.tsx` + `forgot-password/page.tsx`** — email regex `[a-zA-Z]{2,4}` — modern TLD'lar (`.engineering`, `.museum`) rad etilardi. Fix: `{2,}` ga o'zgartirildi
+- **`reset-password/page.tsx` ReferenceError** — useEffect deps array'da `email` (rename'dan keyin qolib ketgan, `identifier` bo'lishi kerak edi). Forgot password flow'ni butunlay buzgan edi. Fix: stale ref olib tashlandi
+
+### Tasdiqlangan (yaxshi holatda, regress yo'l qo'ymang)
+
+- Login enumeration safety: DUMMY_HASH constant-time bcrypt, generic 401 (state faqat parol to'g'ri bo'lgach reveal qilinadi)
+- Forgot password: har doim generic "If account exists" javob
+- verify-code / verify-email-public: generic "Invalid or expired code" javob
+- Lockout, attempt cap (5), HIBP breach check, passwordHistory (5 oldingi parol)
+- Reset token: hashed in DB (single-use), JWT integrity, 15-min TTL, `Session.deleteMany` + `tokenVersion++` on success
+- Cookie-based JWT (no localStorage), CSRF whitelist correct
+- Backend security headers (Helmet enforcing): HSTS preload, X-Frame-Options DENY, X-CTO nosniff, CSP enforcing
+- Frontend Vercel headers: HSTS preload, X-Frame-Options DENY, X-CTO nosniff, Permissions-Policy
+- Rate limits: alohida `loginLimiter`, `registerLimiter`, `otpLimiter`, `refreshLimiter`, `totpLimiter`, `verifyEmailLimiter`
+
 ## Key Env Vars (Railway — backend)
 
 ```
@@ -480,6 +640,8 @@ TELEGRAM_BOT_TOKEN                       # Bot + TMA HMAC validate (telegramWebA
 TELEGRAM_CHANNEL_USERNAME=aidevix        # Public channel (subscription gate)
 TELEGRAM_ADMIN_CHAT_ID=697727022         # Admin Telegram ID
 GROQ_API_KEY                             # Groq AI (news + coach + playground review)
+RESEND_API_KEY                           # Email (2026-05-15) — re_xxx, "Sending Access" key
+EMAIL_FROM=Aidevix <noreply@aidevix.uz>  # Resend sender — domain Resend'da verified (2026-05-15)
 NEWS_ENABLED=true                        # AI news scheduler
 CHALLENGE_SCHEDULER_ENABLED=true         # Daily challenge scheduler
 DIGEST_ENABLED=true                      # Weekly digest scheduler (2026-05-11 yangi)
@@ -489,12 +651,15 @@ BACKEND_URL                              # Self URL (Railway)
 REDIS_URL                                # Multi-instance rate limit uchun (Upstash). Yo'q bo'lsa per-instance.
 ```
 
-> ⚠️ `TELEGRAM_BOT_TOKEN` va `GROQ_API_KEY` — **secret kalitlar**. Vercel (frontend)'ga HECH QACHON qo'ymang.
+> ⚠️ `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `RESEND_API_KEY` — **secret kalitlar**. Vercel (frontend)'ga HECH QACHON qo'ymang.
+
+> ❌ **Eski Gmail SMTP env'lari (`EMAIL_HOST`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_PORT`) — endi ishlatilmaydi.** Resend migration'dan keyin (2026-05-15) `emailService.js` ularni o'qimaydi. Railway env'da qolib ketgan bo'lsa o'chirish mumkin.
 
 ## High-signal Files
 
 **Backend:**
-- `backend/index.js` — entry, routes, middleware order (CORS first!)
+- `backend/index.js` — entry, routes, middleware order (CORS first! `callback(null, false)` on deny — never throw)
+- `backend/controllers/authController.js` — register (MX check + no-auto-login), login, forgot/reset, verifyEmailPublic (referral payout + welcome + bot notify deferred here)
 - `backend/controllers/adminController.js` — admin stats, users, payments
 - `backend/controllers/xpController.js` — XP, quiz, profile (aiStack)
 - `backend/controllers/promptController.js` — Prompt Library
@@ -502,14 +667,23 @@ REDIS_URL                                # Multi-instance rate limit uchun (Upst
 - `backend/controllers/playgroundController.js` — AI Code Playground Groq integration
 - `backend/middleware/subscriptionCheck.js` — subscription gate
 - `backend/middleware/csrfProtection.js` — CSRF whitelist (include `/api/auth/telegram-init`)
+- `backend/utils/emailService.js` — **Resend HTTPS API** + `renderLayout()` premium brand layout (2026-05-15)
 - `backend/utils/newsScheduler.js` — AI news
 - `backend/utils/challengeScheduler.js` — daily challenge + bot
 - `backend/utils/digestScheduler.js` — weekly digest (Yakshanba 09:00)
 - `backend/utils/telegramWebAppAuth.js` — TMA initData HMAC validate
-- `backend/models/User.js` — aiStack, socialSubscriptions, gamification
+- `backend/models/User.js` — aiStack, socialSubscriptions, gamification, `referralRewarded` flag (2026-05-15)
 - `backend/models/Session.js` — `refreshTokenHash: select:false` (refresh logic'da `+refreshTokenHash` zarur)
 
 **Frontend:**
+- `frontend/src/store/slices/authSlice.ts` — register thunk handles `requiresEmailVerification`, login also (2026-05-15)
+- `frontend/src/components/auth/RegisterForm.tsx` — on register fulfilled → if `requiresEmailVerification` → `/auth/verify-email`
+- `frontend/src/components/auth/LoginForm.tsx` — handles `requires2FA` va `requiresEmailVerification` redirect
+- `frontend/src/app/auth/verify-email/page.tsx` — public email verify (after register or login gate)
+- `frontend/src/app/forgot-password/page.tsx` — forgot password (email/telegram method)
+- `frontend/src/app/verify-code/page.tsx` — reset code verify (forgot password flow)
+- `frontend/src/app/reset-password/page.tsx` — new password input (2026-05-14 fix: stale `email` ref olib tashlandi)
+- `frontend/next.config.mjs` — CSP Report-Only (`upgrade-insecure-requests` olib tashlandi, 2026-05-15)
 - `frontend/src/api/adminApi.ts` — admin API calls + `unwrapAdmin<T>` helper
 - `frontend/src/api/playgroundApi.ts` — AI Code Playground API
 - `frontend/src/config/adminNav.tsx` — ADMIN_NAV sidebar config

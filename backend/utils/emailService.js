@@ -1,4 +1,21 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+const net = require('net');
+
+// Node 18+ defaults dns.lookup to "verbatim" (returns AAAA first when present).
+// Railway containers expose AAAA records but have no IPv6 outbound route, so
+// nodemailer's own `family: 4` is too late — it tries the IPv6 socket first and
+// dies with ENETUNREACH. Force IPv4 globally for this process.
+try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
+
+// Belt & suspenders: provide an explicit dns.lookup that only ever yields IPv4.
+// Some socket paths inside nodemailer construct net.connect with options that
+// ignore the transport-level `family` field, so we hand them a lookup that
+// can't return an AAAA record in the first place.
+const ipv4Lookup = (hostname, opts, cb) => {
+  if (typeof opts === 'function') { cb = opts; opts = {}; }
+  return dns.lookup(hostname, { ...opts, family: 4 }, cb);
+};
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -6,6 +23,9 @@ const transporter = nodemailer.createTransport({
   secure: (Number(process.env.EMAIL_PORT) === 465),
   // Railway containers lack IPv6 outbound; force IPv4 lookup to avoid ENETUNREACH on AAAA records.
   family: 4,
+  tls: { family: 4 },
+  // Custom DNS lookup — guarantees IPv4 even if internal options drop `family`.
+  lookup: ipv4Lookup,
   // Fail-fast timeouts — without these, a stalled SMTP socket hangs the fire-and-forget
   // .catch() forever (promise never settles), so we never see why delivery is failing.
   connectionTimeout: 10_000,

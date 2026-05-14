@@ -1,4 +1,8 @@
 require('dotenv').config();
+// Railway containers have no IPv6 outbound route. Node 18+ returns AAAA records
+// first ("verbatim"), so outbound SMTP / HTTP can fail with ENETUNREACH before
+// any per-library `family: 4` kicks in. Set the process-wide order to IPv4 first.
+try { require('dns').setDefaultResultOrder('ipv4first'); } catch (_) {}
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');

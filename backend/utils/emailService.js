@@ -191,11 +191,13 @@ const sendEmailVerificationCode = async (email, username, code) => {
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: FROM,
-    to: email,
-    subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
-    html,
+  await sendEmailWithRetry(async () => {
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
+      html,
+    });
   });
 };
 

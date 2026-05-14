@@ -315,16 +315,18 @@ const register = asyncHandler(async (req, res, next) => {
   UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
 
   const verifyCode = crypto.randomInt(100000, 1000000).toString();
-  User.findByIdAndUpdate(user._id, {
-    emailVerificationCode: hashToken(verifyCode),
-    emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
-    emailVerificationAttempts: 0,
-  }).exec().catch((err) =>
-    securityLogger.suspicious(req, 'email_verify_update_failed', { userId: String(user._id), error: err.message })
-  );
-  sendEmailVerificationCode(user.email, user.username, verifyCode).catch((err) =>
-    securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(user._id), error: err.message })
-  );
+  try {
+    await User.findByIdAndUpdate(user._id, {
+      emailVerificationCode: hashToken(verifyCode),
+      emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
+      emailVerificationAttempts: 0,
+    }).exec();
+    await sendEmailVerificationCode(user.email, user.username, verifyCode).catch((err) =>
+      securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(user._id), error: err.message })
+    );
+  } catch (err) {
+    securityLogger.suspicious(req, 'email_verify_update_failed', { userId: String(user._id), error: err.message });
+  }
   sendWelcomeEmail(user.email, user.username).catch(() => {});
 
   try {
@@ -406,7 +408,7 @@ const login = asyncHandler(async (req, res, next) => {
         emailVerificationAttempts: 0,
       },
     });
-    sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
+    await sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
       securityLogger.suspicious(req, 'email_verify_send_failed', {
         userId: String(user._id),
         error: err.message,
@@ -588,7 +590,7 @@ const resendVerificationPublic = asyncHandler(async (req, res) => {
       },
     }
   );
-  sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
+  await sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
     securityLogger.suspicious(req, 'email_verify_send_failed', {
       userId: String(user._id),
       error: err.message,
@@ -1126,7 +1128,7 @@ const resendVerification = asyncHandler(async (req, res, next) => {
   user.emailVerificationAttempts = 0;
   await user.save({ validateModifiedOnly: true });
 
-  sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
+  await sendEmailVerificationCode(user.email, user.username, code).catch((err) =>
     securityLogger.suspicious(req, 'email_verify_send_failed', {
       userId: String(user._id),
       error: err.message,

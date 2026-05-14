@@ -10,7 +10,7 @@
  * Versiya bumpi yangi versiya deploy bo'lganda barcha eski cache'ni o'chiradi.
  */
 
-const VERSION = 'v3-2026-05-11';
+const VERSION = 'v3-2026-05-13';
 const STATIC_CACHE = `aidevix-static-${VERSION}`;
 const PAGES_CACHE = `aidevix-pages-${VERSION}`;
 const RUNTIME_CACHE = `aidevix-runtime-${VERSION}`;
@@ -65,40 +65,65 @@ const isStaticAsset = (url) =>
   url.pathname.startsWith('/fonts/') ||
   /\.(woff2?|ttf|otf|css|js|svg|png|jpg|jpeg|webp|avif|ico)$/i.test(url.pathname);
 
+/** Har doim Response — bo'sh qiymat Service Worker da TypeError beradi */
+function offlineFallbackResponse() {
+  return new Response(
+    '<!DOCTYPE html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title></head><body style="font-family:system-ui;padding:24px;text-align:center"><p>Sayt vaqtincha mavjud emas. Internet ulanishini tekshiring yoki sahifani yangilang.</p></body></html>',
+    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
 // stale-while-revalidate — eski cache darhol qaytariladi, fonda yangilanadi
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(req);
-  const fetchPromise = fetch(req)
-    .then((res) => {
-      if (res && res.ok && res.status !== 206) cache.put(req, res.clone());
-      return res;
-    })
-    .catch(() => cached);
-  return cached || fetchPromise;
+  let networkRes = null;
+  try {
+    networkRes = await fetch(req);
+    if (networkRes && networkRes.ok && networkRes.status !== 206) {
+      try {
+        await cache.put(req, networkRes.clone());
+      } catch (_) {}
+    }
+  } catch (_) {
+    // tarmoq xatosi — cache yoki sintetik javob
+  }
+  if (networkRes instanceof Response) return networkRes;
+  if (cached) return cached;
+  return new Response('', {
+    status: 504,
+    statusText: 'Network Unavailable',
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }
 
 // Network-first with offline fallback (HTML navigation uchun)
 async function networkFirstNavigate(event) {
   try {
     const preload = await event.preloadResponse;
-    if (preload) {
+    if (preload instanceof Response) {
       const cache = await caches.open(PAGES_CACHE);
-      cache.put(event.request, preload.clone());
+      try {
+        await cache.put(event.request, preload.clone());
+      } catch (_) {}
       return preload;
     }
     const network = await fetch(event.request);
     if (network && network.ok) {
       const cache = await caches.open(PAGES_CACHE);
-      cache.put(event.request, network.clone());
+      try {
+        await cache.put(event.request, network.clone());
+      } catch (_) {}
     }
-    return network;
+    if (network instanceof Response) return network;
   } catch (_) {
     const cache = await caches.open(PAGES_CACHE);
     const cached = await cache.match(event.request);
     if (cached) return cached;
-    return caches.match(OFFLINE_URL);
+    const offline = await caches.match(OFFLINE_URL);
+    if (offline) return offline;
   }
+  return offlineFallbackResponse();
 }
 
 self.addEventListener('fetch', (event) => {

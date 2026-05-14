@@ -53,7 +53,10 @@ const nextConfig = {
             // 'wasm-unsafe-eval' Pyodide va boshqa WASM modullarini ishlashga ruxsat beradi.
             key: 'Content-Security-Policy-Report-Only',
             value:
-              "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+              // `upgrade-insecure-requests` is a no-op inside a Report-Only
+              // policy and only generates a console warning — keep the
+              // directive in the eventual enforcing CSP, drop it here.
+              "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
           },
         ],
       },

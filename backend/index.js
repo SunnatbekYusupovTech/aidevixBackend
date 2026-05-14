@@ -108,7 +108,9 @@ const corsOptions = {
     if (allowedOrigins.includes('*')) {
       if (!isProd) return callback(null, true);
       console.warn('⛔ CORS: wildcard * rejected in production (credentials incompatible)');
-      return callback(new Error('CORS: wildcard origin not allowed in production'));
+      // false → cors lib omits ACAO so the browser blocks. Throwing an Error
+      // here would surface as a 500 in Railway logs and confuse monitoring.
+      return callback(null, false);
     }
     if (allowedOrigins.includes(origin)) return callback(null, true);
     if (!isProd && devOrigins.includes(origin)) return callback(null, true);
@@ -116,7 +118,8 @@ const corsOptions = {
     if (origin === backendUrl) return callback(null, true);
 
     console.warn(`⛔ CORS BLOCKED: origin="${origin}" — allowedOrigins:`, allowedOrigins);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
+    // Same as above — don't throw; let the browser enforce by omission of ACAO.
+    callback(null, false);
   },
   credentials: true,
   optionsSuccessStatus: 200,

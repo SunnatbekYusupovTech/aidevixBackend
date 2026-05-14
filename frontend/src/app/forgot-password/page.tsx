@@ -139,7 +139,7 @@ export default function ForgotPasswordPage() {
                   {...register('email', {
                     required: t('forgot.emailRequired'),
                     pattern: {
-                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                       message: t('forgot.emailInvalid'),
                     },
                   })}

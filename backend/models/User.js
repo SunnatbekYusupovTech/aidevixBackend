@@ -301,6 +301,12 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Set to true the first time the referral bonus pays out (after email verify),
+  // so we never double-pay the inviter if verifyEmailPublic runs more than once.
+  referralRewarded: {
+    type: Boolean,
+    default: false,
+  },
   // --- AI TOOLS STACK ---
   aiStack: [{
     type: String,

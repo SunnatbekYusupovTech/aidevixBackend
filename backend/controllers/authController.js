@@ -290,31 +290,45 @@ const register = asyncHandler(async (req, res, next) => {
     $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
   });
   if (existingUser) {
+    // If the conflict is an unverified account on the SAME email, resend the
+    // code and surface requiresEmailVerification so the user lands back on the
+    // verify-email page instead of being permanently stuck on "already exists".
+    // Verified accounts and username collisions still fail closed.
+    const isUnverifiedSameEmail =
+      existingUser.email === normalizedEmail && existingUser.emailVerified === false;
+    if (isUnverifiedSameEmail) {
+      const resendCode = crypto.randomInt(100000, 1000000).toString();
+      await User.updateOne({ _id: existingUser._id }, {
+        $set: {
+          emailVerificationCode: hashToken(resendCode),
+          emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
+          emailVerificationAttempts: 0,
+        },
+      });
+      sendEmailVerificationCode(existingUser.email, existingUser.username, resendCode).catch((err) =>
+        securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(existingUser._id), error: err.message })
+      );
+      return res.status(200).json({
+        success: true,
+        requiresEmailVerification: true,
+        email: normalizedEmail,
+        message: 'Bu email ro\'yxatdan o\'tilgan, lekin tasdiqlanmagan. Yangi tasdiqlash kodi yuborildi.',
+      });
+    }
     return next(new ErrorResponse('Email or username already exists', 400));
   }
 
+  // Referral linkage is recorded now, but XP bonuses for both sides are deferred
+  // to verifyEmailPublic() — paying out before email proof lets an attacker farm
+  // XP on an accomplice account by spamming fake signups against their ref code.
   let referredBy = null;
-  let startingXp = 0;
   if (referralCode) {
     const referrer = await User.findOne({ referralCode: String(referralCode).trim() });
     if (referrer && String(referrer._id) !== String(req.user?._id)) {
       referredBy = referrer._id;
-      startingXp = 500;
-
-      referrer.xp = (referrer.xp || 0) + 1000;
-      referrer.rankTitle = calculateRank(referrer.xp);
-      referrer.referralsCount = (referrer.referralsCount || 0) + 1;
-      await referrer.save({ validateModifiedOnly: true });
-
-      const referrerStats = await UserStats.findOne({ userId: referrer._id });
-      if (referrerStats) {
-        referrerStats.xp = (referrerStats.xp || 0) + 1000;
-        referrerStats.weeklyXp = (referrerStats.weeklyXp || 0) + 1000;
-        referrerStats.level = referrerStats.calculateLevel();
-        await referrerStats.save();
-      }
     }
   }
+  const startingXp = 0;
 
   const newReferralCode =
     normalizedUsername.substring(0, 4).toUpperCase() +
@@ -576,6 +590,28 @@ const verifyEmailPublic = asyncHandler(async (req, res, next) => {
     },
   });
   securityLogger.emailVerificationSucceeded(req, user);
+
+  // Referral bonus pays out now — both sides — gated by a referralRewarded flag
+  // so we never double-pay even if verifyEmailPublic gets retried for any reason.
+  if (user.referredBy && !user.referralRewarded) {
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id, referralRewarded: { $ne: true } },
+      { $set: { referralRewarded: true }, $inc: { xp: 500 } },
+      { new: true }
+    );
+    if (updated) {
+      User.findByIdAndUpdate(user.referredBy, { $inc: { xp: 1000, referralsCount: 1 } })
+        .exec().catch(() => {});
+      UserStats.findOneAndUpdate(
+        { userId: user.referredBy },
+        { $inc: { xp: 1000, weeklyXp: 1000 } }
+      ).exec().catch(() => {});
+      UserStats.findOneAndUpdate(
+        { userId: user._id },
+        { $inc: { xp: 500, weeklyXp: 500 } }
+      ).exec().catch(() => {});
+    }
+  }
 
   // Onboarding side-effects fire only after the email is proven — keeps fake
   // signups out of Telegram admin notifications and out of the welcome inbox.
@@ -986,9 +1022,15 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findById(decoded.uid).select(
-    '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken +passwordHistory +password'
+    '+resetTokenHash +resetTokenExpire +tokenVersion +refreshToken +passwordHistory +password +deletedAt'
   );
   if (!user) return next(new ErrorResponse('User not found', 404));
+
+  // Deactivated / GDPR-deleted accounts cannot be silently re-activated by
+  // anyone holding an old reset link.
+  if (user.deletedAt || user.isActive === false) {
+    return next(new ErrorResponse('Hisob mavjud emas yoki bloklangan', 403));
+  }
 
   if (!user.resetTokenHash || !user.resetTokenExpire) {
     return next(new ErrorResponse('Invalid or expired reset token', 400));

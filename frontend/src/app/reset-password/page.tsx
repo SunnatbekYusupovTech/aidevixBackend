@@ -55,7 +55,7 @@ function ResetPasswordContent() {
         { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
       );
     }
-  }, [email, token, router]);
+  }, [token, router]);
 
   const onSubmit = async (data: any) => {
     if (!token) return;

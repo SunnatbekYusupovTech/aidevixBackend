@@ -43,7 +43,7 @@ const authLimiter = rateLimit({
 const loginLimiter = rateLimit({
   ...baseOpts('login'),
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
   message: jsonMessage('Juda ko\'p login urinishi. Iltimos 15 daqiqadan so\'ng urinib ko\'ring.'),
   keyGenerator: (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();

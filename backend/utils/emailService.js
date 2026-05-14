@@ -246,14 +246,21 @@ const sendEmailVerificationCode = async (email, username, code) => {
 </body>
 </html>`;
 
-  await sendEmailWithRetry(async () => {
-    await transporter.sendMail({
-      from: FROM,
-      to: email,
-      subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
-      html,
+  const maskedTo = email.replace(/^(.{2}).*(@.*)$/, '$1***$2');
+  try {
+    await sendEmailWithRetry(async () => {
+      const info = await transporter.sendMail({
+        from: FROM,
+        to: email,
+        subject: `✅ Email tasdiqlash kodi: ${code} — Aidevix`,
+        html,
+      });
+      console.log(`[email] ✅ verification sent to ${maskedTo} messageId=${info.messageId} accepted=${(info.accepted || []).length} rejected=${(info.rejected || []).length} response="${(info.response || '').slice(0, 120)}"`);
     });
-  });
+  } catch (err) {
+    console.error(`[email] ❌ verification send failed to ${maskedTo}: ${err.code || ''} ${err.message}`);
+    throw err;
+  }
 };
 
 const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {

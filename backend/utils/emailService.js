@@ -82,7 +82,7 @@ async function verifyTransport() {
     console.log(`[email] ✅ SMTP ready — ${EMAIL_HOST}:${EMAIL_PORT} as ${user}`);
     return true;
   } catch (err) {
-    console.error(`[email] ❌ SMTP verify failed — ${host}:${port} as ${user}: ${err.code || ''} ${err.message}`);
+    console.error(`[email] ❌ SMTP verify failed — ${EMAIL_HOST}:${EMAIL_PORT} as ${user}: ${err.code || ''} ${err.message}`);
     return false;
   }
 }

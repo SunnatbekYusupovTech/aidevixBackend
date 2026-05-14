@@ -17,6 +17,10 @@ const ipv4Lookup = (hostname, opts, cb) => {
   return dns.lookup(hostname, { ...opts, family: 4 }, cb);
 };
 
+// Belt & suspenders #2: also turn off happy-eyeballs on the transport itself
+// in case the global net.setDefaultAutoSelectFamily fails on older Node versions.
+try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: Number(process.env.EMAIL_PORT) || 587, // Number() is safer than parseInt() here
@@ -24,6 +28,9 @@ const transporter = nodemailer.createTransport({
   // Railway containers lack IPv6 outbound; force IPv4 lookup to avoid ENETUNREACH on AAAA records.
   family: 4,
   tls: { family: 4 },
+  // Disable happy-eyeballs at the socket level — net.connect would otherwise
+  // race A and AAAA in parallel regardless of dns.setDefaultResultOrder.
+  autoSelectFamily: false,
   // Custom DNS lookup — guarantees IPv4 even if internal options drop `family`.
   lookup: ipv4Lookup,
   // Fail-fast timeouts — without these, a stalled SMTP socket hangs the fire-and-forget

@@ -1,8 +1,12 @@
 require('dotenv').config();
-// Railway containers have no IPv6 outbound route. Node 18+ returns AAAA records
-// first ("verbatim"), so outbound SMTP / HTTP can fail with ENETUNREACH before
-// any per-library `family: 4` kicks in. Set the process-wide order to IPv4 first.
+// Railway containers have no IPv6 outbound route. Two separate Node behaviors
+// have to be disarmed:
+//   1. dns.lookup ordering (Node 18+ defaults to "verbatim" → AAAA first)
+//   2. net.connect happy-eyeballs (Node 20+ defaults autoSelectFamily=true,
+//      which races A and AAAA in parallel and ignores setDefaultResultOrder)
+// Without (2), every outbound socket attempts IPv6 first and dies ENETUNREACH.
 try { require('dns').setDefaultResultOrder('ipv4first'); } catch (_) {}
+try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');

@@ -44,19 +44,31 @@ async function sendMail({ from, to, subject, html }) {
   };
 }
 
-// Startup probe. Resend has no "verify connection" endpoint, but we can call
-// the API keys list endpoint to confirm the key is valid + reachable. Failing
-// loudly at boot beats failing silently per-request.
+// Startup probe. Restricted ("Sending Access") API keys cannot list domains,
+// so we treat a 401 "restricted_api_key" as success — the key is valid, just
+// scoped narrowly. We also log the resolved FROM so misconfigured EMAIL_FROM
+// env vars surface immediately instead of as per-send Resend validation errors.
 async function verifyTransport() {
   if (!RESEND_API_KEY) {
     console.error('[email] ❌ RESEND_API_KEY missing — set it in Railway env');
     return false;
   }
+  console.log(`[email] using FROM="${FROM}"`);
   try {
     const res = await fetch('https://api.resend.com/domains', {
       method: 'GET',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
     });
+    if (res.status === 401) {
+      const body = await res.text().catch(() => '');
+      // Restricted-scope key — fine for sending, just can't enumerate domains.
+      if (body.includes('restricted_api_key')) {
+        console.log('[email] ✅ Resend ready — (restricted-scope key, sending only)');
+        return true;
+      }
+      console.error(`[email] ❌ Resend auth failed — HTTP 401 ${body.slice(0, 200)}`);
+      return false;
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error(`[email] ❌ Resend probe failed — HTTP ${res.status} ${body.slice(0, 200)}`);

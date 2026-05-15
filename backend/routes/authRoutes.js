@@ -22,6 +22,7 @@ const {
   resendVerificationPublic,
   reauth,
   deleteMyAccount,
+  getCsrfToken,
 } = require('../controllers/authController');
 const {
   setup2FA,
@@ -53,6 +54,9 @@ router.post('/google', googleLimiter, googleAuth);
 // Telegram Mini App auth — HMAC validate qilingan initData ostida login/register
 router.post('/telegram-init', telegramAuthLimiter, telegramMiniAppAuth);
 router.post('/refresh-token', refreshLimiter, refreshToken);
+// CSRF token issuance — works for unauthenticated and authenticated users.
+// Cross-site frontends call this on boot to prime the in-memory token store.
+router.get('/csrf', getCsrfToken);
 router.post('/forgot-password', otpLimiter, captchaCheck, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
 router.post('/reset-password', otpLimiter, resetPassword);

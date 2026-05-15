@@ -32,9 +32,12 @@ const axios = require('axios');
 const {
   attachAuthCookies,
   clearAuthCookies,
+  refreshCsrfCookie,
   hashToken,
   safeEqual,
   parseCookies,
+  verifyCsrfToken,
+  CSRF_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
 } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
@@ -468,7 +471,7 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, refreshToken);
+  const csrfToken = attachAuthCookies(res, accessToken, refreshToken);
   await trackDeviceAndAlert(req, user);
 
   securityLogger.loginSuccess(req, user);
@@ -476,6 +479,7 @@ const login = asyncHandler(async (req, res, next) => {
   res.json({
     success: true,
     data: { user: sanitizeUser(user) },
+    csrfToken,
   });
 });
 
@@ -529,11 +533,11 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, refreshToken);
+  const csrfToken = attachAuthCookies(res, accessToken, refreshToken);
   await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
-  const resp = { success: true, data: { user: sanitizeUser(user) } };
+  const resp = { success: true, data: { user: sanitizeUser(user) }, csrfToken };
   // Backup kod ishlatilgan bo'lsa — qancha qolganini bildirish
   if (req._backupCodesRemaining !== undefined) {
     resp.backupCodesRemaining = req._backupCodesRemaining;
@@ -745,8 +749,8 @@ const refresh = asyncHandler(async (req, res, next) => {
 
     const { accessToken, refreshToken: newRefreshToken } =
       await issueTokens(user, req, session);
-    attachAuthCookies(res, accessToken, newRefreshToken);
-    return res.json({ success: true, data: { user: sanitizeUser(user) } });
+    const csrfToken = attachAuthCookies(res, accessToken, newRefreshToken);
+    return res.json({ success: true, data: { user: sanitizeUser(user) }, csrfToken });
   }
 
   // Legacy path — refresh token issued before session model deployed.
@@ -767,8 +771,8 @@ const refresh = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Account deactivated', 403));
   }
   const { accessToken, refreshToken: newRefreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, newRefreshToken);
-  res.json({ success: true, data: { user: sanitizeUser(user) } });
+  const csrfToken = attachAuthCookies(res, accessToken, newRefreshToken);
+  res.json({ success: true, data: { user: sanitizeUser(user) }, csrfToken });
 });
 
 // @desc    Logout
@@ -805,6 +809,20 @@ const logoutAll = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Barcha qurilmalardan chiqildi' });
 });
 
+// @desc    Issue / return CSRF token in JSON body
+//
+// Cross-site frontends (e.g. aidevix.uz hitting railway.app) can't read the
+// httpOnly:false CSRF cookie via document.cookie because it lives on the API
+// origin. This endpoint surfaces the token in a JSON body so those clients
+// can store it in memory and echo it back via X-CSRF-Token. If the existing
+// cookie is missing or its HMAC signature is bad, a fresh one is issued.
+const getCsrfToken = asyncHandler(async (req, res) => {
+  const cookies = parseCookies(req.headers.cookie);
+  const existing = cookies[CSRF_COOKIE_NAME];
+  const token = existing && verifyCsrfToken(existing) ? existing : refreshCsrfCookie(res);
+  res.json({ success: true, data: { token } });
+});
+
 // @desc    Get Me
 const getMe = asyncHandler(async (req, res) => {
   let user = await User.findById(req.user._id).select('+password');
@@ -820,7 +838,16 @@ const getMe = asyncHandler(async (req, res) => {
     );
   }
 
-  res.json({ success: true, data: sanitizeUser(user) });
+  // Surface a CSRF token alongside the user payload so cross-site frontends
+  // (where document.cookie can't see the API-origin cookie) can prime their
+  // in-memory store without an extra round-trip.
+  const cookies = parseCookies(req.headers.cookie);
+  const existingCsrf = cookies[CSRF_COOKIE_NAME];
+  const csrfToken = existingCsrf && verifyCsrfToken(existingCsrf)
+    ? existingCsrf
+    : refreshCsrfCookie(res);
+
+  res.json({ success: true, data: sanitizeUser(user), csrfToken });
 });
 
 // @desc    Get Referral Stats and Leaderboard
@@ -1334,7 +1361,7 @@ const googleAuth = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, refreshToken);
+  const csrfToken = attachAuthCookies(res, accessToken, refreshToken);
   await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
@@ -1343,6 +1370,7 @@ const googleAuth = asyncHandler(async (req, res, next) => {
     success: true,
     data: { user: sanitizeUser(oauthUser) },
     isNewUser: isNew,
+    csrfToken,
   });
 });
 
@@ -1441,7 +1469,7 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken } = await issueTokens(user, req);
-  attachAuthCookies(res, accessToken, refreshToken);
+  const csrfToken = attachAuthCookies(res, accessToken, refreshToken);
   await trackDeviceAndAlert(req, user);
   securityLogger.loginSuccess(req, user);
 
@@ -1451,6 +1479,7 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
     data: { user: sanitizeUser(fresh) },
     isNewUser: isNew,
     source: 'telegram-miniapp',
+    csrfToken,
   });
 });
 
@@ -1571,4 +1600,5 @@ module.exports = {
   resendVerificationPublic,
   reauth,
   deleteMyAccount,
+  getCsrfToken,
 };

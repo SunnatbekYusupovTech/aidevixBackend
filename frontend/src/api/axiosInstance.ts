@@ -4,7 +4,19 @@ import { tokenStorage } from '@utils/tokenStorage'
 
 const CSRF_COOKIE_NAME = 'aidevix_csrf'
 
-const readCsrfToken = (): string | null => {
+// In-memory CSRF token. Cross-site frontends (aidevix.uz → railway.app) cannot
+// read the API-origin cookie via document.cookie, so the canonical source is
+// what the backend hands us in JSON response bodies (login, refresh, /auth/me,
+// /auth/csrf). The cookie is still used as a fallback for same-origin setups.
+let csrfTokenInMemory: string | null = null
+
+export const setCsrfToken = (token: string | null | undefined) => {
+  if (typeof token === 'string' && token.length > 0) {
+    csrfTokenInMemory = token
+  }
+}
+
+const readCsrfFromCookie = (): string | null => {
   if (typeof document === 'undefined') return null
   const match = document.cookie
     .split(';')
@@ -12,6 +24,25 @@ const readCsrfToken = (): string | null => {
     .find((p) => p.startsWith(`${CSRF_COOKIE_NAME}=`))
   if (!match) return null
   return decodeURIComponent(match.slice(CSRF_COOKIE_NAME.length + 1))
+}
+
+const getCsrfToken = (): string | null => csrfTokenInMemory || readCsrfFromCookie()
+
+const fetchCsrfToken = async (): Promise<string | null> => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}auth/csrf`, {
+      withCredentials: true,
+      timeout: 10000,
+    })
+    const token = data?.data?.token
+    if (typeof token === 'string' && token) {
+      csrfTokenInMemory = token
+      return token
+    }
+  } catch {
+    // Network error — caller will surface the original failure.
+  }
+  return null
 }
 
 const api = axios.create({
@@ -32,7 +63,7 @@ api.interceptors.request.use((config) => {
     }
   }
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
-    const csrf = readCsrfToken()
+    const csrf = getCsrfToken()
     if (csrf) {
       config.headers = config.headers || {}
       ;(config.headers as Record<string, string>)['X-CSRF-Token'] = csrf
@@ -61,12 +92,42 @@ let isRefreshing = false
 let refreshQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: unknown) => void }> = []
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Backend returns `csrfToken` on auth-issuing responses (login, refresh,
+    // 2fa-verify, telegram-init, /auth/me). Pull it into the in-memory store
+    // so cross-site clients have something to echo back as X-CSRF-Token.
+    const body: any = response?.data
+    if (body && typeof body === 'object' && typeof body.csrfToken === 'string') {
+      setCsrfToken(body.csrfToken)
+    }
+    return response
+  },
   async (error) => {
     const original = error.config
+    const status = error.response?.status
+    const message = error.response?.data?.message || ''
+
+    // Cross-site clients can't read the CSRF cookie — when the server rejects
+    // a request because the X-CSRF-Token header is missing/mismatched, fetch
+    // a fresh token via /auth/csrf and replay the original request once.
+    if (
+      status === 403 &&
+      typeof message === 'string' &&
+      message.toLowerCase().includes('csrf') &&
+      original &&
+      !original._csrfRetry
+    ) {
+      original._csrfRetry = true
+      const fresh = await fetchCsrfToken()
+      if (fresh) {
+        original.headers = original.headers || {}
+        original.headers['X-CSRF-Token'] = fresh
+        return api(original)
+      }
+    }
 
     if (
-      error.response?.status === 401 &&
+      status === 401 &&
       original &&
       !original._retry &&
       !String(original.url || '').includes('auth/refresh-token') &&
@@ -86,7 +147,7 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        await axios.post(
+        const { data: refreshBody } = await axios.post(
           `${API_BASE_URL}auth/refresh-token`,
           {},
           {
@@ -95,6 +156,12 @@ api.interceptors.response.use(
             timeout: 10000,
           },
         )
+
+        // Refresh response carries the new CSRF token — capture it for the
+        // replayed request so the next retry doesn't 403 on a stale token.
+        if (refreshBody && typeof refreshBody.csrfToken === 'string') {
+          setCsrfToken(refreshBody.csrfToken)
+        }
 
         refreshQueue.forEach((cb) => cb.resolve(true))
         refreshQueue = []

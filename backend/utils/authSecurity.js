@@ -96,6 +96,26 @@ const attachAuthCookies = (res, accessToken, refreshToken) => {
   return csrfToken;
 };
 
+// Refresh just the CSRF cookie without touching access/refresh tokens.
+// Returns the new token so the caller can include it in the JSON response —
+// frontends on different origins (cross-site setups) cannot read the cookie
+// directly and rely on the body value instead.
+const refreshCsrfCookie = (res) => {
+  const csrfToken = generateCsrfToken();
+  const cookie = serializeCookie(CSRF_COOKIE_NAME, csrfToken, {
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60,
+  });
+  // Don't clobber any existing Set-Cookie headers (e.g. from auth flows).
+  const existing = res.getHeader('Set-Cookie');
+  if (existing) {
+    res.setHeader('Set-Cookie', Array.isArray(existing) ? [...existing, cookie] : [existing, cookie]);
+  } else {
+    res.setHeader('Set-Cookie', cookie);
+  }
+  return csrfToken;
+};
+
 const clearAuthCookies = (res) => {
   const expired = new Date(0);
   const cookies = [
@@ -113,6 +133,7 @@ module.exports = {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   attachAuthCookies,
+  refreshCsrfCookie,
   clearAuthCookies,
   hashToken,
   safeEqual,

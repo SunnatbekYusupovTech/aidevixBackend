@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { courseApi } from '@/api/courseApi';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
+import { useLang } from '@/context/LangContext';
 import CourseCard from '@components/courses/CourseCard';
 
 type Course = { _id: string; title?: string; thumbnail?: string; category?: string };
@@ -13,6 +14,7 @@ type Course = { _id: string; title?: string; thumbnail?: string; category?: stri
 export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
   const { isLoggedIn } = useAuth();
   const { isDark } = useTheme();
+  const { t } = useLang();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [basedOn, setBasedOn] = useState<string[]>([]);
@@ -46,16 +48,16 @@ export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
       <div className="flex items-end justify-between mb-5 gap-4">
         <div>
           <h2 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            ✨ Siz uchun tavsiya
+            {t('home.recommendedTitle')}
           </h2>
           {basedOn.length > 0 && (
             <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-              AI stack va tugatgan kurslaringiz asosida
+              {t('home.recommendedSubtitle')}
             </p>
           )}
         </div>
         <Link href="/courses" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-wider">
-          Hammasi →
+          {t('home.viewAll')} →
         </Link>
       </div>
 

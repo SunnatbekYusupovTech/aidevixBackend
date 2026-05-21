@@ -19,9 +19,9 @@ const mongoose = require('mongoose');
  *
  * scheduleHours (kun ichida necha marta va qachon):
  *   Toshkent vaqtida soatlar massivi (0-23)
- *   default: [10, 16, 20]  →  kuniga 3 marta
+ *   default: [13]          →  kuniga 1 marta (Claude Tips)
+ *   [10, 16, 20]           →  kuniga 3 marta
  *   [9, 18]                →  kuniga 2 marta
- *   [12]                   →  kuniga 1 marta
  */
 const botChannelSchema = new mongoose.Schema({
   chatId: {
@@ -64,7 +64,7 @@ const botChannelSchema = new mongoose.Schema({
   // News qaysi soatlarda yuborilsin (Toshkent vaqti, 0-23)
   scheduleHours: {
     type: [Number],
-    default: [10, 16, 20],
+    default: [13],
     validate: {
       validator: function (arr) {
         return arr.length > 0 && arr.length <= 6 && arr.every(h => Number.isInteger(h) && h >= 0 && h <= 23);

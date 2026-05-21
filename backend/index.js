@@ -46,12 +46,14 @@ connectDB().then(async () => {
     console.error('⚠️ Telegram Bot initialization failed:', botError.message);
   }
 
-  // News Scheduler initialization
+  // Claude Tips Scheduler — kuniga 1 marta 13:00 da Claude haqida educational post
+  // (Eski RSS-based News scheduler o'rniga — curated Claude topics: skills, MCP,
+  // Obsidian, .md, plugins, hooks, slash commands va h.k.)
   try {
-    const { startNewsScheduler } = require('./utils/newsScheduler');
-    startNewsScheduler();
-  } catch (newsError) {
-    console.error('⚠️ News Scheduler initialization failed:', newsError.message);
+    const { startClaudeTipsScheduler } = require('./utils/claudeTipsScheduler');
+    startClaudeTipsScheduler();
+  } catch (tipsError) {
+    console.error('⚠️ Claude Tips Scheduler initialization failed:', tipsError.message);
   }
 
   // Daily Challenge Scheduler

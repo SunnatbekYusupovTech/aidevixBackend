@@ -295,7 +295,7 @@ class AidevixBot {
           { command: 'status', description: '📡 Schedulerlar holati' },
           { command: 'channels', description: '📢 Bot kanallari' },
           { command: 'logs', description: '📋 So\'nggi habarlar' },
-          { command: 'postnews', description: '📰 Yangilik yuborish' },
+          { command: 'postnews', description: '🧠 Claude Tip yuborish' },
         ];
         await axios.post(`${this.apiUrl}/setMyCommands`, {
           commands: adminCommands,
@@ -1025,7 +1025,7 @@ class AidevixBot {
           { text: `🏆 Challenge: ${challengeOn ? 'O\'CHIR ❌' : 'YOQ ✅'}`, callback_data: 'adm_toggle_challenge' },
         ],
         [
-          { text: '📰 Yangilik yuborish', callback_data: 'adm_postnews' },
+          { text: '🧠 Claude Tip yuborish', callback_data: 'adm_postnews' },
           { text: '📋 Loglar', callback_data: 'adm_logs' },
         ],
         [
@@ -1077,15 +1077,15 @@ class AidevixBot {
       return this.answerCallbackQuery(queryId, !was ? '🏆 Challenge yoqildi ✅' : '🏆 Challenge o\'chirildi ❌');
     }
 
-    // ── POST NEWS NOW ──
+    // ── POST CLAUDE TIP NOW ──
     if (data === 'adm_postnews') {
       await this.answerCallbackQuery(queryId, '⏳ Yuborilmoqda...');
       try {
-        const { postNewsToChannel } = require('./newsScheduler');
-        const ok = await postNewsToChannel();
+        const { postTipToChannel } = require('./claudeTipsScheduler');
+        const ok = await postTipToChannel();
         const { text, keyboard } = await this._buildAdminHome();
         await this.editMessage(chatId, msgId, text, { parse_mode: 'HTML', reply_markup: keyboard });
-        await this.sendMessage(chatId, ok ? '✅ Yangilik muvaffaqiyatli yuborildi!' : '⚠️ Yuborish uchun yangilik topilmadi.');
+        await this.sendMessage(chatId, ok ? '✅ Claude Tip muvaffaqiyatli yuborildi!' : '⚠️ Yuborish uchun mavzu topilmadi.');
       } catch (e) {
         await this.sendMessage(chatId, '❌ Xatolik: ' + e.message);
       }
@@ -1334,8 +1334,8 @@ class AidevixBot {
         `   /settype @kanal news|challenges|all\n` +
         `   /settopic @kanal claude,cursor,...\n` +
         `   /setschedule @kanal 10,16,20\n\n` +
-        `📰 <b>Habar yuborish</b>\n` +
-        `   /postnews — qo'lda yangilik yuborish\n` +
+        `🧠 <b>Habar yuborish</b>\n` +
+        `   /postnews — qo'lda Claude tip yuborish\n` +
         `   /toggle news|challenge|all`;
     }
 
@@ -1377,9 +1377,9 @@ class AidevixBot {
     if (String(userId) !== adminId) return this.sendMessage(chatId, "⛔ Kirish taqiqlangan.");
     
     try {
-      const { postNewsToChannel } = require('./newsScheduler');
-      await this.sendMessage(chatId, "⏳ Yangiliklar yuborilmoqda...");
-      await postNewsToChannel();
+      const { postTipToChannel } = require('./claudeTipsScheduler');
+      await this.sendMessage(chatId, "⏳ Claude Tip yuborilmoqda...");
+      await postTipToChannel();
       await this.sendMessage(chatId, "✅ Muvaffaqiyatli yuborildi.");
     } catch (e) { this.sendMessage(chatId, "❌ Xatolik."); }
   }

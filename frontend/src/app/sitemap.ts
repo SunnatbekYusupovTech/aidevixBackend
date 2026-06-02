@@ -1,15 +1,14 @@
 import { MetadataRoute } from 'next'
-import { API_BASE_URL } from '@/utils/constants'
+import { SSR_API_BASE_URL } from '@/utils/constants'
 
 const BASE = 'https://aidevix.uz'
 
 type Course  = { _id: string; updatedAt?: string };
 type Video   = { _id: string; updatedAt?: string };
-type Prompt  = { _id: string; updatedAt?: string };
-type Profile = { username: string; updatedAt?: string };
+type RankedUser = { user?: { username?: string; createdAt?: string } };
 
 async function fetchJson<T>(url: string, key: string): Promise<T[]> {
-  if (!API_BASE_URL.startsWith('http')) return [];
+  if (!SSR_API_BASE_URL.startsWith('http')) return [];
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
@@ -23,11 +22,16 @@ async function fetchJson<T>(url: string, key: string): Promise<T[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all dynamic content types in parallel — sitemap render must stay fast.
-  const [courses, videos, prompts, profiles] = await Promise.all([
-    fetchJson<Course>(`${API_BASE_URL}courses`, 'courses'),
-    fetchJson<Video>(`${API_BASE_URL}videos?limit=500`, 'videos'),
-    fetchJson<Prompt>(`${API_BASE_URL}prompts?limit=500`, 'prompts'),
-    fetchJson<Profile>(`${API_BASE_URL}users/public?limit=500`, 'users'),
+  // Only endpoints that are PUBLIC (no auth) are usable here:
+  //   - /courses          — public list, default limit=12 so pass limit=500
+  //   - /videos/top       — public top videos (no GET / list endpoint exists)
+  //   - /ranking/users    — public leaderboard (data.users[].user.username)
+  // Prompts are gated by auth + Telegram subscription, so they are deliberately
+  // excluded — Google would only see 401s anyway.
+  const [courses, videos, rankedUsers] = await Promise.all([
+    fetchJson<Course>(`${SSR_API_BASE_URL}courses?limit=500`, 'courses'),
+    fetchJson<Video>(`${SSR_API_BASE_URL}videos/top?limit=500`, 'videos'),
+    fetchJson<RankedUser>(`${SSR_API_BASE_URL}ranking/users?limit=500`, 'users'),
   ]);
 
   const now = new Date();
@@ -46,19 +50,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const promptUrls = prompts.map((p) => ({
-    url: `${BASE}/prompts/${p._id}`,
-    lastModified: new Date(p.updatedAt || now),
-    changeFrequency: 'monthly' as const,
-    priority: 0.6,
-  }));
-
-  const profileUrls = profiles.map((p) => ({
-    url: `${BASE}/u/${p.username}`,
-    lastModified: new Date(p.updatedAt || now),
-    changeFrequency: 'weekly' as const,
-    priority: 0.5,
-  }));
+  const profileUrls = rankedUsers
+    .map((entry) => entry.user?.username)
+    .filter((u): u is string => Boolean(u))
+    .map((username) => ({
+      url: `${BASE}/u/${username}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    }));
 
   return [
     { url: BASE,                  lastModified: now, changeFrequency: 'daily',  priority: 1   },
@@ -76,7 +76,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/contact`,     lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     ...courseUrls,
     ...videoUrls,
-    ...promptUrls,
     ...profileUrls,
   ];
 }

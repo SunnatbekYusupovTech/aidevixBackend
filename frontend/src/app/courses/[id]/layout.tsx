@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { API_BASE_URL } from '@utils/constants';
+import { SSR_API_BASE_URL } from '@utils/constants';
 
 interface Props {
   params: { id: string };
@@ -8,7 +8,7 @@ interface Props {
 
 async function fetchCourse(id: string) {
   try {
-    const res = await fetch(`${API_BASE_URL}courses/${id}`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${SSR_API_BASE_URL}courses/${id}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.data?.course || null;

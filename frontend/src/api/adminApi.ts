@@ -118,3 +118,37 @@ export const getAllEnrollments = (params?: Record<string, unknown>) =>
 // ─── Award XP (admin) ─────────────────────────────────────────────────────────
 export const awardXpToUser = (id: string, xp: number, reason?: string) =>
   axiosInstance.post(`admin/users/${id}/award-xp`, { xp, reason })
+
+// ─── Payments (admin) ─────────────────────────────────────────────────────────
+export const updatePaymentStatus = (
+  id: string,
+  status: 'completed' | 'refunded' | 'cancelled' | 'failed',
+  note?: string,
+) => axiosInstance.put(`admin/payments/${id}`, { status, note })
+
+// ─── Prompts moderation (admin) ───────────────────────────────────────────────
+export const getAdminPrompts = (params?: Record<string, unknown>) =>
+  axiosInstance.get('admin/prompts', { params })
+export const setPromptVisibility = (id: string, isPublic: boolean) =>
+  axiosInstance.patch(`admin/prompts/${id}/visibility`, { isPublic })
+export const featurePromptAdmin = (id: string, featured: boolean) =>
+  axiosInstance.patch(`admin/prompts/${id}/feature`, { featured })
+export const deletePromptAdmin = (id: string) =>
+  axiosInstance.delete(`admin/prompts/${id}`)
+
+// ─── Daily Challenges (admin) ─────────────────────────────────────────────────
+export const getAdminChallenges = (params?: Record<string, unknown>) =>
+  axiosInstance.get('admin/challenges', { params })
+export const updateChallenge = (id: string, body: Record<string, unknown>) =>
+  axiosInstance.put(`admin/challenges/${id}`, body)
+export const deleteChallenge = (id: string) =>
+  axiosInstance.delete(`admin/challenges/${id}`)
+
+// ─── Bug Reports (admin) ──────────────────────────────────────────────────────
+export const getAdminBugReports = (params?: Record<string, unknown>) =>
+  axiosInstance.get('admin/bug-reports', { params })
+export const reviewBugReport = (
+  id: string,
+  action: 'reject' | 'award_bug' | 'award_suggestion',
+  adminNote?: string,
+) => axiosInstance.patch(`admin/bug-reports/${id}`, { action, adminNote })

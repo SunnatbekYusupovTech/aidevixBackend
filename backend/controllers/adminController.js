@@ -1,11 +1,15 @@
+const mongoose   = require('mongoose');
 const User       = require('../models/User');
 const Course     = require('../models/Course');
 const Video      = require('../models/Video');
 const UserStats  = require('../models/UserStats');
 const Enrollment = require('../models/Enrollment');
 const Payment    = require('../models/Payment');
+const { DailyChallenge } = require('../models/DailyChallenge');
 const { awardXp } = require('../utils/awardXp');
 const logger     = require('../utils/logger');
+
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 /** @desc  Umumiy statistika | @route GET /api/admin/stats | @access Admin */
 const getDashboardStats = async (req, res) => {
@@ -306,6 +310,18 @@ const bulkLinkBunny = async (req, res) => {
     const { links } = req.body;
     if (!Array.isArray(links) || links.length === 0)
       return res.status(400).json({ success: false, message: 'links massivi bo\'sh' });
+    if (links.length > 200)
+      return res.status(400).json({ success: false, message: 'Bir martada maksimal 200 ta link' });
+
+    const invalid = links.find(l =>
+      !l || typeof l !== 'object' ||
+      !isValidId(l.videoId) ||
+      typeof l.bunnyVideoId !== 'string' ||
+      !/^[a-f0-9-]{20,60}$/i.test(l.bunnyVideoId)
+    );
+    if (invalid) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz videoId yoki bunnyVideoId formati' });
+    }
 
     const { getBunnyVideoInfo, parseBunnyStatus } = require('../utils/bunny');
 
@@ -332,6 +348,16 @@ const reorderVideos = async (req, res) => {
   try {
     const { videos } = req.body;
     if (!Array.isArray(videos)) return res.status(400).json({ success: false, message: 'videos massivi kerak' });
+    if (videos.length > 500) return res.status(400).json({ success: false, message: 'Bir martada maksimal 500 ta video' });
+
+    const invalid = videos.find(v =>
+      !v || typeof v !== 'object' ||
+      !isValidId(v.id) ||
+      typeof v.order !== 'number' || !Number.isFinite(v.order) || v.order < 0 || v.order > 100000
+    );
+    if (invalid) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz id yoki order' });
+    }
 
     await Promise.all(videos.map(({ id, order }) => Video.findByIdAndUpdate(id, { order })));
     res.json({ success: true, message: 'Tartib yangilandi' });
@@ -361,38 +387,177 @@ const getCourseEnrollmentStats = async (req, res) => {
 /** @desc  Barcha yozilmalar | @route GET /api/admin/enrollments | @access Admin */
 const getAllEnrollments = async (req, res) => {
   try {
-    const page        = parseInt(req.query.page)  || 1;
-    const limit       = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page        = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit       = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
     const search      = (req.query.search || '').trim();
     const courseId    = req.query.courseId || '';
     const isCompleted = req.query.isCompleted;
 
-    const filter = {};
-    if (courseId) filter.courseId = courseId;
-    if (isCompleted === 'true')  filter.isCompleted = true;
-    if (isCompleted === 'false') filter.isCompleted = false;
+    const baseMatch = {};
+    if (courseId && isValidId(courseId)) baseMatch.courseId = new mongoose.Types.ObjectId(courseId);
+    if (isCompleted === 'true')  baseMatch.isCompleted = true;
+    if (isCompleted === 'false') baseMatch.isCompleted = false;
 
-    let query = Enrollment.find(filter)
-      .populate('userId',   'username email avatar')
-      .populate('courseId', 'title thumbnail category')
-      .sort({ createdAt: -1 });
+    // Agar search bo'lsa — Mongo aggregation orqali (populate-keyin-filter buggidan saqlanish)
+    if (search) {
+      const r = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
-    // Search foydalanuvchi nomi bo'yicha (populate keyin filter)
-    const [all, total] = await Promise.all([
-      query.skip((page - 1) * limit).limit(limit),
-      Enrollment.countDocuments(filter),
+      const pipeline = [
+        { $match: baseMatch },
+        { $lookup: { from: 'users',   localField: 'userId',   foreignField: '_id', as: 'u' } },
+        { $lookup: { from: 'courses', localField: 'courseId', foreignField: '_id', as: 'c' } },
+        { $unwind: { path: '$u', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$c', preserveNullAndEmptyArrays: true } },
+        { $match: { $or: [{ 'u.username': r }, { 'u.email': r }, { 'c.title': r }] } },
+        { $sort: { createdAt: -1 } },
+        {
+          $facet: {
+            items: [
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              {
+                $project: {
+                  _id: 1, isCompleted: 1, progress: 1, completedAt: 1, createdAt: 1,
+                  userId: { _id: '$u._id', username: '$u.username', email: '$u.email', avatar: '$u.avatar' },
+                  courseId: { _id: '$c._id', title: '$c.title', thumbnail: '$c.thumbnail', category: '$c.category' },
+                },
+              },
+            ],
+            totalCount: [{ $count: 'c' }],
+          },
+        },
+      ];
+      const out = await Enrollment.aggregate(pipeline);
+      const row = out[0] || { items: [], totalCount: [] };
+      const total = row.totalCount[0]?.c || 0;
+      return res.json({ success: true, data: { enrollments: row.items, pagination: { total, page, limit } } });
+    }
+
+    const [enrollments, total] = await Promise.all([
+      Enrollment.find(baseMatch)
+        .populate('userId',   'username email avatar')
+        .populate('courseId', 'title thumbnail category')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Enrollment.countDocuments(baseMatch),
     ]);
 
-    // Agar search bo'lsa — populate bo'lgan natijani filter qilamiz
-    const enrollments = search
-      ? all.filter(e =>
-          e.userId?.username?.toLowerCase().includes(search.toLowerCase()) ||
-          e.userId?.email?.toLowerCase().includes(search.toLowerCase()) ||
-          e.courseId?.title?.toLowerCase().includes(search.toLowerCase())
-        )
-      : all;
-
     res.json({ success: true, data: { enrollments, pagination: { total, page, limit } } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  To'lov holatini yangilash (refund/cancel) | @route PUT /api/admin/payments/:id | @access Admin */
+const updatePayment = async (req, res) => {
+  try {
+    const ALLOWED = ['completed', 'refunded', 'cancelled', 'failed'];
+    const { status, note } = req.body;
+    if (!ALLOWED.includes(status)) {
+      return res.status(400).json({ success: false, message: `status: ${ALLOWED.join(', ')}` });
+    }
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz to\'lov ID' });
+    }
+
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ success: false, message: 'To\'lov topilmadi' });
+
+    const oldStatus = payment.status;
+    payment.status = status;
+    if (status === 'cancelled') payment.cancelledAt = new Date();
+    payment.providerResponse = {
+      ...(payment.providerResponse || {}),
+      adminAction: {
+        action: status,
+        note: String(note || '').slice(0, 500),
+        adminId: String(req.user._id),
+        adminUsername: req.user.username,
+        at: new Date().toISOString(),
+        oldStatus,
+      },
+    };
+    payment.markModified('providerResponse');
+    await payment.save();
+
+    // Agar refund qilingan bo'lsa — enrollment'ni o'chirish (manual)
+    if (status === 'refunded' && oldStatus === 'completed') {
+      await Enrollment.deleteOne({ userId: payment.userId, courseId: payment.courseId });
+    }
+
+    logger.info('admin_payment_update', {
+      adminId: String(req.user._id),
+      adminUsername: req.user.username,
+      paymentId: req.params.id,
+      oldStatus,
+      newStatus: status,
+    });
+
+    res.json({ success: true, data: { payment } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Kunlik vazifalar ro'yxati | @route GET /api/admin/challenges | @access Admin */
+const adminListChallenges = async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 30), 100);
+
+    const [challenges, total] = await Promise.all([
+      DailyChallenge.find()
+        .sort({ date: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      DailyChallenge.countDocuments(),
+    ]);
+
+    res.json({ success: true, data: { challenges, pagination: { total, page, limit } } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Kunlik vazifani tahrirlash | @route PUT /api/admin/challenges/:id | @access Admin */
+const adminUpdateChallenge = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+    }
+    const allowed = ['title', 'description', 'targetCount', 'xpReward', 'isActive', 'type'];
+    const update = {};
+    allowed.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
+
+    const challenge = await DailyChallenge.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!challenge) return res.status(404).json({ success: false, message: 'Vazifa topilmadi' });
+
+    res.json({ success: true, data: { challenge } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @desc  Kunlik vazifani o'chirish | @route DELETE /api/admin/challenges/:id | @access Admin */
+const adminDeleteChallenge = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+    }
+    const challenge = await DailyChallenge.findByIdAndDelete(req.params.id);
+    if (!challenge) return res.status(404).json({ success: false, message: 'Vazifa topilmadi' });
+
+    logger.info('admin_challenge_delete', {
+      adminId: String(req.user._id),
+      adminUsername: req.user.username,
+      challengeId: req.params.id,
+      date: challenge.date,
+    });
+
+    res.json({ success: true, message: 'Vazifa o\'chirildi' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -428,4 +593,6 @@ module.exports = {
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
   getAllEnrollments, adminAwardXp,
+  updatePayment,
+  adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,
 };

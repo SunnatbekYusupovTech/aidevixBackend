@@ -6,6 +6,8 @@ const {
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
   getAllEnrollments, adminAwardXp,
+  updatePayment,
+  adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,
 } = require('../controllers/adminController');
 const {
   listPromoCodes, createPromoCode, updatePromoCode, deletePromoCode,
@@ -17,6 +19,9 @@ const {
   deleteAiNewsAdmin,
 } = require('../controllers/aiNewsController');
 const { adminListBugReports, adminReviewBugReport } = require('../controllers/bugReportController');
+const {
+  adminListPrompts, adminSetPromptVisibility, featurePrompt, deletePrompt,
+} = require('../controllers/promptController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 const guard = [authenticate, requireAdmin];
@@ -31,7 +36,8 @@ router.get('/courses/stats',              ...guard, getCoursesStats);
 router.get('/courses/:id/enrollments',    ...guard, getCourseEnrollmentStats);
 
 // Payments
-router.get('/payments', ...guard, getRecentPayments);
+router.get('/payments',     ...guard, getRecentPayments);
+router.put('/payments/:id', ...guard, updatePayment);
 
 // Users
 router.get('/users',               ...guard, getUsers);
@@ -66,5 +72,16 @@ router.get('/ai-news', ...guard, listAiNewsAdmin);
 router.post('/ai-news', ...guard, createAiNewsAdmin);
 router.put('/ai-news/:id', ...guard, updateAiNewsAdmin);
 router.delete('/ai-news/:id', ...guard, deleteAiNewsAdmin);
+
+// Prompts moderation
+router.get('/prompts',                  ...guard, adminListPrompts);
+router.patch('/prompts/:id/visibility', ...guard, adminSetPromptVisibility);
+router.patch('/prompts/:id/feature',    ...guard, featurePrompt);
+router.delete('/prompts/:id',           ...guard, deletePrompt);
+
+// Daily challenges
+router.get('/challenges',        ...guard, adminListChallenges);
+router.put('/challenges/:id',    ...guard, adminUpdateChallenge);
+router.delete('/challenges/:id', ...guard, adminDeleteChallenge);
 
 module.exports = router;

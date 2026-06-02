@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import BlogClient from './BlogClient';
-import { API_BASE_URL } from '@/utils/constants';
+import { SSR_API_BASE_URL } from '@/utils/constants';
 
 export const metadata: Metadata = {
   title: 'Blog — Aidevix',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 async function getNews() {
   try {
-    const res = await fetch(`${API_BASE_URL}public/ai-news`, { next: { revalidate: 600 } });
+    const res = await fetch(`${SSR_API_BASE_URL}public/ai-news`, { next: { revalidate: 600 } });
     if (!res.ok) return [];
     const data = await res.json();
     return data?.data?.news || [];

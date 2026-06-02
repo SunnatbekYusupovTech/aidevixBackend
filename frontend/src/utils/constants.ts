@@ -29,6 +29,13 @@ const base = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/proxy'
 const withLeading = (base.startsWith('/') || base.startsWith('http')) ? base : `/${base}`
 export const API_BASE_URL = withLeading.endsWith('/') ? withLeading : `${withLeading}/`
 
+// SSR / generateMetadata / sitemap uchun: Node fetch'i relative URL'ni qabul qilmaydi.
+// `API_BASE_URL` brauzer rewrite'iga moslangan (`/api/proxy/...`). Server runtime'da
+// shu URL bilan fetch chaqirilsa `TypeError: Invalid URL` beradi va try/catch xatoni
+// soqov yutadi → SEO metadata bo'sh qoladi. Bu yerda doim absolut backend URL'ni
+// qaytaramiz, brauzer va Node ikkalasida ham ishonchli.
+export const SSR_API_BASE_URL = `${BACKEND_ORIGIN}/api/`
+
 
 export const CATEGORIES = [
   { id: 'all',        label: 'Barchasi',   icon: '🌐', color: '#6366f1' },

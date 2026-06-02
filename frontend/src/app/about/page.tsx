@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import AboutClient from './AboutClient';
-import { API_BASE_URL } from '@/utils/constants';
+import { SSR_API_BASE_URL } from '@/utils/constants';
 
 export const metadata: Metadata = {
   title: 'Biz haqimizda — Aidevix',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 async function getStats() {
   try {
-    const res = await fetch(`${API_BASE_URL}users/home-stats`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${SSR_API_BASE_URL}users/home-stats`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.data || null;

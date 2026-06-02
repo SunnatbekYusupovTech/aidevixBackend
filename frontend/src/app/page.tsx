@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
-import { API_BASE_URL } from '@/utils/constants';
+import { SSR_API_BASE_URL } from '@/utils/constants';
 
 // Professional Metadata for SEO
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // Server functions to fetch data (SSR/ISR)
 async function getTopCourses() {
   try {
-    const res = await fetch(`${API_BASE_URL}courses/top?limit=8`, { next: { revalidate: 1800 } });
+    const res = await fetch(`${SSR_API_BASE_URL}courses/top?limit=8`, { next: { revalidate: 1800 } });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data?.courses || [];
@@ -36,7 +36,7 @@ async function getTopCourses() {
 
 async function getTopVideos() {
   try {
-    const res = await fetch(`${API_BASE_URL}videos/top?limit=6`, { next: { revalidate: 1800 } });
+    const res = await fetch(`${SSR_API_BASE_URL}videos/top?limit=6`, { next: { revalidate: 1800 } });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data?.videos || [];
@@ -49,7 +49,7 @@ async function getTopVideos() {
 // Falls through to client fetch if backend is reachable from edge but slow.
 async function getHomeStats() {
   try {
-    const res = await fetch(`${API_BASE_URL}users/home-stats`, { next: { revalidate: 600 } });
+    const res = await fetch(`${SSR_API_BASE_URL}users/home-stats`, { next: { revalidate: 600 } });
     if (!res.ok) return null;
     const json = await res.json();
     const d = json?.data || {};

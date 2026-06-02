@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react';
 import {
-  FiActivity,
   FiBook,
   FiHome,
   FiSettings,
   FiUsers,
   FiDollarSign,
-  FiBarChart2,
   FiTool,
   FiTag,
   FiList,
+  FiZap,
+  FiAlertTriangle,
+  FiAward,
 } from 'react-icons/fi';
 
 export type AdminNavItem = {
@@ -67,9 +68,27 @@ export const ADMIN_NAV: AdminNavSection[] = [
     title: 'Kontent va vositalar',
     items: [
       {
+        href: '/admin/prompts',
+        label: 'Promptlar',
+        hint: 'Moderatsiya: feature, yashirish, o\'chirish',
+        icon: <FiZap className="h-5 w-5" />,
+      },
+      {
+        href: '/admin/challenges',
+        label: 'Kunlik vazifalar',
+        hint: 'CRUD, faollik, XP miqdori',
+        icon: <FiAward className="h-5 w-5" />,
+      },
+      {
+        href: '/admin/bug-reports',
+        label: 'Bug xabarlar',
+        hint: 'Tasdiqlash, XP berish, rad etish',
+        icon: <FiAlertTriangle className="h-5 w-5" />,
+      },
+      {
         href: '/admin/tools',
         label: 'Vositalar',
-        hint: 'Challenge, Telegram, Bunny bulk',
+        hint: 'Telegram, Bunny bulk, AI news',
         icon: <FiTool className="h-5 w-5" />,
       },
     ],

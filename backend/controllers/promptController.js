@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Prompt = require('../models/Prompt');
 const SavedPrompt = require('../models/SavedPrompt');
 const UserStats = require('../models/UserStats');
@@ -274,6 +275,76 @@ const featurePrompt = async (req, res) => {
   }
 };
 
+/** @route GET /api/admin/prompts | @access Admin */
+const adminListPrompts = async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
+    const search = String(req.query.search || '').trim();
+    const category = req.query.category;
+    const tool = req.query.tool;
+    const featured = req.query.featured;
+    const visibility = req.query.visibility;
+
+    const filter = {};
+    if (category && category !== 'all') filter.category = category;
+    if (tool && tool !== 'all') filter.tool = tool;
+    if (featured === 'true') filter.isFeatured = true;
+    if (featured === 'false') filter.isFeatured = false;
+    if (visibility === 'public') filter.isPublic = true;
+    if (visibility === 'hidden') filter.isPublic = false;
+    if (search) {
+      const r = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ title: r }, { description: r }, { content: r }];
+    }
+
+    const [prompts, total] = await Promise.all([
+      Prompt.find(filter)
+        .populate('author', 'username email avatar')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Prompt.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, data: { prompts, pagination: { total, page, limit, pages: Math.ceil(total / limit) } } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/** @route PATCH /api/admin/prompts/:id/visibility | @access Admin */
+const adminSetPromptVisibility = async (req, res) => {
+  try {
+    const { isPublic } = req.body;
+    if (typeof isPublic !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'isPublic boolean bo\'lishi kerak' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Yaroqsiz prompt ID' });
+    }
+    const prompt = await Prompt.findByIdAndUpdate(
+      req.params.id,
+      { isPublic },
+      { new: true }
+    );
+    if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
+
+    const logger = require('../utils/logger');
+    logger.info('admin_prompt_visibility', {
+      adminId: String(req.user._id),
+      adminUsername: req.user.username,
+      promptId: req.params.id,
+      isPublic,
+    });
+
+    res.json({ success: true, data: prompt });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getPrompts,
   getFeaturedPrompts,
@@ -287,4 +358,6 @@ module.exports = {
   likePrompt,
   deletePrompt,
   featurePrompt,
+  adminListPrompts,
+  adminSetPromptVisibility,
 };

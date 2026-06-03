@@ -2,6 +2,7 @@ const Payment    = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Course     = require('../models/Course');
 const User = require('../models/User');
+const PromoCode = require('../models/PromoCode');
 const crypto = require('crypto');
 
 /**
@@ -11,18 +12,22 @@ const crypto = require('crypto');
 
 const verifyPaymeAuth = (req) => {
   const merchantKey = process.env.PAYME_MERCHANT_KEY;
-  const authHeader = req.headers.authorization || '';
-
   if (!merchantKey) {
-    return process.env.NODE_ENV !== 'production';
+    console.error('[payme] PAYME_MERCHANT_KEY o\'rnatilmagan — auth deny'); // FAIL-CLOSED har doim
+    return false;
   }
 
+  const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Basic ')) return false;
 
   const credentials = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
-  const [login, password] = credentials.split(':');
+  const idx = credentials.indexOf(':');
+  const login = idx === -1 ? credentials : credentials.slice(0, idx);
+  const password = idx === -1 ? '' : credentials.slice(idx + 1);
 
-  return login === 'Paycom' && password === merchantKey;
+  const pwBuf = Buffer.from(password);
+  const keyBuf = Buffer.from(merchantKey);
+  return login === 'Paycom' && pwBuf.length === keyBuf.length && crypto.timingSafeEqual(pwBuf, keyBuf);
 };
 
 const buildClickSignString = (body) => [
@@ -38,7 +43,8 @@ const buildClickSignString = (body) => [
 const verifyClickSignature = (req) => {
   const secretKey = process.env.CLICK_SECRET_KEY;
   if (!secretKey) {
-    return process.env.NODE_ENV !== 'production';
+    console.error('[click] CLICK_SECRET_KEY o\'rnatilmagan — sign deny'); // FAIL-CLOSED har doim
+    return false;
   }
 
   const providedSign = String(req.body.sign_string || '').toLowerCase();
@@ -49,7 +55,9 @@ const verifyClickSignature = (req) => {
     .update(buildClickSignString(req.body))
     .digest('hex');
 
-  return providedSign === expectedSign;
+  const a = Buffer.from(String(providedSign), 'utf8');
+  const e = Buffer.from(String(expectedSign), 'utf8');
+  return a.length === e.length && crypto.timingSafeEqual(a, e);
 };
 
 const PRO_PRICE_UZS = Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000);
@@ -59,6 +67,14 @@ const maybeGrantProSubscription = async (payment, course) => {
   const isAiCourse = course.category === 'ai';
   const isEnoughAmount = Number(payment.amount || 0) >= PRO_PRICE_UZS;
   if (!isAiCourse || !isEnoughAmount) return;
+
+  // Idempotent: bu payment'dan allaqachon pro berilgan bo'lsa qayta yozma
+  const already = await User.findOne({
+    _id: payment.userId,
+    'proSubscription.active': true,
+    'proSubscription.sourcePaymentId': payment._id,
+  }).select('_id').lean();
+  if (already) return;
 
   await User.findByIdAndUpdate(payment.userId, {
     $set: {
@@ -70,6 +86,26 @@ const maybeGrantProSubscription = async (payment, course) => {
       'proSubscription.sourcePaymentId': payment._id,
     },
   });
+};
+
+/**
+ * To'lov "completed" bo'lgach bajarilishi kerak bo'lgan side-effect'lar — IDEMPOTENT.
+ * Enrollment upsert; studentsCount FAQAT yangi enrollment yaratilganda oshiriladi (rawResult.upserted).
+ * Payme/Click retry'da qayta chaqirilsa ham studentsCount ikki marta oshmaydi.
+ */
+const ensurePaidSideEffects = async (payment, course) => {
+  const r = await Enrollment.findOneAndUpdate(
+    { userId: payment.userId, courseId: payment.courseId },
+    {
+      $setOnInsert: { userId: payment.userId, courseId: payment.courseId },
+      $set: { paymentStatus: 'paid', paymentId: payment._id },
+    },
+    { upsert: true, new: true, rawResult: true }
+  );
+  if (r?.lastErrorObject?.upserted) {
+    await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
+  }
+  await maybeGrantProSubscription(payment, course);
 };
 
 /** @desc  To'lovni boshlash | @route POST /api/payments/initiate | @access Private */
@@ -102,11 +138,11 @@ const initiatePayment = async (req, res) => {
       let paymentUrl = null;
       if (pendingPayment.provider === 'payme') {
         const merchantId = process.env.PAYME_MERCHANT_ID;
-        const encoded = Buffer.from(`m=${merchantId};ac.order_id=${pendingPayment._id};a=${course.price * 100}`).toString('base64');
+        const encoded = Buffer.from(`m=${merchantId};ac.order_id=${pendingPayment._id};a=${Math.round(pendingPayment.amount * 100)}`).toString('base64');
         paymentUrl = `https://checkout.paycom.uz/${encoded}`;
       } else if (pendingPayment.provider === 'click') {
         const serviceId = process.env.CLICK_SERVICE_ID;
-        paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${course.price}&transaction_param=${pendingPayment._id}`;
+        paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${pendingPayment.amount}&transaction_param=${pendingPayment._id}`;
       }
       return res.status(200).json({
         success: true,
@@ -115,10 +151,49 @@ const initiatePayment = async (req, res) => {
       });
     }
 
+    // ── Promo kod (atomik consume, server-side discount) ──────────────────────
+    // Narx HAR DOIM serverda hisoblanadi; client amount ishlatilmaydi.
+    let finalAmount = course.price;
+    let appliedPromo = null;
+    const rawPromo = (req.body.promoCode || '').toString().toUpperCase().trim();
+    if (rawPromo) {
+      const now = new Date();
+      const filter = {
+        code: rawPromo,
+        isActive: true,
+        $and: [
+          { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+          { $or: [{ maxUses: null }, { $expr: { $lt: ['$usedCount', '$maxUses'] } }] },
+        ],
+      };
+      // courseIds scope: promo aniq kurslarga bog'langan bo'lsa, so'ralayotgan courseId ichida bo'lishi shart
+      const candidate = await PromoCode.findOne({ code: rawPromo }).select('courseIds').lean();
+      const scopedToOther =
+        candidate && Array.isArray(candidate.courseIds) && candidate.courseIds.length > 0 &&
+        !candidate.courseIds.some(cid => String(cid) === String(courseId));
+
+      if (!scopedToOther) {
+        // Atomik: usedCount++ faqat barcha shartlar bajarilsa (race-safe)
+        const promo = await PromoCode.findOneAndUpdate(filter, { $inc: { usedCount: 1 } }, { new: true });
+        if (promo) {
+          let discounted = course.price;
+          if (promo.type === 'percent') {
+            discounted = course.price - (course.price * promo.value) / 100;
+          } else { // 'fixed'
+            discounted = course.price - promo.value;
+          }
+          finalAmount = Math.max(1, Math.round(discounted)); // manfiy/0 bo'lmasin, min 1
+          appliedPromo = { code: promo.code, type: promo.type, value: promo.value };
+        }
+        // promo null bo'lsa (limit/expire/inactive) — e'tiborsiz qoldir, original narxda davom et
+      }
+      // scopedToOther bo'lsa — consume QILMA, original narxda davom et
+    }
+
     const payment = await Payment.create({
       userId: req.user._id,
       courseId,
-      amount: course.price,
+      amount: finalAmount,
       provider,
       status: 'pending',
     });
@@ -126,17 +201,17 @@ const initiatePayment = async (req, res) => {
     let paymentUrl = null;
     if (provider === 'payme') {
       const merchantId = process.env.PAYME_MERCHANT_ID || 'YOUR_MERCHANT_ID';
-      const encoded = Buffer.from(`m=${merchantId};ac.order_id=${payment._id};a=${course.price * 100}`).toString('base64');
+      const encoded = Buffer.from(`m=${merchantId};ac.order_id=${payment._id};a=${Math.round(finalAmount * 100)}`).toString('base64');
       paymentUrl = `https://checkout.paycom.uz/${encoded}`;
     } else if (provider === 'click') {
       const serviceId = process.env.CLICK_SERVICE_ID || 'YOUR_SERVICE_ID';
-      paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${course.price}&transaction_param=${payment._id}`;
+      paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${finalAmount}&transaction_param=${payment._id}`;
     }
 
     res.status(201).json({
       success: true,
       message: 'To\'lov boshlandi',
-      data: { payment: { _id: payment._id, amount: payment.amount, provider, status: 'pending' }, paymentUrl },
+      data: { payment: { _id: payment._id, amount: payment.amount, provider, status: 'pending' }, paymentUrl, promo: appliedPromo },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -200,7 +275,7 @@ const checkPerformTransaction = async (params, id) => {
   const { account, amount } = params;
   const payment = await Payment.findOne({ _id: account?.order_id, status: 'pending' });
   if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
-  if (payment.amount * 100 !== amount) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
+  if (Math.round(payment.amount * 100) !== Number(amount)) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
   return { result: { allow: true }, id };
 };
 
@@ -208,7 +283,7 @@ const createPaymeTransaction = async (params, id) => {
   const { id: providerTxId, time, amount, account } = params;
   const payment = await Payment.findById(account?.order_id);
   if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
-  if (payment.amount * 100 !== amount) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
+  if (Math.round(payment.amount * 100) !== Number(amount)) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
 
   // Idempotency: bir xil Payme txId bilan qayta kelgan
   if (payment.providerTransactionId === providerTxId) {
@@ -244,6 +319,9 @@ const performTransaction = async (params, id) => {
     const existing = await Payment.findOne({ providerTransactionId: providerTxId });
     if (!existing) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
     if (existing.status === 'completed') {
+      // Payme retry: side-effect'lar (enrollment) ta'minlanganini idempotent kafolatla
+      const eCourse = await Course.findById(existing.courseId);
+      await ensurePaidSideEffects(existing, eCourse);
       return { result: { transaction: existing._id.toString(), perform_time: existing.paymePerformTime, state: 2 }, id };
     }
     if (existing.status === 'cancelled') {
@@ -253,16 +331,7 @@ const performTransaction = async (params, id) => {
   }
 
   const course = await Course.findById(payment.courseId);
-
-  // Enrollment upsert (idempotent)
-  await Enrollment.findOneAndUpdate(
-    { userId: payment.userId, courseId: payment.courseId },
-    { userId: payment.userId, courseId: payment.courseId, paymentStatus: 'paid', paymentId: payment._id },
-    { upsert: true, new: true }
-  );
-  // studentsCount faqat shu yerda oshiriladi (atomic update kafolat beradi)
-  await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
-  await maybeGrantProSubscription(payment, course);
+  await ensurePaidSideEffects(payment, course);
 
   // Telegram admin bildirishnoma (Payme)
   try {
@@ -332,7 +401,7 @@ const getStatement = async (params, id) => {
   const transactions = payments.map(p => ({
     id:           p.providerTransactionId,
     time:         p.paymeCreateTime,
-    amount:       p.amount * 100,
+    amount:       Math.round(p.amount * 100),
     account:      { order_id: p._id.toString() },
     create_time:  p.paymeCreateTime  ?? 0,
     perform_time: p.paymePerformTime ?? 0,
@@ -413,22 +482,19 @@ const clickComplete = async (req, res) => {
     );
 
     if (!payment) {
-      const existing = await Payment.findById(merchant_trans_id).lean();
+      const existing = await Payment.findById(merchant_trans_id);
       if (!existing) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
-      // Allaqachon completed — idempotent muvaffaqiyat
-      if (existing.status === 'completed') return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+      // Allaqachon completed — idempotent muvaffaqiyat (side-effect'larni ta'minlab)
+      if (existing.status === 'completed') {
+        const eCourse = await Course.findById(existing.courseId);
+        await ensurePaidSideEffects(existing, eCourse);
+        return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+      }
       return res.json({ error: -9, error_note: 'To\'lovni qayta ishlash mumkin emas' });
     }
 
     const course = await Course.findById(payment.courseId);
-
-    await Enrollment.findOneAndUpdate(
-      { userId: payment.userId, courseId: payment.courseId },
-      { userId: payment.userId, courseId: payment.courseId, paymentStatus: 'paid', paymentId: payment._id },
-      { upsert: true, new: true }
-    );
-    await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
-    await maybeGrantProSubscription(payment, course);
+    await ensurePaidSideEffects(payment, course);
 
     // Telegram admin bildirishnoma (Click)
     try {

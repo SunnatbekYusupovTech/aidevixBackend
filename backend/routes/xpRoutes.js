@@ -13,15 +13,16 @@ const {
   getStreakStatus,
 } = require('../controllers/xpController');
 const { authenticate } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 
 
 router.get('/stats', authenticate, getUserStats);
 
-router.post('/video-watched/:videoId', authenticate, addVideoWatchXP);
+router.post('/video-watched/:videoId', authenticate, validateObjectId('videoId'), addVideoWatchXP);
 
-router.post('/quiz/:quizId', authenticate, submitQuiz);
+router.post('/quiz/:quizId', authenticate, validateObjectId('quizId'), submitQuiz);
 
-router.get('/quiz/video/:videoId', authenticate, getQuizByVideo);
+router.get('/quiz/video/:videoId', authenticate, validateObjectId('videoId'), getQuizByVideo);
 
 router.put('/profile', authenticate, updateProfile);
 

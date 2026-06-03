@@ -1,0 +1,65 @@
+{
+  "role": "security",
+  "score": 9,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/authController.js",
+    "backend/middleware/auth.js",
+    "backend/middleware/csrfProtection.js",
+    "backend/middleware/subscriptionCheck.js",
+    "backend/middleware/requireTelegramForPrompts.js",
+    "backend/utils/jwt.js",
+    "backend/utils/authSecurity.js",
+    "backend/utils/telegramWebAppAuth.js",
+    "backend/utils/checkSubscriptions.js",
+    "backend/config/jwt.js",
+    "backend/index.js"
+  ],
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "requireTelegramForPrompts 500 javobida xom err.message qaytaradi (info leak)",
+      "file": "backend/middleware/requireTelegramForPrompts.js",
+      "line": 41,
+      "description": "catch blokida `res.status(500).json({ message: err.message })` — ichki xato matni (Mongoose/Telegram API tafsilotlari) clientga ochiq qaytadi. Loyiha errorMiddleware standartiga (prod'da generic 500, stack hech qachon response'da emas) zid. subscriptionCheck.js da xato to'g'ri console.error bilan ushlangan va generic matn qaytadi; bu fayl esa raw message uzatadi.",
+      "fix": "err.message o'rniga generic matn: `console.error('prompt-sub-check', err); return res.status(500).json({ success:false, message:'Server xatosi' });`",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-002",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "requireTelegramForPromptsRead — user null bo'lsa null-deref / 500 (auth-dan keyin o'chirilgan hisob)",
+      "file": "backend/middleware/requireTelegramForPrompts.js",
+      "line": 22,
+      "description": "`const user = await User.findById(req.user._id).select('socialSubscriptions role')` — agar foydalanuvchi authenticate'dan keyin (race) o'chirilgan/yo'q bo'lsa user=null, keyin `performSubscriptionCheck(user)` ichida `user.socialSubscriptions.instagram` o'qishda TypeError → catch → 500 (+ SEC-001 bilan birga raw message leak). Authorization teshigi emas, lekin null guard yo'q.",
+      "fix": "findById'dan keyin: `if (!user) return res.status(401).json({ success:false, code:'AUTH_REQUIRED', message:'Tizimga kiring.' });`",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-003",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "Telegram subscription gate API xatoda DB qiymatiga fail-open fallback qiladi",
+      "file": "backend/utils/checkSubscriptions.js",
+      "line": 54,
+      "description": "Telegram getChatMember API xato bersa (`result.checked === false`) oxirgi DB qiymati (`telegram.subscribed`) ishlatiladi. UX-himoya sifatida tushunarli (nohaq bloklamaslik), lekin foydalanuvchi kanaldan chiqib API'ni vaqtincha buzsa eski 'subscribed=true' bilan biznes-kritik gate'dan o'tishi mumkin; 5 daqiqalik cache buni kuchaytiradi. Fail-open xulq.",
+      "fix": "Eski true qiymatga ishonish oynasini cheklang (masalan verifiedAt 24-48 soatdan eski bo'lsa fallback'da true bermaslik) yoki fail-open oynasini qisqartiring. Biznes qaror talab qiladi.",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-004",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "Public email verify — alohida tor rate-limit yo'q (faqat umumiy otpLimiter + per-account cap)",
+      "file": "backend/controllers/authController.js",
+      "line": 583,
+      "description": "verifyEmailPublic 6-xonali kodni per-account 5 urinish bilan cheklaydi (yaxshi) va route'da otpLimiter bor. Lekin attempt-cap faqat hisob darajasida; otpLimiter IP/window. Authenticated verify-email uchun alohida verifyEmailLimiter bor, public uchun yo'q. Tarqatilgan IP + ko'p hisob ssenariysida 6-xonali fazoga statistik brute oynasi qoladi. Mavjud himoya yetarli, ammo kuchaytirish mumkin.",
+      "fix": "verify-email-public uchun alohida tor limiter qo'shing yoki kodni 8-xonali qiling. Ixtiyoriy hardening.",
+      "auto_safe": false
+    }
+  ],
+  "summary": "Auth/JWT/CSRF/CORS/cookie qatlami juda mustahkam: JWT secret prod fail-fast + algorithm pinned HS256 + unique secrets, refresh rotation/reuse detection + absolute cap, hamma joyda timing-safe taqqoslash, enumeration-safe login/forgot/verify, httpOnly+Secure+SameSite cookie, CSRF double-submit HMAC, mongoSanitize(body,params), CORS callback(null,false), TMA initData HMAC to'g'ri (Telegram spec). Hardcoded secret yo'q (DUMMY_HASH ataylab). Topilgan muammolar mayda: requireTelegramForPrompts 500'da raw err.message qaytaradi va null-user guard yo'q; qolgan ikkitasi subscription fail-open va public verify rate-limit hardening takliflari."
+}

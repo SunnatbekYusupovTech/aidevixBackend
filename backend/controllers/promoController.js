@@ -101,6 +101,15 @@ const validatePromoCode = async (req, res) => {
     if (promo.maxUses !== null && promo.usedCount >= promo.maxUses) {
       return res.status(410).json({ success: false, message: 'Promo kod limitga yetdi' });
     }
+    // courseId scope: promo aniq kurslarga bog'langan bo'lsa, so'ralayotgan kurs ichida bo'lishi shart
+    const courseId = (req.query.courseId || '').toString().trim();
+    if (
+      courseId &&
+      Array.isArray(promo.courseIds) && promo.courseIds.length > 0 &&
+      !promo.courseIds.some(cid => String(cid) === courseId)
+    ) {
+      return res.status(409).json({ success: false, message: 'Promo kod bu kursga taalluqli emas' });
+    }
 
     res.json({
       success: true,

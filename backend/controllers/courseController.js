@@ -42,14 +42,16 @@ const getAllCourses = async (req, res) => {
     };
     const sortOption = sortMap[sort] || sortMap.newest;
 
-    const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const lim  = Math.min(Math.max(1, parseInt(limit) || 12), 50);
+    const pg   = Math.max(1, parseInt(page) || 1);
+    const skip = (pg - 1) * lim;
     const total = await Course.countDocuments(filter);
 
     const courses = await Course.find(filter)
       .populate('instructor', 'username email jobTitle position')
       .sort(sortOption)
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(lim)
       .lean();
 
     // Map through courses to populate videoCount and calculate valid video stats
@@ -61,9 +63,9 @@ const getAllCourses = async (req, res) => {
         courses,
         pagination: {
           total,
-          page:  parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit)),
+          page:  pg,
+          limit: lim,
+          pages: Math.ceil(total / lim),
         },
       },
     });
@@ -79,7 +81,7 @@ const getAllCourses = async (req, res) => {
  */
 const getTopCourses = async (req, res) => {
   try {
-    const limit    = parseInt(req.query.limit) || 6;
+    const limit    = Math.min(parseInt(req.query.limit) || 6, 20);
     const category = req.query.category || null;
 
     const filter = { isActive: true };
@@ -172,7 +174,7 @@ const getRecommendedCourses = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 
-    const limit = parseInt(req.query.limit) || 4;
+    const limit = Math.min(parseInt(req.query.limit) || 4, 20);
 
     const courses = await Course.find({
       isActive: true,

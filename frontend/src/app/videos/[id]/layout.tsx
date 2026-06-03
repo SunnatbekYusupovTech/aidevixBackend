@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { SSR_API_BASE_URL } from '@utils/constants';
+import { safeJsonLd } from '@utils/jsonLd';
 
 interface Props {
   params: { id: string };
@@ -100,7 +101,7 @@ export default async function VideoLayout({ params, children }: Props) {
       {videoSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(videoSchema) }}
         />
       )}
       {children}

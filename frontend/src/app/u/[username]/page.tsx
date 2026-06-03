@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import PublicProfileClient from './PublicProfileClient';
 import { SSR_API_BASE_URL } from '@/utils/constants';
+import { safeJsonLd } from '@/utils/jsonLd';
 
 async function fetchProfile(username: string) {
   try {
@@ -94,11 +95,11 @@ export default async function PublicProfilePage({ params }: { params: { username
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(personSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <PublicProfileClient profile={profile} />
     </>

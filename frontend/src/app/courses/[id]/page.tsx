@@ -27,6 +27,7 @@ import { useSubscription } from '@hooks/useSubscription'
 import StarRating from '@components/common/StarRating'
 import CourseCard from '@components/courses/CourseCard'
 import SubscriptionGate from '@components/subscription/SubscriptionGate'
+import CourseCheckoutModal from '@components/courses/CourseCheckoutModal'
 import { formatDurationText, formatDuration } from '@utils/formatDuration'
 import { ROUTES } from '@utils/constants'
 import api from '@api/axiosInstance'
@@ -144,6 +145,7 @@ export default function CourseDetailPage() {
     rating: lang === 'en' ? 'Rating' : lang === 'ru' ? 'Рейтинг' : 'Reyting',
     learners: lang === 'en' ? 'Learners' : lang === 'ru' ? 'Ученики' : "O'quvchilar",
     projects: lang === 'en' ? 'Projects' : lang === 'ru' ? 'Проекты' : 'Loyihalar',
+    buyCourse: lang === 'en' ? 'Buy course' : lang === 'ru' ? 'Купить курс' : 'Kursni sotib olish',
     dateLocale: lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : 'uz-UZ',
   }
   const { id }                                          = useParams()
@@ -173,6 +175,7 @@ export default function CourseDetailPage() {
   const isSubscribed   = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed)
   const [showGate, setShowGate] = useState(false)
   const [showSubscribedModal, setShowSubscribedModal] = useState(false)
+  const [showCheckout, setShowCheckout] = useState(false)
 
   if (!isMounted || loading) return <Skeleton />
   if (!course)  return null
@@ -198,6 +201,12 @@ export default function CourseDetailPage() {
     } else {
       setShowGate(true)
     }
+  }
+
+  const isPaid = !course.isFree && Number(course.price || 0) > 0
+  const handleBuy = () => {
+    if (!isLoggedIn) { setShowGate(true); return }
+    setShowCheckout(true)
   }
 
   return (
@@ -295,6 +304,8 @@ export default function CourseDetailPage() {
                 catColor={catColor}
                 isSubscribed={isSubscribed}
                 onWatch={handleWatch}
+                isPaid={isPaid}
+                onBuy={handleBuy}
                 uiText={localText}
               />
             </div>
@@ -411,6 +422,8 @@ export default function CourseDetailPage() {
               catColor={catColor}
               isSubscribed={isSubscribed}
               onWatch={handleWatch}
+              isPaid={isPaid}
+              onBuy={handleBuy}
               uiText={localText}
             />
           </motion.div>
@@ -481,6 +494,14 @@ export default function CourseDetailPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Checkout (Payme/Click + promo) */}
+      <CourseCheckoutModal
+        open={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        course={course}
+        lang={lang}
+      />
     </div>
   )
 }
@@ -495,12 +516,26 @@ function PriceCardContent({
   projects,
   isSubscribed,
   onWatch,
+  isPaid,
+  onBuy,
   uiText,
 }) {
+  const priceLabel = isPaid
+    ? new Intl.NumberFormat(uiText.dateLocale).format(Math.round(Number(course.price || 0))) + " so'm"
+    : null
   return (
     <div className="p-4 sm:p-5 space-y-4">
       <div className="space-y-2">
-        <button onClick={onWatch} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
+        {isPaid && (
+          <button onClick={onBuy} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
+            <IoFlash className="text-base" />
+            {uiText.buyCourse} · {priceLabel}
+          </button>
+        )}
+        <button
+          onClick={onWatch}
+          className={`btn btn-block rounded-xl font-bold gap-2 ${isPaid ? 'btn-outline btn-neutral' : 'btn-primary'}`}
+        >
           {isSubscribed ? <IoPlay className="text-base" /> : <IoLockClosed className="text-base" />}
           {isSubscribed ? uiText.watchVideo : uiText.watchOrSubscribe}
         </button>

@@ -15,19 +15,20 @@ const {
   featurePrompt,
 } = require('../controllers/promptController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 const requireTelegramForPromptsRead = require('../middleware/requireTelegramForPrompts');
 
 router.get('/', authenticate, requireTelegramForPromptsRead, getPrompts);
 router.get('/featured', authenticate, requireTelegramForPromptsRead, getFeaturedPrompts);
 router.get('/saved/me', authenticate, getSavedPrompts);
 router.get('/saved/ids', authenticate, getSavedPromptIds);
-router.post('/:id/save', authenticate, savePrompt);
-router.delete('/:id/save', authenticate, unsavePrompt);
-router.get('/:id', authenticate, requireTelegramForPromptsRead, getPrompt);
-router.post('/:id/view', authenticate, requireTelegramForPromptsRead, viewPrompt);
+router.post('/:id/save', authenticate, validateObjectId('id'), savePrompt);
+router.delete('/:id/save', authenticate, validateObjectId('id'), unsavePrompt);
+router.get('/:id', authenticate, validateObjectId('id'), requireTelegramForPromptsRead, getPrompt);
+router.post('/:id/view', authenticate, validateObjectId('id'), requireTelegramForPromptsRead, viewPrompt);
 router.post('/',          authenticate, createPrompt);
-router.post('/:id/like',  authenticate, likePrompt);
-router.delete('/:id',     authenticate, deletePrompt);
-router.patch('/:id/feature', authenticate, requireAdmin, featurePrompt);
+router.post('/:id/like',  authenticate, validateObjectId('id'), likePrompt);
+router.delete('/:id',     authenticate, validateObjectId('id'), deletePrompt);
+router.patch('/:id/feature', authenticate, requireAdmin, validateObjectId('id'), featurePrompt);
 
 module.exports = router;

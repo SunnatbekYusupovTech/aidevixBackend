@@ -1,0 +1,139 @@
+{
+  "role": "api-design",
+  "score": 6,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/promptController.js",
+    "backend/controllers/adminController.js",
+    "backend/controllers/xpController.js",
+    "backend/controllers/courseController.js",
+    "backend/controllers/uploadController.js",
+    "backend/routes/adminRoutes.js",
+    "backend/routes/promptRoutes.js",
+    "backend/middleware/errorMiddleware.js"
+  ],
+  "findings": [
+    {
+      "id": "API-001",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "Controllers swallow all errors with local try/catch -> 500 + leaked err.message, bypassing errorMiddleware",
+      "file": "backend/controllers/promptController.js",
+      "line": 31,
+      "description": "Nearly every handler in all reviewed controllers wraps its body in try/catch and on error does res.status(500).json({ success:false, message: err.message }). This bypasses the carefully built errorMiddleware.js entirely (which maps CastError->404, ValidationError->400, dup-key->400, and redacts internal messages in production). Consequences: (1) An invalid ObjectId on routes like POST /api/prompts/:id/like, DELETE /api/prompts/:id, PATCH /api/prompts/:id/feature, GET /api/admin/users/:id, etc. throws a Mongoose CastError that is caught locally and returned as HTTP 500 with raw err.message instead of 404. (2) Raw err.message is sent to the client even in production for these paths, undermining the production message-redaction in errorMiddleware. The middleware's protections are effectively dead code for these endpoints.",
+      "fix": "Wrap handlers in an asyncHandler (backend/middleware/asyncHandler.js already exists) and call next(err) instead of catching locally, OR at minimum stop returning err.message and route Mongoose errors through the central handler. Prefer removing the local try/catch and letting asyncHandler forward to errorMiddleware so CastError->404 and prod redaction apply uniformly.",
+      "snippet": "} catch (err) { res.status(500).json({ success: false, message: err.message }); }"
+    },
+    {
+      "id": "API-002",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "Missing ObjectId validation on many :id routes -> CastError 500 instead of 404",
+      "file": "backend/routes/promptRoutes.js",
+      "line": 24,
+      "description": "promptRoutes.js (:id/save, :id, :id/view, :id/like, :id, :id/feature) and several adminRoutes endpoints (e.g. /users/:id GET/PUT/DELETE, /courses/:id/enrollments) pass req.params.id straight into Mongoose without validateObjectId(). A validateObjectId() middleware exists (backend/middleware/validateObjectId.js) and is used on courseRoutes per CLAUDE.md, but is not applied here. Combined with API-001 (local catch), invalid IDs surface as 500 + leaked CastError text rather than a clean 400/404. Note adminController applies isValidId() inline in some handlers (updatePayment, adminUpdateChallenge, adminDeleteChallenge) but not in getUserDetail/updateUser/deleteUser/getCourseEnrollmentStats, so behavior is inconsistent across the same router.",
+      "fix": "Apply validateObjectId('id') (and 'courseId') middleware on all :id routes in promptRoutes.js and adminRoutes.js for consistency, mirroring courseRoutes. Then invalid IDs return 404/400 uniformly before reaching the controller.",
+      "snippet": "router.post('/:id/like',  authenticate, likePrompt);  // no validateObjectId"
+    },
+    {
+      "id": "API-003",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Inconsistent pagination envelope shapes across list endpoints",
+      "file": "backend/controllers/promptController.js",
+      "line": 29,
+      "description": "List endpoints return three different pagination shapes: (1) getPrompts/getSavedPrompts return flat { prompts, total, page, pages }; (2) admin lists (adminListPrompts, getUsers, getRecentPayments, getAllEnrollments, adminListChallenges) return { prompts|users|payments, pagination: { total, page, limit, pages? } }; (3) getRecentPayments/getUsers omit 'pages' from pagination while adminListPrompts/getAllCourses include it. courseController.getAllCourses uses yet another flat 'pagination' object. Frontend must special-case each endpoint. This is an envelope-consistency smell across the public API.",
+      "fix": "Standardize on a single paginated envelope, e.g. { success, data: { items, pagination: { total, page, limit, pages } } } via a shared helper, and migrate all list handlers to it.",
+      "snippet": "res.json({ success: true, data: { prompts, total, page: +page, pages: Math.ceil(total / +limit) } });"
+    },
+    {
+      "id": "API-004",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "getPrompts/getSavedPrompts accept unbounded limit (no upper cap)",
+      "file": "backend/controllers/promptController.js",
+      "line": 8,
+      "description": "getPrompts coerces limit with +limit and uses it directly for .limit() and skip math with no maximum clamp, so ?limit=100000 returns a huge unbounded result set (DoS / memory pressure). The same handler also does no Math.max guard, so ?page=0 or negative page produces negative skip. Contrast with the admin handlers and getSavedPrompts which correctly clamp (Math.min(50/100, Math.max(1, ...))). getAllCourses (courseController) likewise parses limit without an upper bound.",
+      "fix": "Clamp page and limit in getPrompts and getAllCourses: const limit = Math.min(50, Math.max(1, +req.query.limit || 20)); const page = Math.max(1, +req.query.page || 1); mirroring getSavedPrompts.",
+      "snippet": "const { ... page = 1, limit = 20, search } = req.query; ... .skip((+page - 1) * +limit).limit(+limit);"
+    },
+    {
+      "id": "API-005",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "likePrompt uses read-modify-write .save() -> lost-update race on concurrent likes",
+      "file": "backend/controllers/promptController.js",
+      "line": 221,
+      "description": "likePrompt loads the doc, mutates likes[] and likesCount in JS, then save(). Two concurrent like requests can both read the same state and one update is lost (likesCount drifts from likes.length). This is a correctness issue for a toggle endpoint. The view counters (getPrompt/viewPrompt) correctly use atomic $inc, so the codebase already knows the right pattern.",
+      "fix": "Use atomic operators: $addToSet/$pull on likes plus a derived likesCount, e.g. two updateOne calls keyed on whether userId is already in likes, or compute likesCount from $size. Avoid load-then-save for counters.",
+      "snippet": "prompt.likes.push(req.user._id); prompt.likesCount += 1; await prompt.save();"
+    },
+    {
+      "id": "API-006",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Double view-count increment: both GET /:id and POST /:id/view inflate viewsCount",
+      "file": "backend/controllers/promptController.js",
+      "line": 167,
+      "description": "getPrompt (GET /:id) does $inc viewsCount on every fetch, and viewPrompt (POST /:id/view) also $inc's viewsCount. If the frontend opens a prompt (GET) and then fires the explicit view ping, the same view is counted twice. Mixing a side-effecting write into an idempotent GET is also a REST smell (GET should be safe/idempotent).",
+      "fix": "Pick one source of truth for view counting. Make GET /:id read-only and rely solely on POST /:id/view for the increment (or vice-versa), and remove the duplicate $inc.",
+      "snippet": "const prompt = await Prompt.findByIdAndUpdate(req.params.id, { $inc: { viewsCount: 1 } }, { new: true }) // inside GET /:id"
+    },
+    {
+      "id": "API-007",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "JSDoc @access Public contradicts route auth/Telegram gating for prompts",
+      "file": "backend/controllers/promptController.js",
+      "line": 5,
+      "description": "getPrompts, getFeaturedPrompts, getPrompt, viewPrompt are annotated '@access Public' but the routes require authenticate + requireTelegramForPromptsRead. The JSDoc (and any Swagger generated from it) misrepresents the actual access model, which is misleading for API consumers and reviewers.",
+      "fix": "Update the @access tags to 'Private (Telegram-subscribed)' to match the route middleware, and ensure Swagger reflects the auth requirement.",
+      "snippet": "/** @route GET /api/prompts | @access Public */  // route actually requires authenticate + requireTelegramForPromptsRead"
+    },
+    {
+      "id": "API-008",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "submitQuiz does not validate answers[] shape -> 500 on malformed body",
+      "file": "backend/controllers/xpController.js",
+      "line": 173,
+      "description": "submitQuiz reads req.body.answers and immediately calls answers.map(...). If answers is missing or not an array, .map throws a TypeError caught by the local catch and returned as 500 with err.message, instead of a 400 'answers array required'. No validation of questionIndex bounds or selectedOption type either. Same class of missing-body-validation appears in addStreakFreeze (userId taken from body, no type check) though lower risk.",
+      "fix": "Validate at top of submitQuiz: if (!Array.isArray(answers)) return res.status(400).json({ success:false, message:'answers massiv bo\\'lishi kerak' }); and bound-check questionIndex against quiz.questions.length.",
+      "snippet": "const { answers } = req.body; ... const resultAnswers = answers.map((a) => { ... });"
+    },
+    {
+      "id": "API-009",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "createCourse / updateCourse allow client to set derived stat fields (rating, ratingCount, studentsCount)",
+      "file": "backend/controllers/courseController.js",
+      "line": 201,
+      "description": "createCourse and updateCourse include rating, ratingCount, and studentsCount in their accepted field lists. These are server-derived aggregates (rateCourse recomputes rating/ratingCount from CourseRating; enrollment drives studentsCount). Letting an admin client set them directly is a soft mass-assignment / data-integrity smell that lets the displayed rating diverge from actual ratings. Admin-only mitigates severity, but it is still an API surface that should not exist.",
+      "fix": "Remove rating, ratingCount, studentsCount from the createCourse/updateCourse allowed-field lists; let them be maintained only by rateCourse and enrollment logic.",
+      "snippet": "const allowed = ['title','description','thumbnail','price','category','level','isFree','isActive','rating','ratingCount','studentsCount'];"
+    },
+    {
+      "id": "API-010",
+      "severity": "suggestion",
+      "confidence": 0.55,
+      "title": "uploadAvatar leaks raw err.message and uses console.error instead of logger/middleware",
+      "file": "backend/controllers/uploadController.js",
+      "line": 29,
+      "description": "uploadAvatar catches and returns 'Avatar yuklashda xatolik yuz berdi: ' + err.message to the client, exposing internal/Cloudinary error detail, and uses console.error rather than the structured logger. errorMiddleware.js already has dedicated Cloudinary mapping (-> 503 generic message) that this local catch defeats. updateProfile in xpController.js has the same pattern ('Profilni yangilashda xatolik: ' + err.message + console.error).",
+      "fix": "Remove the local try/catch (wrap in asyncHandler -> next(err)) so the Cloudinary-aware errorMiddleware produces a safe 400/503 message; replace console.error with logger.error.",
+      "snippet": "res.status(500).json({ success: false, message: 'Avatar yuklashda xatolik yuz berdi: ' + err.message });"
+    },
+    {
+      "id": "API-011",
+      "severity": "suggestion",
+      "confidence": 0.5,
+      "title": "PUT /api/admin/videos/reorder and bulk-link do unbatched parallel writes; reorder ignores partial failures",
+      "file": "backend/controllers/adminController.js",
+      "line": 362,
+      "description": "reorderVideos fires up to 500 Video.findByIdAndUpdate in Promise.all with no error isolation: a single failed write rejects the whole batch and returns 500, while earlier writes already committed (no transaction) leaving ordering half-applied. bulkLinkBunny (up to 200) uses Promise.allSettled which is better, but neither uses a bulkWrite. This is an atomicity/consistency concern for admin batch mutations.",
+      "fix": "Use Video.bulkWrite([...updateOne ops...]) for both reorder and bulk-link to batch the writes, and report per-item results rather than failing the whole request.",
+      "snippet": "await Promise.all(videos.map(({ id, order }) => Video.findByIdAndUpdate(id, { order })));"
+    }
+  ],
+  "summary": "Routing/auth/role checks are correct (admin guard array consistently applied; prompt feature/delete properly require admin or ownership). The dominant systemic API-design issue is that virtually every handler in all reviewed controllers uses a local try/catch returning res.status(500).json({ message: err.message }), which (1) bypasses the well-built errorMiddleware.js entirely, (2) converts Mongoose CastErrors on :id routes into 500s instead of 404s, and (3) leaks raw internal error text to clients even in production -- defeating the production redaction the middleware implements. Secondary issues: inconsistent pagination envelope shapes across list endpoints, unbounded limit on getPrompts/getAllCourses, a lost-update race in likePrompt (load-then-save vs the atomic $inc used elsewhere), double view-count increment between GET /:id and POST /:id/view, missing body/array validation (submitQuiz answers), and soft mass-assignment of derived stat fields (rating/ratingCount/studentsCount) on course create/update. ObjectId validation is applied inconsistently (inline isValidId in some admin handlers, validateObjectId middleware on courseRoutes per CLAUDE.md, but absent on promptRoutes and several admin :id routes). Recommend adopting asyncHandler + next(err) project-wide and a shared pagination helper."
+}

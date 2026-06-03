@@ -74,8 +74,8 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index({ userId: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ createdAt: -1 });
-paymentSchema.index({ providerTransactionId: 1 }, { sparse: true });
+paymentSchema.index({ providerTransactionId: 1 }, { unique: true, sparse: true });
 paymentSchema.index({ userId: 1, courseId: 1 });
-paymentSchema.index({ clickTransId: 1 }, { sparse: true });
+paymentSchema.index({ clickTransId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Payment', paymentSchema);

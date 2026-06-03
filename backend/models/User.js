@@ -321,6 +321,7 @@ userSchema.index({ createdAt: -1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ xp: -1 });
+userSchema.index({ telegramUserId: 1 }, { sparse: true });
 // userSchema.index({ referralCode: 1 }, { sparse: true }); // Duplicate index removed
 
 // Hash password before saving

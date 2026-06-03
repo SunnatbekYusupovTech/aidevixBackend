@@ -1,0 +1,167 @@
+{
+  "role": "architecture",
+  "score": 6,
+  "partial": false,
+  "files_reviewed": [
+    "backend/index.js",
+    "backend/middleware/errorMiddleware.js",
+    "backend/middleware/rateLimiter.js",
+    "backend/middleware/validateObjectId.js",
+    "backend/middleware/asyncHandler.js",
+    "backend/utils/errorResponse.js",
+    "backend/routes/courseRoutes.js",
+    "backend/routes/userRoutes.js",
+    "backend/routes/adminRoutes.js",
+    "backend/controllers/promptController.js",
+    "backend/utils/emailService.js",
+    "backend/utils/telegramBot.js",
+    "backend/utils/awardXp.js",
+    ".audit/repo_map.txt"
+  ],
+  "findings": [
+    {
+      "id": "ARCH-001",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "asyncHandler mavjud, lekin 27 controllerdan faqat 4 tasi ishlatadi — DRY buzilishi",
+      "file": "backend/middleware/asyncHandler.js",
+      "line": 5,
+      "description": "asyncHandler util yozilgan va errorMiddleware (next(err) orqali) ishlashga tayyor, lekin u faqat authController, sessionController, twoFactorController, bugReportController da ishlatiladi. Qolgan 23 controllerda jami 174 ta qo'lda yozilgan try/catch bloki bor. Bu massiv boilerplate takrori (har funksiyada try{...}catch(err){res.status(500)...}) va asosiy muammo — bu try/catch lar markaziy errorHandler'ni CHETLAB O'TADI: ular xato javobini o'zlari shakllantiradi, shuning uchun errorMiddleware'dagi CastError/ValidationError/duplicate-key/prod-da-generic-message logikasi bu yo'llarda umuman ishlamaydi.",
+      "fix": "Barcha controller funksiyalarini asyncHandler() bilan o'rab, ichki try/catch larni olib tashlash. Xatolarni throw new ErrorResponse(msg, code) yoki next(err) orqali markaziy handler'ga uzatish. Bu DRY ni ta'minlaydi va xato javob formati hamda prod-da xabar maskalashni bitta joydan boshqaradi.",
+      "snippet": "asyncHandler ishlatadigan: 4 fayl | try/catch ishlatadigan: 27 fayl, 174 blok"
+    },
+    {
+      "id": "ARCH-002",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "Error response formati izchil emas + raw err.message client'ga leak bo'ladi",
+      "file": "backend/controllers/promptController.js",
+      "line": 31,
+      "description": "Controller try/catch lari `res.status(500).json({ success:false, message: err.message })` qaytaradi. Bu ikki muammo: (1) errorMiddleware aniq qilib stack/internal xabarni prod'da 'Internal Server Error' ga maskalaydi, lekin controller-local catch'lar buni chetlab o'tib xom err.message (DB/Mongoose ichki tafsilotlari) ni prod'da ham client'ga oshkor qiladi; (2) format izchil emas — ba'zi joyda ErrorResponse, ba'zi joyda inline {success,message}, validateObjectId esa {message} (success yo'q). Bu repo'da keng tarqalgan pattern (promptController 14, videoController 17, adminController 20, courseController 12 try-blok).",
+      "fix": "Controller-local catch'larni olib tashlab next(err)'ga ko'chirish (ARCH-001 bilan birga). Agar tezkor yamoq kerak bo'lsa, hech bo'lmaganda catch ichida `next(err)` chaqirib markaziy maskalashga topshirish — xom err.message ni hech qachon to'g'ridan-to'g'ri 500 javobiga qo'ymaslik.",
+      "snippet": "} catch (err) { res.status(500).json({ success: false, message: err.message }); }"
+    },
+    {
+      "id": "ARCH-003",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "validateObjectId() barcha :id route'larda ishlatilmagan + faqat req.params.id ni tekshiradi",
+      "file": "backend/middleware/validateObjectId.js",
+      "line": 5,
+      "description": "validateObjectId faqat courseRoutes va videoRoutes da qo'llangan. adminRoutes (users/:id, payments/:id, promos/:id, challenges/:id, ai-news/:id...), promptRoutes (:id), enrollmentRoutes (:courseId), wishlistRoutes (:courseId), sectionRoutes (:sectionId/:courseId), projectRoutes (:id), paymentRoutes (:id/status), followRoutes (:userId), xpRoutes (:videoId) — bu route'larda validatsiya yo'q, demak yaroqsiz ID Mongoose CastError → errorMiddleware'da 404 ('Resource not found') ga aylanadi (yaxshi tomoni — leak yo'q), lekin izchil emas. Yana muhim arxitektura kamchiligi: middleware hardcoded `req.params.id` ni tekshiradi, shuning uchun `:courseId`, `:videoId`, `:userId`, `:sectionId` kabi nomlangan param'lar uchun ISHLAMAYDI (validateObjectId() ularni hech qachon validatsiya qila olmaydi).",
+      "fix": "validateObjectId ni parametrik qilish: module.exports = (paramName = 'id') => (req,res,next) => { if (!mongoose.Types.ObjectId.isValid(req.params[paramName])) ... }. So'ng barcha :id/:courseId/:videoId/:userId route'larda mos param nomi bilan qo'llash. Javob formatini ham {success:false, message} ga keltirish (ARCH-004).",
+      "snippet": "if (!mongoose.Types.ObjectId.isValid(req.params.id)) { return res.status(404).json({ message: 'Invalid ID format.' }); }"
+    },
+    {
+      "id": "ARCH-004",
+      "severity": "suggestion",
+      "confidence": 0.95,
+      "title": "validateObjectId javobi {success} maydonisiz — global format bilan mos emas",
+      "file": "backend/middleware/validateObjectId.js",
+      "line": 6,
+      "description": "Butun API standarti {success:false, message} (errorMiddleware, 404 handler, rateLimiter, controller'lar). validateObjectId esa {message: 'Invalid ID format.'} qaytaradi — success maydoni yo'q. Frontend res.data.success ga ishonsa, bu javob noizchillik tug'diradi.",
+      "fix": "return res.status(404).json({ success: false, message: 'Resource not found' }); — formatni global standartga moslashtirish (va xom 'Invalid ID format' o'rniga generic 'Resource not found', errorMiddleware CastError bilan bir xil bo'lsin).",
+      "snippet": "return res.status(404).json({ message: 'Invalid ID format.' });"
+    },
+    {
+      "id": "ARCH-005",
+      "severity": "suggestion",
+      "confidence": 0.85,
+      "title": "API versioning yo'q (/api/v1) — kelajakdagi breaking change'lar uchun migration yo'li yo'q",
+      "file": "backend/index.js",
+      "line": 288,
+      "description": "Barcha route'lar /api/<resource> ostida mount qilingan, versiya segmenti yo'q (/api/v1/...). Loyiha o'sib bormoqda (29 route guruhi). Versiyasiz, response shakli yoki endpoint semantikasini buzuvchi o'zgarish kiritilsa, eski client'larni (PWA/SW kesh, TMA, mobil) sindirmaslik uchun parallel versiya saqlash imkoni bo'lmaydi.",
+      "fix": "Hech bo'lmaganda yangi route'larni /api/v1 ostiga mount qilish strategiyasini qabul qilish: const api = express.Router(); ...; app.use('/api/v1', api). Mavjudlarini buzmaslik uchun /api ham vaqtincha alias sifatida qoldirilishi mumkin.",
+      "snippet": "app.use('/api/auth', require('./routes/authRoutes')); // /api/v1/... yo'q"
+    },
+    {
+      "id": "ARCH-006",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "God controllers — adminController va videoController SRP ni buzadi (juda katta, ko'p mas'uliyat)",
+      "file": "backend/controllers/adminController.js",
+      "line": 15,
+      "description": "adminController ~590 qator, 22 funksiya: dashboard stats, top students, course stats, payments, users CRUD, global search, analytics, telegram message, bulk bunny link, video reorder, enrollment stats, payment update, challenge CRUD, award XP — bir nechta domen bir faylda jamlangan. videoController ~700 qator, 21 funksiya: video CRUD + Bunny upload kreditlari + status polling + Q&A (questions/answer/upvote/best) + search + top. Bu SRP buzilishi — admin/challenge va video/qa logikasi alohida modullarga bo'linishi kerak.",
+      "fix": "adminController dan challenge-admin (adminListChallenges/Update/Delete) ni challengeController'ga, payment-admin ni payment domeniga ko'chirish; analytics/stats ni alohida statsController ga ajratish. videoController'dan Q&A (askQuestion, getVideoQuestions, answerQuestion, upvoteQuestion, markBestAnswer) ni videoQuestionController ga ajratish.",
+      "snippet": "adminController.js: 22 funksiya / ~590 qator; videoController.js: 21 funksiya / ~700 qator"
+    },
+    {
+      "id": "ARCH-007",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Scheduler/bot/email require()'lari connectDB().then() ichida lazy chaqirilgan",
+      "file": "backend/index.js",
+      "line": 43,
+      "description": "telegramBot, claudeTipsScheduler, challengeScheduler, digestScheduler, emailService funksiya (connectDB.then) ichida require() qilinadi. Bu odatda circular dependency yoki init-tartibi muammosini yashirish signali. Bu yerda maqsad — DB ulanmaguncha scheduler boshlamaslik — mantiqan tushunarli, lekin lazy require pattern circular-dep xavfini ko'rsatadi va modul yuklash xatolarini server allaqachon ishga tushgandan keyingina yuzaga chiqaradi (boot-time fail-fast emas).",
+      "fix": "require()'larni fayl boshiga ko'chirib (top-level), faqat start*()/init*() chaqiruvlarini connectDB().then() ichida qoldirish. Bu modul yuklash xatolarini darhol (boot'da) ochib beradi va circular-dep bo'lsa uni aniq ko'rsatadi.",
+      "snippet": "connectDB().then(async () => { const { initTelegramBot } = require('./utils/telegramBot'); ... });"
+    },
+    {
+      "id": "ARCH-008",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Pagination ba'zi katta list endpoint'larda bor, ba'zilarida cheklov yo'q",
+      "file": "backend/controllers/promptController.js",
+      "line": 21,
+      "description": "Pagination izchil emas: getPrompts/getSavedPrompts, adminController getUsers/getAllEnrollments/getRecentPayments, videoController searchVideos pagination ishlatadi (yaxshi). Ammo getFeaturedPrompts kabilar .limit(6) hardcode, ba'zi list'lar (masalan ranking getTopUsers, getCategories, sectionController getCourseSections, certificate list, wishlist) potentsial cheksiz natija qaytarishi mumkin — kelajakda ma'lumot ko'paysa unbounded response xavfi. Repo map'dan to'liq tasdiqlash uchun har birini ko'rish kerak, lekin pattern izchil emas.",
+      "fix": "Barcha kolleksiya-qaytaruvchi endpoint'larga standart pagination helper qo'llash (default limit, max cap — getSavedPrompts'dagi Math.min(50, ...) namunasi yaxshi). Hech bo'lmaganda har bir .find() ga himoya .limit() qo'yish.",
+      "snippet": "getSavedPrompts: limit = Math.min(50, Math.max(1, +req.query.limit || 12)) — yaxshi namuna; boshqa joylarda yo'q"
+    },
+    {
+      "id": "ARCH-009",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "REST/route naming asosan izchil, lekin bir nechta nomuvofiqlik bor",
+      "file": "backend/routes/userRoutes.js",
+      "line": 6,
+      "description": "Umumiy REST konventsiya yaxshi (resurs ko'plik, :id, GET/POST/PUT/DELETE/PATCH to'g'ri ishlatilgan). Kichik nomuvofiqliklar: userRoutes '/:username/public' (boshqa joylarda /:id pattern), feature toggle ba'zida PATCH /:id/feature (prompt) — bu yaxshi, lekin adminRoutes ham PATCH /prompts/:id/feature ni takrorlaydi (ikki joyda bir xil controller). subscriptions/teams/jobs/mentorship kabi yangi route'lar konvensiyaga mos. update operatsiyalari PUT (to'liq) bilan qisman update aralash — promo/news PUT bilan qisman yangilanadi (PATCH semantik to'g'riroq bo'lardi).",
+      "fix": "Qisman yangilash endpoint'larida PUT o'rniga PATCH ishlatish; feature/visibility toggle'larni bitta joyda (admin yoki resource route) saqlash, takrorni olib tashlash; public-profile uchun /:username/public izchil — lekin hujjatlashtirish.",
+      "snippet": "router.get('/:username/public', getPublicProfile); // vs boshqa /:id pattern"
+    },
+    {
+      "id": "ARCH-010",
+      "severity": "suggestion",
+      "confidence": 0.9,
+      "title": "Middleware tartibi to'g'ri — tasdiqlangan (ijobiy topilma)",
+      "file": "backend/index.js",
+      "line": 147,
+      "description": "Middleware tartibi to'g'ri va izchil: compression → CORS → explicit OPTIONS preflight → helmet → body parsers (strict 100kb limit) → mongo-sanitize (body+params) → logger → apiLimiter → swagger → security headers → csrfProtection → routes → 404 → errorHandler. CORS birinchi (preflight uchun), csrf body parser'dan keyin, errorHandler oxirgi — barchasi best-practice. Helmet CSP explicit directives bilan (false emas). Bu kuchli tomon, regress qilinmasin.",
+      "fix": "O'zgartirish shart emas — bu tartibni saqlang. Yagona kichik kuzatuv: apiLimiter swagger'dan oldin keladi, ya'ni /api-docs ga ham apiLimiter ta'sir qilmaydi (u /api/ prefiks bilan mount qilingan, /api-docs emas) — bu xatosiz, faqat eslatma.",
+      "snippet": "compression → cors → OPTIONS → helmet → json/urlencoded → mongoSanitize → logger → apiLimiter → csrf → routes → 404 → errorHandler"
+    },
+    {
+      "id": "ARCH-011",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "XP→rank tier logikasi 6+ modulda takror implement qilingan (DRY, single source of truth yo'q)",
+      "file": "backend/controllers/xpController.js",
+      "line": 8,
+      "description": "XP'dan rank/level mapping (calculateRank / getRankTitle / getRankInfo) bir-biridan mustaqil ravishda authController.js:56, xpController.js:8, awardXp.js:4, rankingController.js:9 (getRankTitle), userController.js:94 (getRankTitle), bugReportController da qayta yozilgan. Rank chegaralari (AMATEUR..LEGEND) o'zgarsa, leaderboard, profil, bot va XP-award yo'llari orasida tafovut yuzaga kelishi mumkin. Bu yagona haqiqat manbasi (single source of truth) yo'qligini ko'rsatadi — core domen logikasi tarqoq.",
+      "fix": "Bitta utils/rank.js (calculateRank + getRankTitle + chegaralar) ajratib, hamma joyda import qilish. awardXp.js allaqachon awardXp+calculateRank ni juftlab turibdi — uni kanonik modul sifatida ko'tarish.",
+      "snippet": "const calculateRank = (xp) => {...} // authController, xpController, awardXp, ranking/userController da takror"
+    },
+    {
+      "id": "ARCH-012",
+      "severity": "suggestion",
+      "confidence": 0.95,
+      "title": "Hardcoded admin Telegram ID fallback '697727022' telegramBot.js da 15 marta takrorlangan",
+      "file": "backend/utils/telegramBot.js",
+      "line": 136,
+      "description": "process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022' iborasi telegramBot.js ichida ~15 marta takrorlanadi (literal config CLAUDE.md'da ham ko'rinadi). Shaxsiy admin chat ID source kodga fallback sifatida singdirilgan va butun fayl bo'ylab tarqoq. Konfiguratsiya bir marta resolve qilinishi va qiymat yo'q bo'lsa admin xabarlar jim turib hardcoded shaxsiy ID ga ketmasligi kerak.",
+      "fix": "Admin chat ID ni modul yuklanishida bir marta konstantaga (yoki config/telegram.js ga) resolve qilish, mavjud bo'lmasa jim default berish o'rniga ochiq xato (fail-loud) berish, va hamma joyda shu bitta konstantaga murojaat qilish.",
+      "snippet": "const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim(); // x15"
+    },
+    {
+      "id": "ARCH-013",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Service layer yo'q — controllerlar va telegramBot DB + biznes + tashqi API ni to'g'ridan-to'g'ri bajaradi",
+      "file": "backend/utils/telegramBot.js",
+      "line": 12,
+      "description": "Service/repository qatlami yo'q. Controllerlar Mongoose so'rovlari, biznes qoidalar va tashqi chaqiruvlarni (Bunny, Groq, Resend, Telegram, Payme/Click) inline bajaradi. 1489 qatorli AidevixBot god-class transport + ~20 command handler + to'g'ridan-to'g'ri User/UserStats so'rovi + subscription tekshiruv + HTML rendering ni bitta faylda jamlaydi va modellarga to'g'ridan murojaat qiladi. Bu HTTP/bot glue'ni persistensiya va uchinchi tomon servislariga bog'lab, qayta foydalanishni (bot va controller ikkalasi ham rank/XP/cert logikasini takror yozadi) va izolyatsiyalangan testni bloklaydi.",
+      "fix": "services/ qatlamini joriy etish (courseService, paymentService, enrollmentService, statsService...) — biznes logika + data access shu yerda. Controllerlar va telegramBot bir xil servislarni qayta ishlatadi, modellarga to'g'ridan murojaat qilmaydi.",
+      "snippet": "telegramBot.js: 1489 qator, 20+ _cmd*, to'g'ridan User/UserStats query + inline HTML; services/ papka mavjud emas"
+    }
+  ],
+  "summary": "Arxitektura asosi mustahkam: index.js dagi middleware tartibi (CORS→helmet→body→sanitize→csrf→routes→errorHandler) namunaviy, rateLimiter granulyar va Redis-store bilan multi-instance'ga tayyor, helmet CSP explicit, CORS deny'da throw emas false qaytaradi, slowloris/graceful-shutdown himoyasi bor. Asosiy zaiflik — error handling izchilligi: asyncHandler va markaziy errorMiddleware (prod'da xabar maskalash, CastError/ValidationError handling) yozilgan, lekin 27 controllerdan faqat 4 tasi asyncHandler ishlatadi; qolganlari 174 ta qo'lda try/catch bilan markaziy handler'ni chetlab o'tib xom err.message ni client'ga (prod'da ham) leak qiladi — bu ham DRY buzilishi, ham potentsial info-leak (ARCH-001, ARCH-002). validateObjectId faqat 2 route faylida qo'llangan va hardcoded req.params.id sababli :courseId/:videoId/:userId param'larini umuman validatsiya qila olmaydi (ARCH-003). Qo'shimcha: /api/v1 versioning yo'q, adminController/videoController god-controller (SRP), scheduler require()'lari lazy (circular-dep signali), pagination izchil emas. Tavsiya: asyncHandler'ni universal qo'llash + validateObjectId'ni parametrik qilish eng katta ROI beradi."
+}

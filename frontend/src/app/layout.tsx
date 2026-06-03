@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { Manrope, Space_Grotesk } from 'next/font/google';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
+import { safeJsonLd } from '@/utils/jsonLd';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -136,11 +137,11 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://telegram.org" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
       </head>
       <body className={`${manrope.variable} ${spaceGrotesk.variable} min-w-0 w-full max-w-full antialiased selection:bg-indigo-500/30`}>

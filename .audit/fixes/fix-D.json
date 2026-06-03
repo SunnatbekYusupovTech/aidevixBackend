@@ -1,0 +1,99 @@
+{
+  "agent": "fix-D",
+  "files": [
+    "backend/middleware/validateObjectId.js",
+    "backend/middleware/requireTelegramForPrompts.js",
+    "backend/routes/promptRoutes.js",
+    "backend/routes/xpRoutes.js",
+    "backend/routes/rankingRoutes.js",
+    "backend/routes/enrollmentRoutes.js",
+    "backend/routes/wishlistRoutes.js",
+    "backend/routes/sectionRoutes.js",
+    "backend/routes/projectRoutes.js",
+    "backend/routes/followRoutes.js",
+    "backend/models/UserStats.js",
+    "backend/models/User.js"
+  ],
+  "applied": [
+    {
+      "id": "ARCH-003/ARCH-004",
+      "file": "backend/middleware/validateObjectId.js",
+      "status": "fixed",
+      "note": "Parametrik qilindi: module.exports=function(paramName='id'){...req.params[paramName]...}. Javob {success:false,message:'Resource not found'} (eski 'Invalid ID format' o'rniga, CastError bilan bir xil 404). Default 'id' — courseRoutes/videoRoutes'dagi eski validateObjectId() chaqiruvlari buzilmadi."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/promptRoutes.js",
+      "status": "fixed",
+      "note": "validateObjectId import qo'shildi. /:id/save, /:id/save DELETE, /:id, /:id/view, /:id/like, /:id DELETE, /:id/feature → validateObjectId('id') authenticate (va requireAdmin) dan keyin, controller'dan oldin."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/xpRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. video-watched/:videoId & quiz/video/:videoId → ('videoId'), quiz/:quizId → ('quizId')."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/rankingRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /users/:userId/position → validateObjectId('userId') authenticate'dan keyin."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/enrollmentRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /:courseId, /:courseId/progress, /:courseId/watch/:videoId → validateObjectId('courseId') authenticate'dan keyin."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/wishlistRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /:courseId POST & DELETE → validateObjectId('courseId')."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/sectionRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /course/:courseId → ('courseId'), /:sectionId/videos/:videoId → ('sectionId'), /:id PUT & DELETE → ('id'). requireAdmin tartibi saqlandi."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/projectRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /:id, /:id/complete, /:id/review, /:id PUT & DELETE → ('id'), /course/:courseId → ('courseId'). optionalAuth/authenticate/requireAdmin tartibi saqlandi."
+    },
+    {
+      "id": "API-002/BQ-013",
+      "file": "backend/routes/followRoutes.js",
+      "status": "fixed",
+      "note": "import qo'shildi. /:userId POST & DELETE → ('userId') authenticate'dan keyin, /:userId/stats → ('userId')."
+    },
+    {
+      "id": "SEC-001",
+      "file": "backend/middleware/requireTelegramForPrompts.js",
+      "status": "fixed",
+      "note": "catch bloki raw err.message leak'i olib tashlandi: console.error('[prompt-sub-check]', err) + generic {success:false, message:'Server xatosi'}."
+    },
+    {
+      "id": "SEC-002",
+      "file": "backend/middleware/requireTelegramForPrompts.js",
+      "status": "fixed",
+      "note": "User.findById dan keyin null guard qo'shildi: if(!user) → 401 AUTH_REQUIRED 'Tizimga kiring.' performSubscriptionCheck chaqiruvidan oldin."
+    },
+    {
+      "id": "PERF-007/BQ-022/DM-011",
+      "file": "backend/models/UserStats.js",
+      "status": "already_fixed",
+      "note": "userStatsSchema.index({xp:-1}) va ({weeklyXp:-1}) allaqachon mavjud (123-124 qatorlar). Qo'shilmadi."
+    },
+    {
+      "id": "DM-010",
+      "file": "backend/models/User.js",
+      "status": "fixed",
+      "note": "userSchema.index({ telegramUserId: 1 }, { sparse: true }) qo'shildi (bot lookup hot-path). Eslatma: socialSubscriptions.telegram.telegramUserId alohida nested field — bu fix top-level telegramUserId uchun."
+    }
+  ],
+  "node_check": "PASS — barcha 12 fayl + backend/index.js node --check'dan o'tdi",
+  "summary": "12 fix qo'llandi (11 fixed, 1 already_fixed). validateObjectId parametrik qilindi (404 'Resource not found'); 9 route faylga param-aware validateObjectId middleware qo'shildi (authenticate/requireAdmin tartibi saqlangan); requireTelegramForPrompts raw error leak (SEC-001) va null user guard (SEC-002) tuzatildi; User.telegramUserId sparse index qo'shildi. UserStats indexlari allaqachon bor edi. node --check barcha fayllarda + index.js da PASS."
+}

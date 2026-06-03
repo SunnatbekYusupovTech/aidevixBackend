@@ -1,0 +1,139 @@
+{
+  "role": "performance",
+  "score": 6,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/rankingController.js",
+    "backend/controllers/userController.js",
+    "backend/controllers/adminController.js",
+    "backend/utils/subscriptionCache.js",
+    "backend/utils/newsScheduler.js",
+    "backend/utils/digestScheduler.js",
+    "backend/controllers/enrollmentController.js",
+    "backend/controllers/followController.js"
+  ],
+  "findings": [
+    {
+      "id": "PERF-001",
+      "severity": "critical",
+      "confidence": 0.95,
+      "title": "Weekly digest: per-user Enrollment query + serial sends (N+1, blocking)",
+      "file": "backend/utils/digestScheduler.js",
+      "line": 139,
+      "description": "Inside the per-user loop, runWeeklyDigest issues one Enrollment.findOne(...).populate(...) per active user (line 149) and then awaits sendDigestToUser serially (email + Telegram, line 164). With thousands of active users this is thousands of sequential round-trips; each user blocks on a DB query then on up to two network calls (Resend + Telegram, ~10s timeout each). The throttle only sleeps every 25th user, so the loop is otherwise fully serial and can run for many minutes, holding a DB connection the whole time. The nextCourse lookup could be batched per 100-user slice with a single aggregation instead of one query each.",
+      "fix": "Batch the nextCourse lookup: per 100-user slice run one Enrollment.aggregate matching userId $in slice with isCompleted:false, sort by updatedAt, group-first per user, then map. Keep email/Telegram sends but fire them with controlled concurrency (e.g. p-limit 5) per batch instead of one-by-one await. Replace the every-25th sleep with a small delay only on the Telegram path.",
+      "snippet": "for (const stat of slice) { ... const enrollment = await Enrollment.findOne({ userId: stat.userId, isCompleted:false })... await sendDigestToUser(...) }"
+    },
+    {
+      "id": "PERF-002",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "Weekly digest loads entire UserStats collection into memory for rank map",
+      "file": "backend/utils/digestScheduler.js",
+      "line": 120,
+      "description": "UserStats.find({}).select('userId xp').sort({xp:-1}).lean() loads EVERY user's stats into memory to build rankMap, even though only active users (weeklyXp>0 || xp>0) receive a digest. This is an unbounded query whose memory + sort cost scales with the entire collection, not the recipient set.",
+      "fix": "Restrict the ranked set to xp>0 (rank is meaningless for 0-xp users), ensure an index on { xp: -1 } so the sort is index-backed, or compute rank lazily per recipient. The full sorted list is acceptable only when filtered and indexed.",
+      "snippet": "const allRanked = await UserStats.find({}).select('userId xp').sort({ xp: -1 }).lean();"
+    },
+    {
+      "id": "PERF-003",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "continueLearning: Video.findOne inside enrollment loop (N+1)",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 168,
+      "description": "continueLearning loops over up to 5 enrollments and runs a separate Video.findOne({course, _id:{$nin:watchedIds}}).sort({order:1}) per iteration until a next video is found. Worst case is 5 sequential queries per request on a hot home-page widget, and each relies on a compound index over course/isActive/order.",
+      "fix": "Acceptable at limit 5 but prefer fanning out the 5 Video.findOne calls with Promise.all and picking the first hit, or resolve via one aggregation. Ensure a compound index { course:1, isActive:1, order:1 } on Video so each lookup is index-only.",
+      "snippet": "for (const enrollment of enrollments) { const nextVideo = await Video.findOne({ course: courseId, isActive: true, _id: { $nin: watchedIds } }).sort({ order: 1 })... }"
+    },
+    {
+      "id": "PERF-004",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "reorderVideos: N individual findByIdAndUpdate (up to 500) instead of bulkWrite",
+      "file": "backend/controllers/adminController.js",
+      "line": 362,
+      "description": "Promise.all(videos.map(({id,order}) => Video.findByIdAndUpdate(id,{order}))) issues up to 500 separate update round-trips to MongoDB in parallel, saturating the connection pool and producing 500 individual ops. A single bulkWrite is one network round-trip and far cheaper.",
+      "fix": "Replace with Video.bulkWrite(videos.map(({id,order}) => ({ updateOne: { filter: { _id: id }, update: { $set: { order } } } }))).",
+      "snippet": "await Promise.all(videos.map(({ id, order }) => Video.findByIdAndUpdate(id, { order })));"
+    },
+    {
+      "id": "PERF-005",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "getTopUsers: missing .lean() on populated read-only leaderboard + sequential count",
+      "file": "backend/controllers/rankingController.js",
+      "line": 70,
+      "description": "getTopUsers runs find().populate().select() then .map() to reshape, but does NOT use .lean(). Mongoose hydrates every doc (and populated userId) into full documents with getters/setters even though the result is read-only and immediately reshaped. This is the public leaderboard endpoint. Also countDocuments(filter) (line 68) and the find (line 70) are awaited sequentially though independent.",
+      "fix": "Add .lean() to the find query and wrap countDocuments(filter) and find(filter)... in Promise.all to run concurrently.",
+      "snippet": "const topUsers = await UserStats.find(filter).sort({ xp: -1, level: -1 }).skip(skip).limit(limit).populate('userId', ...).select(...);"
+    },
+    {
+      "id": "PERF-006",
+      "severity": "suggestion",
+      "confidence": 0.8,
+      "title": "Multiple admin/ranking read endpoints missing .lean()",
+      "file": "backend/controllers/rankingController.js",
+      "line": 33,
+      "description": "getTopCourses (rankingController:33), getTopStudents (adminController:49), getCoursesStats (adminController:72), getRecentPayments (adminController:89) and followController getMyFollowers/getMyFollowing (followController:55,68) all return read-only lists that are reshaped or sent directly, without .lean(). Mongoose document hydration is wasted CPU/memory for pure-read responses.",
+      "fix": "Add .lean() to each of these read-only find()/populate() queries; none of the results are mutated and saved.",
+      "snippet": "const courses = await Course.find(filter).populate(...).sort(...).limit(limit).select(...); // no .lean()"
+    },
+    {
+      "id": "PERF-007",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "Rank computed via countDocuments({xp:$gt}) — needs index on UserStats.xp / weeklyXp",
+      "file": "backend/controllers/userController.js",
+      "line": 71,
+      "description": "getPublicProfile (userController:71), getUserPosition and getWeeklyLeaderboard (rankingController:126,173) compute rank via countDocuments({xp:{$gt:...}}) / ({weeklyXp:{$gt:...}}). Without indexes on UserStats.xp and UserStats.weeklyXp these are full collection scans on every profile/leaderboard view. getPublicProfile also runs the totalUsers count and the rank count sequentially (lines 69-72) though they are independent.",
+      "fix": "Ensure indexes { xp: -1 } and { weeklyXp: -1 } exist on UserStats. In getPublicProfile, parallelize the totalUsers count and the rank count with Promise.all.",
+      "snippet": "const rank = stats ? (await UserStats.countDocuments({ xp: { $gt: stats.xp || 0 } })) + 1 : totalUsers;"
+    },
+    {
+      "id": "PERF-008",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "getRecentPayments: countDocuments awaited sequentially after find",
+      "file": "backend/controllers/adminController.js",
+      "line": 107,
+      "description": "getRecentPayments awaits the paginated find() (with two populates) and then separately awaits Payment.countDocuments() afterward (line 107). The two are independent and should run in parallel like getUsers (which correctly uses Promise.all). The find is also missing .lean().",
+      "fix": "Wrap the find().populate()... and Payment.countDocuments() in Promise.all, and add .lean() to the find query.",
+      "snippet": "const payments = await Payment.find()....limit(limit); ... const total = await Payment.countDocuments();"
+    },
+    {
+      "id": "PERF-009",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "newsScheduler: synchronous fs read+write of sent-news file on every send (blocks event loop)",
+      "file": "backend/utils/newsScheduler.js",
+      "line": 79,
+      "description": "markAsSent() does fs.existsSync + fs.readFileSync(JSON.parse) + fs.writeFileSync synchronously for every post sent (called in both runSchedulerTick and postNewsToChannel loops). loadSentLinks() also reads+rewrites synchronously. These blocking fs calls run on the main event loop; the JSON grows to a week of entries and is fully re-parsed/re-serialized on each send, and the read-modify-write is not atomic across concurrent ticks/instances.",
+      "fix": "Use fs.promises (async) and keep the sent-links Set in memory, flushing to disk on a debounced timer rather than read-modify-write per send. Or move dedupe state to the DB/Redis to be atomic and multi-instance safe.",
+      "snippet": "function markAsSent(link){ ... if (fs.existsSync(SENT_FILE)) data = JSON.parse(fs.readFileSync(SENT_FILE,'utf8')); data.push(...); fs.writeFileSync(SENT_FILE, JSON.stringify(data,null,2)); }"
+    },
+    {
+      "id": "PERF-010",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "subscriptionCache cleanup: full Map scan every 10 min, single-instance only",
+      "file": "backend/utils/subscriptionCache.js",
+      "line": 19,
+      "description": "The cleanup interval iterates the entire store (up to 50000 entries) every 10 minutes to evict expired entries — O(n) periodic work, acceptable but flagged. More importantly the cache is per-process (Map); on multi-instance scaling (Redis is already used for rate limiting via makeStore) cache hit rate drops and Telegram getChatMember load multiplies.",
+      "fix": "Acceptable for single instance — the hot-path get() already lazily evicts expired keys. If scaling horizontally, back this cache with the existing Redis store so it is shared.",
+      "snippet": "const cleanupInterval = setInterval(() => { for (const [key, entry] of store) { if (now > entry.expiresAt) store.delete(key); } ... }, 10 * 60 * 1000);"
+    },
+    {
+      "id": "PERF-011",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "markVideoWatched: loads full Course.videos array on every watch + serial awaits",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 72,
+      "description": "markVideoWatched fetches Course.findById(courseId).select('videos') (line 72) on every video-watch event solely to read videos.length, pulling the entire videos array. It then saves and awaits awardBadges sequentially, blocking the response on badge computation.",
+      "fix": "Maintain a denormalized videosCount on Course and select that instead of the full videos array. Consider running awardBadges as fire-and-forget (.catch()) rather than blocking the response.",
+      "snippet": "const course = await Course.findById(courseId).select('videos'); const totalVideos = course.videos.length;"
+    }
+  ],
+  "summary": "Backend read paths and schedulers are mostly correct but leave clear performance wins. Most critical: the weekly digest scheduler (digestScheduler.js) is an N+1 + fully-serial broadcast (one Enrollment.findOne per active user, serial email+Telegram awaits, plus a full-collection UserStats scan for ranking) that runs for minutes and holds the pool as user count grows. Secondary themes: missing .lean() on hot read-only/leaderboard endpoints (getTopUsers, getTopCourses, getTopStudents, getRecentPayments, followers/following); rank computed via unindexed countDocuments({xp:$gt}) needing indexes on UserStats.xp/weeklyXp; reorderVideos doing up to 500 individual updates instead of bulkWrite; continueLearning's Video.findOne-in-loop; markVideoWatched loading the full Course.videos array per watch; and newsScheduler's synchronous fs read-modify-write per post. No O(n^2) algorithms or unbounded user-facing queries found; in-memory caches are bounded. Fixing PERF-001/002 (digest) and adding .lean()+indexes (PERF-005/006/007) yields the biggest gains."
+}

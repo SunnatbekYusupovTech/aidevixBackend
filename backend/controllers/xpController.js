@@ -95,18 +95,49 @@ const getUserStats = async (req, res) => {
 const addVideoWatchXP = async (req, res) => {
   try {
     const XP_FOR_VIDEO = 50;
+    const { videoId } = req.params;
 
-    let stats = await UserStats.findOne({ userId: req.user.id });
+    // IDEMPOTENTLIK + race fix: XP faqat shu video uchun BIRINCHI marta beriladi.
+    // Atomik shartli update — videoId xpAwardedVideos'da YO'Q bo'lsa $inc + $addToSet.
+    // Bir videodan takror/parallel so'rovlarda ikkinchisi null qaytaradi (XP berilmaydi).
+    let stats = await UserStats.findOneAndUpdate(
+      { userId: req.user.id, xpAwardedVideos: { $ne: videoId } },
+      {
+        $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 },
+        $addToSet: { xpAwardedVideos: videoId },
+      },
+      { new: true }
+    );
+
     if (!stats) {
-      stats = await UserStats.create({ userId: req.user.id });
+      // null sabab: (a) bu video uchun allaqachon XP berilgan, yoki (b) UserStats hujjati yo'q.
+      const existing = await UserStats.findOne({ userId: req.user.id });
+      if (existing) {
+        // (a) Allaqachon berilgan — takror XP yo'q, joriy holatni qaytar.
+        return res.json({
+          success: true,
+          data: {
+            xpEarned: 0,
+            alreadyAwarded: true,
+            totalXp: existing.xp,
+            level: existing.level,
+            streak: existing.streak,
+            levelProgress: existing.getLevelProgress(),
+          },
+        });
+      }
+      // (b) Hujjat umuman yo'q — birinchi marta yaratib XP beramiz (upsert).
+      stats = await UserStats.findOneAndUpdate(
+        { userId: req.user.id },
+        {
+          $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 },
+          $addToSet: { xpAwardedVideos: videoId },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
     }
 
-    stats.xp += XP_FOR_VIDEO;
-    stats.weeklyXp = (stats.weeklyXp || 0) + XP_FOR_VIDEO;
-    stats.videosWatched += 1;
-    stats.level = stats.calculateLevel();
-
-    // Streak yangilash
+    // Streak yangilash (atomik $inc'dan keyin, joriy logika saqlangan)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -132,17 +163,16 @@ const addVideoWatchXP = async (req, res) => {
       stats.streak = 1;
     }
 
+    // Level/streak/lastActivity yangilangan xp qiymatidan hisoblanadi
+    stats.level = stats.calculateLevel();
     stats.lastActivityDate = new Date();
     await stats.save();
 
-    // 2. User modelini sinxronlash (Navbar va Auth uchun)
-    const user = await User.findById(req.user.id);
-    if (user) {
-      user.xp = stats.xp; 
-      user.streak = stats.streak;
-      user.rankTitle = calculateRank(user.xp);
-      await user.save();
-    }
+    // 2. User modelini sinxronlash (Navbar va Auth uchun) — XP mirror atomik $inc
+    await User.findByIdAndUpdate(req.user.id, {
+      $inc: { xp: XP_FOR_VIDEO },
+      $set: { streak: stats.streak, rankTitle: calculateRank(stats.xp) },
+    });
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
@@ -171,6 +201,10 @@ const submitQuiz = async (req, res) => {
   try {
     const { quizId } = req.params;
     const { answers } = req.body; // [{questionIndex, selectedOption}]
+
+    if (!Array.isArray(answers)) {
+      return res.status(400).json({ success: false, message: 'answers massiv bo\'lishi kerak' });
+    }
 
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {

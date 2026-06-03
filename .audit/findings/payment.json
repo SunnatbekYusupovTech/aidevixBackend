@@ -1,0 +1,181 @@
+{
+  "role": "payment",
+  "score": 4,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/paymentController.js",
+    "backend/models/Payment.js",
+    "backend/models/PromoCode.js",
+    "backend/controllers/promoController.js",
+    "backend/controllers/enrollmentController.js",
+    "backend/controllers/certificateController.js"
+  ],
+  "findings": [
+    {
+      "id": "PAY-001",
+      "severity": "critical",
+      "confidence": 0.97,
+      "title": "Payme Basic-auth parol oddiy === bilan solishtiriladi (timing-safe emas) + non-prod'da auth butunlay ochiq",
+      "file": "backend/controllers/paymentController.js",
+      "line": 25,
+      "description": "verifyPaymeAuth() parolni `password === merchantKey` oddiy string solishtirish bilan tekshiradi — timing attack'ga ochiq. Bundan tashqari PAYME_MERCHANT_KEY o'rnatilmagan bo'lsa funksiya `NODE_ENV !== 'production'` qaytaradi — ya'ni staging/dev'da Payme webhook auth BUTUNLAY o'tib ketadi. Agar prod'da xato bilan NODE_ENV o'rnatilmasa (Railway), har kim soxta PerformTransaction yuborib bepul enroll qila oladi.",
+      "fix": "Login va parolni crypto.timingSafeEqual() bilan solishtir. PAYME_MERCHANT_KEY yo'q bo'lsa har doim false qaytar (dev'da ham) yoki boot'da fail-fast qil. Misol: const b=Buffer.from(password), k=Buffer.from(merchantKey); return login==='Paycom' && b.length===k.length && crypto.timingSafeEqual(b,k);",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-002",
+      "severity": "critical",
+      "confidence": 0.9,
+      "title": "Click/Payme signature yo'q bo'lsa non-prod'da hech qanday tekshiruvsiz o'tadi (xavfli default)",
+      "file": "backend/controllers/paymentController.js",
+      "line": 40,
+      "description": "verifyClickSignature() ham CLICK_SECRET_KEY yo'q bo'lsa `NODE_ENV !== 'production'` qaytaradi. NODE_ENV Railway'da har doim 'production' bo'lishiga kafolat yo'q. Env noto'g'ri bo'lsa soxta clickComplete webhook to'g'ridan-to'g'ri to'lovni 'completed' qilib enroll yaratadi (pulsiz kurs). Auth-bypass ishlab chiqarish sozlamasiga bog'liq bo'lib qolgan.",
+      "fix": "Kalit yo'q bo'lsa har doim false (deny) qaytar, NODE_ENV'ga qaramasdan. Boot'da kalit yo'qligini log qil va webhook endpoint'larni 503 qil.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-003",
+      "severity": "critical",
+      "confidence": 0.92,
+      "title": "PromoCode hech qachon to'lov summasiga qo'llanmaydi va usedCount oshirilmaydi — chegirma/limit semantikasi yo'q",
+      "file": "backend/controllers/paymentController.js",
+      "line": 121,
+      "description": "validatePromoCode() faqat read-only validate qiladi. (1) initiatePayment har doim amount: course.price ishlatadi — discount summaga ta'sir qilmaydi; (2) usedCount HECH QAYERDA atomik increment qilinmaydi, maxUses limit ishlamaydi (cheksiz qayta ishlatish); (3) courseIds scope tekshirilmaydi. Promo butunlay dekorativ yoki abuse uchun ochiq.",
+      "fix": "Promo qo'llashni serverda atomik bajar: PromoCode.findOneAndUpdate({_id, isActive:true, expiresAt:{$gt:now}, $or:[{maxUses:null},{$expr:{$lt:['$usedCount','$maxUses']}}]}, {$inc:{usedCount:1}}) — null bo'lsa rad et. Discountni serverda hisobla, course.price'dan ayir, courseIds matchni tekshir. To'lov cancel bo'lsa usedCount'ni qaytar.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-004",
+      "severity": "warning",
+      "confidence": 0.6,
+      "title": "Amount-flow o'zi to'g'ri (client amount ishlatilmaydi) — promo bilan birga regress yo'l qo'ymang",
+      "file": "backend/controllers/paymentController.js",
+      "line": 203,
+      "description": "checkPerformTransaction / createPaymeTransaction / clickPrepare summani payment.amount bilan solishtiradi — client amount'iga ishonmaydi (yaxshi). PAY-003 tuzatilib discount qo'llansa, payment.amount kamaytirilgan bo'ladi va webhook tekshiruvi hali mos keladi — summa-tasdiq mantig'i to'g'ri. Bu qism saqlanishi kerak.",
+      "fix": "Promo qo'llanganda payment.amount serverda kamaytirilsin; webhook tasdig'i payment.amount'ga tayanadi. Client amount HECH QACHON ishlatilmasin (hozir ishlatilmayapti — saqlang).",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-005",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Enrollment/studentsCount/proSub side-effect'lari atomik to'lov-o'tkazuvi tashqarisida — crash/retry'da to'langan-lekin-enroll-yo'q",
+      "file": "backend/controllers/paymentController.js",
+      "line": 263,
+      "description": "performTransaction/clickComplete to'lovni atomik findOneAndUpdate(pending->completed) bilan o'tkazadi (yaxshi), lekin keyin Enrollment upsert, Course.$inc(studentsCount), maybeGrantProSubscription ALOHIDA non-atomik so'rovlar. Status completed bo'lib keyin crash bo'lsa, Payme/Click retry'da payment 'completed' bo'lgani uchun darhol state:2 qaytariladi va enrollment HECH QACHON yaratilmaydi (to'lagan, kursga kira olmaydi).",
+      "fix": "To'lov o'tkazish + enrollment + studentsCount + pro grant'ni bitta MongoDB transaction (session) ichida bajar; yoki perform'ni idempotent qil: completed payment'ga retry kelganda enrollment mavjudligini tekshirib yo'q bo'lsa yarat.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-006",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "studentsCount overcount: upsert idempotent, lekin $inc shartsiz bajariladi",
+      "file": "backend/controllers/paymentController.js",
+      "line": 264,
+      "description": "Enrollment.findOneAndUpdate({upsert:true}) idempotent, biroq darhol keyingi Course.$inc(studentsCount:1) shartsiz bajariladi. Foydalanuvchi avval bepul enroll qilgan (paymentStatus:'free') bo'lib keyin to'lasa, enrollment yangidan yaratilmaydi-yu studentsCount yana oshadi — overcount. Click oqimida ham xuddi shu.",
+      "fix": "Faqat enrollment haqiqatan yangi yaratilganda inkrement qil: rawResult bilan upsertedId tekshir — const r=await Enrollment.findOneAndUpdate(filter,{$setOnInsert:{...},$set:{paymentStatus:'paid',paymentId}},{upsert:true,rawResult:true}); if(r.lastErrorObject?.upserted) await Course.$inc(...).",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-007",
+      "severity": "critical",
+      "confidence": 0.85,
+      "title": "Click signature MD5 oddiy === bilan solishtiriladi — timing-unsafe",
+      "file": "backend/controllers/paymentController.js",
+      "line": 52,
+      "description": "verifyClickSignature `providedSign === expectedSign` oddiy string solishtirish ishlatadi — timing-safe emas (sign brute-force osonlashadi). MD5 Click protokoli talabi, lekin solishtirish crypto.timingSafeEqual bo'lishi kerak. amount UZS sifatida keladi va clickPrepare'da to'g'ri solishtiriladi (yaxshi).",
+      "fix": "const a=Buffer.from(providedSign,'hex'); const e=Buffer.from(expectedSign,'hex'); return a.length===e.length && crypto.timingSafeEqual(a,e);",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-008",
+      "severity": "critical",
+      "confidence": 0.85,
+      "title": "Payme summa tekshiruvida float arifmetika: amount*100 strict !== — kasr/currency holatida noto'g'ri",
+      "file": "backend/controllers/paymentController.js",
+      "line": 203,
+      "description": "checkPerform/createTransaction'da `payment.amount * 100 !== amount` va initiate URL'da `course.price * 100` ishlatiladi. Payme tiyin'da yuboradi; course.price kasr bo'lsa yoki kelajakda boshqa valyuta kiritilsa float aniqligi xato '-31001 Noto'g'ri summa' yoki teskari xato qabulga olib keladi. Strict !== tiyin formatiga to'liq mosligini talab qiladi.",
+      "fix": "Math.round(payment.amount * 100) === Number(amount) ishlat, yoki summani tiyinda saqla va integer solishtir. Currency-aware bo'l.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-009",
+      "severity": "warning",
+      "confidence": 0.7,
+      "title": "Webhook catch'da real err.message clientga qaytariladi (info leak + noto'g'ri Payme error format)",
+      "file": "backend/controllers/paymentController.js",
+      "line": 367,
+      "description": "handlePayme catch `{error:{code:-31008, message: err.message}}` qaytaradi — DB/internal xato Payme javobiga tushadi. Payme aniq error code kutadi; ixtiyoriy err.message integratsiyani buzishi yoki ichki tafsilotni oshkor qilishi mumkin. clickPrepare/clickComplete catch'da ham error_note: err.message.",
+      "fix": "Catch'da generic message qaytar, real xatoni faqat logger'ga yoz. Payme uchun spec'ga mos doimiy code/message.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-010",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "Pending expiry faqat user GET /status'da bajariladi — Payme reconciliation bilan ziddiyat",
+      "file": "backend/controllers/paymentController.js",
+      "line": 182,
+      "description": "getPaymentStatus 30 daqiqadan oshgan pending'ni 'expired' qiladi (cron yo'q). PerformTransaction findOneAndUpdate({status:'pending'}) qidiradi — oraliqda user GET qilib payment 'expired'ga o'tsa, haqiqiy Payme to'lovi perform qilolmaydi (-31008) garchi pul yechilgan bo'lsa. Reconciliation mismatch va to'langan-lekin-enroll-yo'q.",
+      "fix": "providerTransactionId tayinlangan (CreateTransaction o'tgan) payment'ni HECH QACHON user-GET'da expired qilma. Expiryni faqat providerTransactionId=null pending'lar uchun va cron orqali qil. Payme state'ini haqiqat manbai deb bil.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-011",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "providerResponse/providerData hech qachon yozilmaydi — audit/reconciliation iz yo'q",
+      "file": "backend/controllers/paymentController.js",
+      "line": 411,
+      "description": "Payment modelida providerResponse/providerData maydonlari bor, lekin controller webhook payload'ini saqlamaydi. Chargeback/dispute va reconciliation paytida audit izi yo'qoladi.",
+      "fix": "performTransaction/clickComplete'da providerData ga {providerTxId, time, paydocId, raw amount} saqla. Sign/auth qiymatlarini saqlamang.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-012",
+      "severity": "warning",
+      "confidence": 0.7,
+      "title": "_issueCertificate xatolarni jimgina yutadi — kurs 'tugallandi' lekin sertifikat hech qachon yaratilmasligi mumkin",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 146,
+      "description": "_issueCertificate catch bloki butunlay bo'sh. markVideoWatched isCompleted=true saqlaydi-yu, har qanday cert xatosi (DB/validation) jimgina yutiladi va qayta urinish yo'q (isCompleted allaqachon true). Foydalanuvchi pul-yaqin huquqni (sertifikat) yo'qotadi.",
+      "fix": "Faqat E11000 (duplicate) xatosini yut, boshqalarni log qil. Tugallangan-lekin-sertifikatsiz enrollment'lar uchun idempotent retry/cron qo'sh.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-013",
+      "severity": "warning",
+      "confidence": 0.65,
+      "title": "markVideoWatched load-modify-save race — progress lost-update",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 60,
+      "description": "markVideoWatched enrollment'ni o'qib, mutatsiya qilib, save() qiladi. Parallel so'rovlarda lost-update bo'lib watchedVideos/progressPercent noto'g'ri hisoblanadi, isCompleted noto'g'ri trigger bo'lishi mumkin. Certificate unique indeksi double-create'dan saqlaydi (yaxshi), lekin progress ishonchsiz.",
+      "fix": "watchedVideos'ni atomik $addToSet/$push bilan qil va progressni alohida atomik recompute qil yoki optimistic locking (version) ishlat.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-014",
+      "severity": "suggestion",
+      "confidence": 0.55,
+      "title": "maybeGrantProSubscription summa-asosli — discount/promo past summa pro'ni bermay qoladi yoki noto'g'ri beradi",
+      "file": "backend/controllers/paymentController.js",
+      "line": 57,
+      "description": "Pro grant `payment.amount >= PRO_PRICE_UZS` shartiga tayanadi. PAY-003 promo qo'llanib amount kamaysa, haqiqiy AI Pro sotib olsa ham grant berilmaydi. Aksincha PRO_PRICE'dan baland boshqa ai kurs sotib olinса ham pro beriladi — grant SKU'ga emas summaga bog'langan.",
+      "fix": "Pro grantni alohida isProPlan flag yoki maxsus course SKU bilan bog'la, summa taqqoslashga emas. Promo qo'llanganda original narxni tekshir.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-015",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "validatePromoCode courseId scope va race tekshirilmaydi",
+      "file": "backend/controllers/promoController.js",
+      "line": 94,
+      "description": "validatePromoCode promo.courseIds bilan so'ralayotgan kursni solishtirmaydi — bir kurs uchun mo'ljallangan promo boshqa (qimmatroq) kursga 'valid' ko'rinadi. Read-only bo'lgani uchun maxUses race'da 'valid' deydi (lekin qo'llash umuman yo'q — PAY-003).",
+      "fix": "validatePromoCode'ga courseId qabul qil; promo.courseIds bo'sh emas bo'lsa includes(courseId) tekshir. Chegirma/limit'ni faqat to'lov initiate paytida atomik consume bilan amalga oshir.",
+      "auto_safe": false
+    }
+  ],
+  "summary": "To'lov tizimida bir nechta KRITIK kamchilik bor. (1) Payme/Click auth va signature timing-unsafe ===/md5 solishtirish bilan amalga oshadi VA kalit yo'q bo'lganda NODE_ENV!=='production' holatida AUTH BUTUNLAY OCHIQ qoladi — prod env noto'g'ri o'rnatilsa soxta webhook orqali bepul enroll mumkin (PAY-001/002/007). (2) PromoCode butunlay dekorativ: discount summaga qo'llanmaydi, usedCount atomik inkrement qilinmaydi (maxUses ishlamaydi), courseIds scope tekshirilmaydi — abuse va cheksiz qayta ishlatish ochiq (PAY-003/015). (3) Summa solishtiruvi float amount*100 strict !== bilan — currency/kasr holatida noto'g'ri (PAY-008). Idempotentlik yadrosi yaxshi: performTransaction/clickComplete atomik findOneAndUpdate(pending->completed) va Enrollment/Certificate unique indekslari double-credit'ning eng yomon shaklini to'sadi. Lekin to'lov-o'tkazuvi va side-effect'lar (enrollment, studentsCount, pro grant, certificate) bitta transaction ichida emas — crash/retry'da to'langan-lekin-enroll-yo'q yoki studentsCount overcount mumkin (PAY-005/006). Pending expiry user-GET'da bajarilishi Payme reconciliation bilan ziddiyatga olib keladi (PAY-010). To'lovsiz enroll yo'li yo'q (enrollCourse pullik kursni 402 bilan bloklaydi). Asosiy ish: signature/auth'ni timing-safe + fail-closed qilish va promo qo'llashni serverda atomik amalga oshirish. Pul/to'lov mantig'i o'zgarishlari auto_safe=false."
+}

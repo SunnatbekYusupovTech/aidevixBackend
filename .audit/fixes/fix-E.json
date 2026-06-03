@@ -1,0 +1,44 @@
+{
+  "agent": "FIX (FE-001 stored XSS in JSON-LD)",
+  "files": [
+    "frontend/src/utils/jsonLd.ts",
+    "frontend/src/app/u/[username]/page.tsx",
+    "frontend/src/app/layout.tsx",
+    "frontend/src/app/courses/[id]/layout.tsx",
+    "frontend/src/app/videos/[id]/layout.tsx"
+  ],
+  "applied": [
+    {
+      "id": "FE-001-helper",
+      "file": "frontend/src/utils/jsonLd.ts",
+      "status": "created",
+      "note": "New safeJsonLd() helper. Escapes <, >, & to \\u003c/\\u003e/\\u0026 plus U+2028/U+2029 line separators. Regex authored with \\u escape sequences (file is pure-ASCII) to avoid 'unterminated regex literal' from raw separator chars. Runtime-verified: </script> breakout neutralized."
+    },
+    {
+      "id": "FE-001-profile",
+      "file": "frontend/src/app/u/[username]/page.tsx",
+      "status": "fixed",
+      "note": "Most critical (user-controlled bio/firstName/lastName/username). Replaced JSON.stringify(personSchema) and JSON.stringify(breadcrumbSchema) with safeJsonLd(). Added import { safeJsonLd } from '@/utils/jsonLd'."
+    },
+    {
+      "id": "FE-001-root-layout",
+      "file": "frontend/src/app/layout.tsx",
+      "status": "fixed",
+      "note": "organizationSchema + websiteSchema now use safeJsonLd(). Added import from '@/utils/jsonLd'."
+    },
+    {
+      "id": "FE-001-course-layout",
+      "file": "frontend/src/app/courses/[id]/layout.tsx",
+      "status": "fixed",
+      "note": "courseSchema + breadcrumbSchema now use safeJsonLd(). Added import from '@utils/jsonLd' (matches file's existing @utils alias)."
+    },
+    {
+      "id": "FE-001-video-layout",
+      "file": "frontend/src/app/videos/[id]/layout.tsx",
+      "status": "fixed",
+      "note": "videoSchema now uses safeJsonLd(). Added import from '@utils/jsonLd'."
+    }
+  ],
+  "tsc": "pass",
+  "summary": "Fixed FE-001 stored XSS across all 4 JSON-LD files (7 dangerouslySetInnerHTML blocks). Introduced safeJsonLd() helper that escapes <, >, & and U+2028/U+2029, preventing </script> breakout from user-controlled fields (notably bio on public profile). Did not touch the two non-JSON-LD dangerouslySetInnerHTML usages (referral/page.tsx and videos/[id]/playground/page.tsx — both CSS <style> blocks). 'cd frontend && npx tsc --noEmit' passes with zero errors. Runtime test confirms <, >, & escaped and no raw </script> survives."
+}

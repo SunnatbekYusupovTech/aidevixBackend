@@ -1,0 +1,53 @@
+{
+  "agent": "fix-B",
+  "files": [
+    "backend/controllers/videoController.js",
+    "backend/controllers/courseController.js"
+  ],
+  "applied": [
+    {
+      "id": "BQ-008",
+      "file": "backend/controllers/videoController.js",
+      "status": "applied",
+      "note": "getVideo viewCount inc: .exec() now chained with .catch((e)=>console.error('[video] viewCount inc:', e.message)) — prevents unhandledRejection"
+    },
+    {
+      "id": "BQ-015",
+      "file": "backend/controllers/videoController.js",
+      "status": "applied",
+      "note": "updateVideo: 'if (title) video.title = title' -> 'if (title !== undefined)' for consistency (empty string no longer silently rejected)"
+    },
+    {
+      "id": "BQ-004",
+      "file": "backend/controllers/videoController.js",
+      "status": "applied",
+      "note": "getTopVideos limit clamp: Math.min(parseInt(limit)||10, 50)"
+    },
+    {
+      "id": "BQ-010/PERF-006",
+      "file": "backend/controllers/videoController.js",
+      "status": "applied",
+      "note": ".lean() added to getCourseVideos and getTopVideos (both read-only, sent directly, no .save()). getVideo left WITHOUT .lean() (doc fields/course used in response, mutation-adjacent flow) — searchVideos already had .lean()"
+    },
+    {
+      "id": "BQ-003",
+      "file": "backend/controllers/courseController.js",
+      "status": "applied",
+      "note": "getAllCourses pagination clamp: lim=Math.min(Math.max(1,parseInt(limit)||12),50), pg=Math.max(1,parseInt(page)||1), skip=(pg-1)*lim; query and pagination envelope (page/limit/pages) use clamped values; envelope shape unchanged"
+    },
+    {
+      "id": "BQ-004",
+      "file": "backend/controllers/courseController.js",
+      "status": "applied",
+      "note": "getTopCourses limit clamp Math.min(parseInt(limit)||6,20); getRecommendedCourses limit clamp Math.min(parseInt(limit)||4,20). getUserRecommendedCourses already had clamp (Math.min(...||6,20))"
+    },
+    {
+      "id": "BQ-010/PERF-006-courseController",
+      "file": "backend/controllers/courseController.js",
+      "status": "already_fixed",
+      "note": "getAllCourses, getTopCourses, getRecommendedCourses, getCourse read-only finds already used .lean(); getCourse viewCount inc already had .exec().catch() (BQ-008 equivalent already fixed)"
+    }
+  ],
+  "node_check": "pass",
+  "summary": "6 fixes applied across videoController and courseController (BQ-008 viewCount .catch, BQ-015 title !== undefined, BQ-003 getAllCourses pagination clamp, BQ-004 limit clamps on getTopVideos/getTopCourses/getRecommendedCourses, BQ-010/PERF-006 .lean() on getCourseVideos/getTopVideos). courseController .lean() and getCourse .catch() were already in place. getVideo intentionally left without .lean() (response uses doc fields). Response formats and pagination envelope shapes preserved; no ObjectId validation added. node --check passes for both files."
+}

@@ -1,0 +1,61 @@
+{
+  "agent": "fix-A",
+  "files": [
+    "backend/controllers/rankingController.js",
+    "backend/controllers/userController.js",
+    "backend/controllers/xpController.js",
+    "backend/controllers/promptController.js"
+  ],
+  "applied": [
+    {
+      "id": "BQ-011",
+      "file": "backend/controllers/rankingController.js",
+      "status": "applied",
+      "note": "getUserPosition topPercent: total>0 ? Math.round((rank/total)*100) : 100 — NaN guard"
+    },
+    {
+      "id": "BQ-009",
+      "file": "backend/controllers/rankingController.js",
+      "status": "applied",
+      "note": "getTopUsers category regex escaped via escapeRegex helper (ReDoS fix)"
+    },
+    {
+      "id": "BQ-010/PERF-006",
+      "file": "backend/controllers/rankingController.js",
+      "status": "applied",
+      "note": ".lean() added to getTopCourses, getTopUsers, getUserPosition findOne (all read-only, no .save())"
+    },
+    {
+      "id": "PERF-005",
+      "file": "backend/controllers/rankingController.js",
+      "status": "applied",
+      "note": "getTopUsers count+find parallelized via Promise.all; getUserPosition two counts parallelized too"
+    },
+    {
+      "id": "BQ-010/PERF-006-userController",
+      "file": "backend/controllers/userController.js",
+      "status": "already_fixed",
+      "note": "All read-only finds (getPublicProfile user/stats/certs/prompts) already use .lean(); topPercent NaN guard already present"
+    },
+    {
+      "id": "BQ-012",
+      "file": "backend/controllers/promptController.js",
+      "status": "applied",
+      "note": "createPrompt UserStats.findOneAndUpdate now { upsert:true, new:true, setDefaultsOnInsert:true }"
+    },
+    {
+      "id": "BQ-004",
+      "file": "backend/controllers/promptController.js",
+      "status": "applied",
+      "note": "getPrompts limit clamp (1-100) + page>=1 via parseInt; skip/limit use clamped lim/pg, pagination shape preserved"
+    },
+    {
+      "id": "BQ-001",
+      "file": "backend/controllers/xpController.js",
+      "status": "applied",
+      "note": "submitQuiz: Array.isArray(answers) guard before .map() — 400 if not array"
+    }
+  ],
+  "node_check": "pass",
+  "summary": "7 fixes applied across rankingController, promptController, xpController; userController was already fixed (.lean + topPercent guard already present). node --check passes for all 4 files. Response formats and pagination shapes preserved; no ObjectId validation added in controllers."
+}

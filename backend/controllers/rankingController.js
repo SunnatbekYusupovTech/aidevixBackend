@@ -2,6 +2,8 @@ const Course = require('../models/Course');
 const UserStats = require('../models/UserStats');
 const User = require('../models/User');
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * Level asosida rank unvonini hisoblash
  * Figma leaderboard da ko'rsatiladigan unvonlar: GRANDMASTER, VICE-ADMIRAL, COMMANDER...
@@ -34,7 +36,8 @@ const getTopCourses = async (req, res) => {
       .populate('instructor', 'username email')
       .sort({ viewCount: -1, rating: -1 })
       .limit(limit)
-      .select('title description thumbnail price category viewCount rating ratingCount instructor videos createdAt');
+      .select('title description thumbnail price category viewCount rating ratingCount instructor videos createdAt')
+      .lean();
 
     res.json({
       success: true,
@@ -62,17 +65,19 @@ const getTopUsers = async (req, res) => {
 
     // Category filter: UserStats.skills array ichida qidiruv
     const filter = category
-      ? { skills: { $regex: new RegExp(category, 'i') } }
+      ? { skills: { $regex: new RegExp(escapeRegex(category), 'i') } }
       : {};
 
-    const total = await UserStats.countDocuments(filter);
-
-    const topUsers = await UserStats.find(filter)
-      .sort({ xp: -1, level: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('userId', 'username email createdAt avatar aiStack firstName lastName jobTitle')
-      .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills');
+    const [total, topUsers] = await Promise.all([
+      UserStats.countDocuments(filter),
+      UserStats.find(filter)
+        .sort({ xp: -1, level: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'username email createdAt avatar aiStack firstName lastName jobTitle')
+        .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills')
+        .lean(),
+    ]);
 
     // Rank raqami va unvon qo'shish
     const rankedUsers = topUsers.map((u, index) => ({
@@ -117,14 +122,17 @@ const getUserPosition = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const userStats = await UserStats.findOne({ userId });
+    const userStats = await UserStats.findOne({ userId }).lean();
     if (!userStats) {
       return res.status(404).json({ success: false, message: 'User stats not found' });
     }
 
     // Bu userdan yuqori XP'ga ega foydalanuvchilar soni = rank - 1
-    const rank = (await UserStats.countDocuments({ xp: { $gt: userStats.xp } })) + 1;
-    const total = await UserStats.countDocuments();
+    const [higherCount, total] = await Promise.all([
+      UserStats.countDocuments({ xp: { $gt: userStats.xp } }),
+      UserStats.countDocuments(),
+    ]);
+    const rank = higherCount + 1;
 
     res.json({
       success: true,
@@ -134,7 +142,7 @@ const getUserPosition = async (req, res) => {
         xp:         userStats.xp,
         level:      userStats.level,
         rankTitle:  getRankTitle(userStats.level),
-        topPercent: Math.round((rank / total) * 100),
+        topPercent: total > 0 ? Math.round((rank / total) * 100) : 100,
       },
     });
   } catch (err) {

@@ -1,0 +1,72 @@
+{
+  "agent": "payment-systems-fix",
+  "files": [
+    "backend/controllers/paymentController.js",
+    "backend/controllers/promoController.js",
+    "backend/models/Payment.js"
+  ],
+  "applied": [
+    {
+      "id": "PAY-001",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "verifyPaymeAuth: kalit yo'q bo'lsa har doim FAIL-CLOSED (false) + console.error. Header base64 decode uslubi saqlandi (indexOf(':') bilan, parolda ':' bo'lsa ham to'g'ri). login==='Paycom' tekshiruvi saqlandi. Parol solishtiruvi crypto.timingSafeEqual (uzunlik teng bo'lsa) ga o'tkazildi."
+    },
+    {
+      "id": "PAY-002/007",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "verifyClickSignature: kalit yo'q bo'lsa har doim false + console.error. buildClickSignString + md5 mantiqi saqlandi. providedSign vs expectedSign solishtiruvi timingSafeEqual (uzunlik teng bo'lsa) ga o'tkazildi."
+    },
+    {
+      "id": "PAY-008",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "amount float: checkPerformTransaction, createPaymeTransaction va getStatement'da payment.amount*100 strict solishtiruvlari Math.round(payment.amount*100) !== Number(amount) ga o'zgartirildi. Math.round float xatosini bartaraf etadi."
+    },
+    {
+      "id": "PAY-005",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "performTransaction: atomik findOneAndUpdate(pending->completed) SAQLANDI. Side-effect'lar ensurePaidSideEffects() helper'iga ko'chirildi — Enrollment upsert rawResult:true bilan, studentsCount $inc FAQAT lastErrorObject.upserted bo'lganda. Payme retry (allaqachon completed) holatida ham ensurePaidSideEffects chaqiriladi va state:2/perform_time qaytariladi (xato emas). Payme error code/state raqamlari (-31003,-31008,2,-1) o'zgartirilmadi."
+    },
+    {
+      "id": "PAY-006",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "clickComplete: atomik findOneAndUpdate(pending->completed) SAQLANDI. Side-effect'lar ensurePaidSideEffects() ga ko'chirildi (idempotent studentsCount). Allaqachon completed (Click retry) holatida ham side-effect'lar ta'minlanib error:0/Success qaytariladi. Click error code'lari o'zgartirilmadi."
+    },
+    {
+      "id": "PAY-idempotent-pro",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "maybeGrantProSubscription idempotent qilindi: agar user allaqachon shu payment._id (sourcePaymentId) dan pro bo'lsa qayta yozmaydi (early return)."
+    },
+    {
+      "id": "DM-005",
+      "file": "backend/models/Payment.js",
+      "status": "applied",
+      "note": "providerTransactionId va clickTransId index'lariga unique:true qo'shildi, sparse:true saqlandi. null qiymatlar sparse tufayli to'qnashmaydi, real txId'lar duplicate webhook'da unique violation bilan himoyalanadi."
+    },
+    {
+      "id": "PAY-003/015",
+      "file": "backend/controllers/paymentController.js",
+      "status": "applied",
+      "note": "initiatePayment'ga promo qo'llash qo'shildi. req.body.promoCode kelsa: courseIds scope avval o'qib tekshiriladi (boshqa kursga bog'langan bo'lsa consume QILMA), so'ng atomik findOneAndUpdate($inc usedCount) $and:[{$or expiresAt},{$or maxUses}] filter bilan (race-safe). Discount SERVERDA hisoblanadi (percent yoki fixed, PromoCode.type/value'dan), finalAmount=Math.max(1,Math.round(...)). Payment.amount kamaytirilgan summa bilan yaratiladi, paymentUrl ham finalAmount ishlatadi. Client amount ishlatilmaydi. Promo null bo'lsa (limit/expire/inactive) original narxda davom etadi. Javobda data.promo qaytariladi. Mavjud pending payment branch ham endi pendingPayment.amount ishlatadi (avval course.price ishlatardi — promo bilan nomuvofiq edi)."
+    },
+    {
+      "id": "PAY-promo-validate-scope",
+      "file": "backend/controllers/promoController.js",
+      "status": "applied",
+      "note": "validatePromoCode'ga optional courseId query param scope tekshiruvi qo'shildi — promo aniq kurslarga bog'langan va so'ralgan kurs ichida bo'lmasa 409 qaytaradi (read-only preview to'g'ri ko'rsatadi). Mavjud expiresAt/maxUses/isActive tekshiruvlari saqlandi."
+    }
+  ],
+  "node_check": "PASS — node --check paymentController.js, promoController.js, Payment.js — ALL_OK",
+  "summary": "G1 (auth fail-closed + timing-safe), G2 (promo atomic consume + server-side discount + scope), G3 (amount Math.round float fix, idempotent side-effects via ensurePaidSideEffects helper, unique sparse indexes) to'liq qo'llandi. MongoDB session/transaction ISHLATILMADI — idempotent-retry yondashuvi. Mavjud atomik findOneAndUpdate yadrosi va Payme error code/state format saqlandi.",
+  "caveats": [
+    "Payment.js'dagi unique:true sparse index ENDI mavjud ma'lumotlarda providerTransactionId/clickTransId bo'yicha haqiqiy DUPLIKAT bo'lsa, index build vaqtida xato berishi mumkin. Deploy oldidan duplicate tekshirish tavsiya etiladi (Payme bir txId bir order'ga — normal holatda duplikat bo'lmaydi).",
+    "ensurePaidSideEffects retry holatida studentsCount'ni qayta oshirmaydi (rawResult.upserted=false), lekin AGAR enrollment avvalgi koddan tashqarida boshqa yo'l bilan yaratilgan bo'lsa (masalan bepul enrollment), birinchi paid webhook studentsCount'ni oshirmasligi mumkin — bu xavfsiz tomon (over-count'dan ko'ra under-count yaxshi).",
+    "Promo consume initiatePayment'da bo'ladi (to'lov boshlanganda). Foydalanuvchi keyin to'lovni TUGATMASA usedCount sarflanib qoladi (pending). Bu joriy maxUses semantikasiga mos lekin agar 'faqat muvaffaqiyatli to'lovda hisoblansin' kerak bo'lsa, consume'ni performTransaction/clickComplete'ga ko'chirish kerak — hozir spec talabiga (initiatePayment'da atomik consume) muvofiq qoldirildi.",
+    "Frontend initiatePayment chaqiruviga promoCode body param va validatePromoCode'ga courseId query param qo'shilishi kerak (bu fayllar scope'dan tashqarida — o'zgartirilmadi)."
+  ]
+}

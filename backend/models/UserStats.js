@@ -37,6 +37,13 @@ const userStatsSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // XP allaqachon berilgan videolar — video XP idempotentligi (bir videodan bir marta +50).
+  // select:false — API javoblariga tushmaydi (o'sib boruvchi to'plam, faqat server-side guard uchun).
+  xpAwardedVideos: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Video' }],
+    default: [],
+    select: false,
+  },
   // Yechilgan quiz/testlar soni
   quizzesCompleted: {
     type: Number,

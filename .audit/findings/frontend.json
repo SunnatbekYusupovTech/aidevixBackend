@@ -1,0 +1,121 @@
+{
+  "role": "frontend",
+  "score": 7,
+  "partial": false,
+  "files_reviewed": [
+    "frontend/src/api/axiosInstance.ts",
+    "frontend/src/store/slices/authSlice.ts",
+    "frontend/src/components/auth/AdminRoute.tsx",
+    "frontend/src/components/auth/ProtectedRoute.tsx",
+    "frontend/next.config.mjs",
+    "frontend/src/api/adminApi.ts",
+    "frontend/src/utils/tokenStorage.ts",
+    "frontend/src/app/u/[username]/page.tsx",
+    "frontend/src/components/auth/LoginForm.tsx",
+    "frontend/src/components/auth/RegisterForm.tsx",
+    "frontend/src/components/common/TelegramMiniAppBridge.tsx",
+    "frontend/src/utils/constants.ts"
+  ],
+  "findings": [
+    {
+      "id": "FE-001",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "JSON-LD dangerouslySetInnerHTML — user content not escaped against </script> breakout (stored XSS)",
+      "file": "frontend/src/app/u/[username]/page.tsx",
+      "line": 97,
+      "description": "personSchema embeds user-controlled fields (bio, firstName, lastName, username) and is injected into a <script type=application/ld+json> via dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}. JSON.stringify does NOT escape the '</' / '</script>' or '<!--' / ']]>' sequences, so a user whose bio (set via profile) contains `</script><img src=x onerror=alert(document.cookie)>` breaks out of the JSON-LD block and executes arbitrary HTML/JS on every visitor of /u/<username>. This is a classic JSON-LD escaping XSS. Same pattern (lower risk) in courses/[id]/layout.tsx, videos/[id]/layout.tsx, layout.tsx — those use mostly trusted course/site data, but any user-controlled field flowing into a schema is exposed. Note: the app currently runs CSP only in Report-Only mode (next.config.mjs line 54) with 'unsafe-inline' allowed, so CSP does NOT mitigate this.",
+      "fix": "Escape the JSON before injection. Wrap with a helper: JSON.stringify(schema).replace(/</g,'\\\\u003c').replace(/>/g,'\\\\u003e').replace(/&/g,'\\\\u0026'). Apply to every dangerouslySetInnerHTML JSON-LD block (u/[username], courses/[id]/layout, videos/[id]/layout, layout.tsx). Long-term: move CSP from Report-Only to enforcing and drop 'unsafe-inline' from script-src.",
+      "snippet": "dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}  // personSchema.description = profile.stats.bio (user-controlled)"
+    },
+    {
+      "id": "FE-002",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "CSP is Report-Only and allows 'unsafe-inline' — no enforced XSS protection",
+      "file": "frontend/next.config.mjs",
+      "line": 54,
+      "description": "Content-Security-Policy is delivered only as Content-Security-Policy-Report-Only, so the browser reports but never blocks violations. script-src also includes 'unsafe-inline' and a broad 'https:' source, meaning even when enforced it would permit inline scripts. Combined with FE-001 (JSON-LD breakout) and the wildcard image host (images.remotePatterns hostname '**'), the frontend has no runtime XSS containment layer. CLAUDE.md notes the eventual enforcing CSP is deferred to a future PR.",
+      "fix": "Move to an enforcing Content-Security-Policy header. Replace 'unsafe-inline' in script-src with per-request nonces (Next.js middleware nonce) or hashes. Keep object-src 'none', base-uri 'self', frame-ancestors 'none' which are already correct.",
+      "snippet": "key: 'Content-Security-Policy-Report-Only', value: \"... script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https: ...\""
+    },
+    {
+      "id": "FE-003",
+      "severity": "suggestion",
+      "confidence": 0.9,
+      "title": "ProtectedRoute writes ?next= but LoginForm ignores it — dead redirect-back (no open-redirect, but feature broken)",
+      "file": "frontend/src/components/auth/LoginForm.tsx",
+      "line": 62,
+      "description": "ProtectedRoute redirects unauthenticated users to /login?next=<encoded path> (ProtectedRoute.tsx line 22), but LoginForm always does router.push('/') on success and never reads the next param. Security-positive: there is no open-redirect sink because next is never consumed. Functional negative: intended-destination return is dead. If next= is wired up later, it MUST be validated to be a same-origin relative path (reject values starting with http://, //, or containing a host) to avoid an open-redirect.",
+      "fix": "Either remove the ?next= param from ProtectedRoute (and AdminRoute), or consume it in LoginForm with strict validation: only allow values matching /^\\/(?!\\/)/ (single leading slash, relative path) before router.push.",
+      "snippet": "router.push('/');  // ProtectedRoute passed ?next=... but it is dropped here"
+    },
+    {
+      "id": "FE-004",
+      "severity": "suggestion",
+      "confidence": 0.85,
+      "title": "AdminRoute / ProtectedRoute are client-only guards — defense relies entirely on backend",
+      "file": "frontend/src/components/auth/AdminRoute.tsx",
+      "line": 9,
+      "description": "AdminRoute gates rendering on Redux user.role === 'admin', sourced from the cached user object (tokenStorage.getUser from localStorage) and /auth/me. This is correct as a UX guard and does not leak data by itself (admin DATA only arrives via authenticated /api/admin/* calls, which the backend requireAdmin middleware must enforce). Risk is acceptable ONLY if every admin endpoint enforces requireAdmin server-side; admin route guards must never be the sole authorization. The cached user.role in localStorage is client-mutable, so a malicious user can flip role=admin locally to render the admin shell — they will still get 401/403 on every data call if the backend is correct. Confirm backend requireAdmin coverage (out of frontend scope).",
+      "fix": "No frontend change required if backend enforces requireAdmin on all /api/admin/* routes. Optionally treat the rendered admin shell as non-sensitive (it is) and ensure no secrets are baked into the bundle for admin views.",
+      "snippet": "if (user?.role !== 'admin') { return null }  // role comes from localStorage-cached user, client-mutable"
+    },
+    {
+      "id": "FE-005",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "CSRF 403-retry and 401-refresh interceptors lack a hard loop ceiling beyond single-flag guards",
+      "file": "frontend/src/api/axiosInstance.ts",
+      "line": 121,
+      "description": "The response interceptor guards CSRF retry with original._csrfRetry and 401 refresh with original._retry (single replay each), which prevents the common infinite loop. However a request that is both 401 then 403-csrf (or vice versa) on the replay could chain two extra round-trips, and refreshQueue items rejected mid-flight rely on isRefreshing being reset in finally (it is). No critical loop found — the flags are correct — but there is no shared cap if many concurrent requests each independently trigger a refresh before isRefreshing is set (race window between the queue check and isRefreshing=true is small but non-atomic). Low severity given cookie auth and single-flight queue.",
+      "fix": "Set isRefreshing=true and original._retry=true synchronously before any await, and have all callers funnel through the queue (already mostly the case). Consider a max-replay counter on config to bound pathological chains.",
+      "snippet": "if (isRefreshing) { return new Promise(...).then(() => api(original)) }  original._retry = true; isRefreshing = true"
+    },
+    {
+      "id": "FE-006",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "register thunk has a dead/legacy auto-login branch that can set isLoggedIn=true with an undefined user",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 18,
+      "description": "The register thunk returns early on data?.requiresEmailVerification, otherwise falls through to tokenStorage.setUser(data.data.user) and returns data.data; registerFulfilled then sets state.user=action.payload.user and isLoggedIn=true. Per current backend (register-then-verify, no session issued), register always returns requiresEmailVerification:true, so this else branch is dead/legacy. If the response envelope ever drifts (error shape without data.data), data.data.user throws inside the thunk, OR registerFulfilled receives an object lacking .user and marks isLoggedIn=true with user=undefined. Note registerFulfilled is a SEPARATE reducer from the shared `fulfilled` used by login — it does NOT honor requiresEmailVerification, so the email-verify redirect depends entirely on the component reading result.payload (RegisterForm L112), not Redux state.",
+      "fix": "Guard data?.data?.user, and route register through the shared `fulfilled` reducer (which already handles requiresEmailVerification/2FA) instead of registerFulfilled. Since register no longer issues a session, remove the auto-login branch entirely or wrap it so an unexpected envelope cannot set isLoggedIn=true with an undefined user.",
+      "snippet": "tokenStorage.setUser(data.data.user); return data.data  // registerFulfilled -> isLoggedIn=true regardless of email-verify"
+    },
+    {
+      "id": "FE-007",
+      "severity": "suggestion",
+      "confidence": 0.8,
+      "title": "TelegramMiniAppBridge effect depends on isLoggedIn, re-running the whole async body (stale-closure smell, redundant SDK/theme work)",
+      "file": "frontend/src/components/common/TelegramMiniAppBridge.tsx",
+      "line": 113,
+      "description": "The effect deps are [dispatch, isLoggedIn]. On successful TMA auto-login, checkAuthStatus flips isLoggedIn, re-running the async IIFE: loadTelegramSdk(), wa.ready()/expand(), theme CSS-var writes are repeated. triedRef correctly guards the network auth call, and the cancelled flag abandons the prior run, so there is no duplicate auth POST — but the effect needlessly re-runs and isLoggedIn is read at the top before awaits (stale closure). Low functional impact, but it is unnecessary work on every login-state change.",
+      "fix": "Run the bridge once on mount: remove isLoggedIn from deps (read latest via store.getState() or a ref at call time), or gate the entire effect body behind triedRef before any await.",
+      "snippet": "}, [dispatch, isLoggedIn]);"
+    },
+    {
+      "id": "FE-008",
+      "severity": "suggestion",
+      "confidence": 0.85,
+      "title": "Pervasive `any` in auth thunks/handlers and @ts-nocheck on route guards removes type safety where response-shape assumptions live",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 9,
+      "description": "register/login thunks take untyped credentials, access err.response?.data as implicit any, and selectors are (state)=>state.auth.* with no RootState typing. Components cast dispatch as any and payload as any (LoginForm L44/L52, RegisterForm L99/L111). Both ProtectedRoute and AdminRoute open with // @ts-nocheck — disabling TS on the exact components that decide whether protected/admin UI renders. This strips compile-time protection precisely where the data.data.user / requires2FA / requiresEmailVerification envelope assumptions live (root cause enabler of FE-006).",
+      "fix": "Type thunk args/returns and the API envelope so data.data.user access is checked; type selectors against RootState; replace `dispatch as any` with typed AppDispatch; remove @ts-nocheck from the two route guards so a renamed selector (silent undefined) is caught.",
+      "snippet": "// @ts-nocheck (ProtectedRoute.tsx / AdminRoute.tsx);  dispatch as any; const payload: any = result.payload"
+    },
+    {
+      "id": "FE-009",
+      "severity": "suggestion",
+      "confidence": 0.55,
+      "title": "checkAuthStatus uses the client-writable localStorage user cache as a hard precondition for /auth/me",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 100,
+      "description": "checkAuthStatus early-returns rejectWithValue('No cached user') when tokenStorage.getUser() is null and only calls /auth/me if a cached user exists. A user holding a valid HttpOnly session cookie but a cleared localStorage (partial site-data clear, privacy tooling) is treated as logged out until the cache is repopulated. The httpOnly cookie is the real source of truth, so gating the bootstrap auth check on a client cache is fragile.",
+      "fix": "Always attempt /auth/me on bootstrap (cookie is authoritative); use the localStorage user only as an optimistic hint to avoid UI flash, not as a precondition that suppresses the server check.",
+      "snippet": "if (!cachedUser) { return rejectWithValue('No cached user') }"
+    }
+  ],
+  "summary": "Cookie-only auth rule is HONORED: tokenStorage caches only a non-sensitive user object and actively removes legacy localStorage token keys — no access/refresh token is ever persisted client-side. No secret NEXT_PUBLIC env exposure (all public URLs / public site keys: Turnstile, Google client ID). Cookie auth with withCredentials, the in-memory CSRF token flow (JSON-body source for cross-site + cookie fallback + single _csrfRetry guard), and single-flight 401 refresh are well-designed. Highest concern is stored XSS: user-controlled bio/name is injected into JSON-LD via dangerouslySetInnerHTML with unescaped JSON.stringify (FE-001 — </script> breakout), with no enforced containment because CSP is Report-Only and allows 'unsafe-inline' (FE-002). Auth-slice issues: register thunk's dead/legacy auto-login branch can set isLoggedIn=true with an undefined user on envelope drift, and uses a separate reducer that bypasses the email-verify handling (FE-006). Client-only route guards (FE-004) are acceptable ONLY because backend requireAdmin enforces authorization on every /api/admin/* call. TelegramMiniAppBridge re-runs its full async body on isLoggedIn changes (FE-007). Widespread `any` plus @ts-nocheck on both route guards (FE-008) removes the type safety net exactly where response-shape assumptions live. No critical findings beyond the stored-XSS vector. Score 7/10."
+}

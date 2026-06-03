@@ -303,6 +303,7 @@ app.use('/api/prompts',      require('./routes/promptRoutes'));
 app.use('/api/bug-reports',  require('./routes/bugReportRoutes'));
 app.use('/api/public',       require('./routes/publicRoutes'));
 app.use('/api/payments',     require('./routes/paymentRoutes'));
+app.use('/api/promos',       require('./routes/promoRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
 app.use('/api/users',        require('./routes/userRoutes'));

@@ -49,7 +49,8 @@ const getTopStudents = async (req, res) => {
     const stats = await UserStats.find()
       .sort({ xp: -1 })
       .limit(10)
-      .populate('userId', 'username email');
+      .populate('userId', 'username email')
+      .lean();
 
     // Flatten: frontend expects username, email, xp, level at top level
     const students = stats.map(s => ({
@@ -72,7 +73,8 @@ const getCoursesStats = async (req, res) => {
     const courses = await Course.find({ isActive: true })
       .select('title category viewCount rating studentsCount ratingCount price isFree')
       .sort({ viewCount: -1 })
-      .limit(20);
+      .limit(20)
+      .lean();
 
     res.json({ success: true, data: { courses } });
   } catch (err) {
@@ -86,12 +88,16 @@ const getRecentPayments = async (req, res) => {
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
 
-    const payments = await Payment.find()
-      .populate('userId',   'username email')
-      .populate('courseId', 'title price')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+    const [payments, total] = await Promise.all([
+      Payment.find()
+        .populate('userId',   'username email')
+        .populate('courseId', 'title price')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Payment.countDocuments(),
+    ]);
 
     // Rename userId→user, courseId→course for frontend
     const data = payments.map(p => ({
@@ -104,7 +110,6 @@ const getRecentPayments = async (req, res) => {
       createdAt: p.createdAt,
     }));
 
-    const total = await Payment.countDocuments();
     res.json({ success: true, data: { payments: data, pagination: { total, page, limit } } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'To\'lovlarni olishda xato' });
@@ -128,7 +133,7 @@ const getUsers = async (req, res) => {
     if (role && VALID_ROLES.includes(role)) filter.role = role;
 
     const [users, total] = await Promise.all([
-      User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+      User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       User.countDocuments(filter),
     ]);
 
@@ -141,11 +146,12 @@ const getUsers = async (req, res) => {
 /** @desc  Foydalanuvchini tahrirlash | @route PUT /api/admin/users/:id | @access Admin */
 const updateUser = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
     const allowed = ['role', 'isActive'];
     const update  = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
 
-    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -refreshToken');
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true }).select('-password -refreshToken');
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
 
     logger.info('admin_user_update', {
@@ -164,6 +170,7 @@ const updateUser = async (req, res) => {
 /** @desc  Foydalanuvchini o'chirish | @route DELETE /api/admin/users/:id | @access Admin */
 const deleteUser = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ success: false, message: 'O\'zingizni o\'chira olmaysiz' });
     }
@@ -186,7 +193,8 @@ const deleteUser = async (req, res) => {
 /** @desc  User detail | @route GET /api/admin/users/:id | @access Admin */
 const getUserDetail = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password -refreshToken');
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+    const user = await User.findById(req.params.id).select('-password -refreshToken').lean();
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
 
     const [stats, enrollments, payments] = await Promise.all([
@@ -285,6 +293,12 @@ const sendTelegramMessage = async (req, res) => {
     const { message, parseMode = 'HTML' } = req.body;
     if (!message?.trim()) return res.status(400).json({ success: false, message: 'Xabar matni kiritilishi shart' });
 
+    const text = message.trim();
+    if (text.length > 4096) return res.status(400).json({ success: false, message: 'Xabar 4096 belgidan oshmasligi kerak' });
+
+    const VALID_PARSE = ['HTML', 'MarkdownV2', 'Markdown'];
+    const pm = VALID_PARSE.includes(parseMode) ? parseMode : 'HTML';
+
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const channel  = process.env.TELEGRAM_CHANNEL_USERNAME || 'aidevix';
     if (!botToken) return res.status(500).json({ success: false, message: 'TELEGRAM_BOT_TOKEN sozlanmagan' });
@@ -292,8 +306,8 @@ const sendTelegramMessage = async (req, res) => {
     const axios = require('axios');
     const tgRes = await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       chat_id: `@${channel}`,
-      text: message.trim(),
-      parse_mode: parseMode,
+      text,
+      parse_mode: pm,
       disable_web_page_preview: false,
     });
 
@@ -335,7 +349,10 @@ const bulkLinkBunny = async (req, res) => {
     );
 
     const succeeded = results.filter(r => r.status === 'fulfilled').map(r => r.value);
-    const failed    = results.filter(r => r.status === 'rejected').map((r, i) => ({ index: i, error: r.reason?.message }));
+    const failed    = results
+      .map((r, idx) => ({ r, idx }))
+      .filter(({ r }) => r.status === 'rejected')
+      .map(({ r, idx }) => ({ index: idx, videoId: links[idx]?.videoId, error: r.reason?.message }));
 
     res.json({ success: true, data: { succeeded, failed, total: links.length } });
   } catch (err) {
@@ -359,7 +376,9 @@ const reorderVideos = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Yaroqsiz id yoki order' });
     }
 
-    await Promise.all(videos.map(({ id, order }) => Video.findByIdAndUpdate(id, { order })));
+    await Video.bulkWrite(videos.map(({ id, order }) => ({
+      updateOne: { filter: { _id: id }, update: { $set: { order } } },
+    })));
     res.json({ success: true, message: 'Tartib yangilandi' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -369,11 +388,13 @@ const reorderVideos = async (req, res) => {
 /** @desc  Kurs enrollment statistikasi | @route GET /api/admin/courses/:id/enrollments | @access Admin */
 const getCourseEnrollmentStats = async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
     const [enrollments, total, completed] = await Promise.all([
       Enrollment.find({ courseId: req.params.id })
         .populate('userId', 'username email avatar')
         .sort({ createdAt: -1 })
-        .limit(50),
+        .limit(50)
+        .lean(),
       Enrollment.countDocuments({ courseId: req.params.id }),
       Enrollment.countDocuments({ courseId: req.params.id, isCompleted: true }),
     ]);

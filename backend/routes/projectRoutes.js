@@ -10,6 +10,7 @@ const {
   deleteProject,
 } = require('../controllers/projectController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 
 // Ixtiyoriy autentifikatsiya (login bo'lsa isCompleted ko'rsatiladi)
 const optionalAuth = (req, res, next) => {
@@ -20,14 +21,14 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
-router.get('/course/:courseId', optionalAuth, getProjectsByCourse);
-router.get('/:id', optionalAuth, getProject);
-router.post('/:id/complete', authenticate, completeProject);
-router.post('/:id/review', authenticate, reviewProject);
+router.get('/course/:courseId', optionalAuth, validateObjectId('courseId'), getProjectsByCourse);
+router.get('/:id', optionalAuth, validateObjectId('id'), getProject);
+router.post('/:id/complete', authenticate, validateObjectId('id'), completeProject);
+router.post('/:id/review', authenticate, validateObjectId('id'), reviewProject);
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 router.post('/', authenticate, requireAdmin, createProject);
-router.put('/:id', authenticate, requireAdmin, updateProject);
-router.delete('/:id', authenticate, requireAdmin, deleteProject);
+router.put('/:id', authenticate, requireAdmin, validateObjectId('id'), updateProject);
+router.delete('/:id', authenticate, requireAdmin, validateObjectId('id'), deleteProject);
 
 module.exports = router;

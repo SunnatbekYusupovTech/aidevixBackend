@@ -18,10 +18,10 @@ const getCourseVideos = async (req, res) => {
   try {
     const { courseId } = req.params;
 
-    const videos = await Video.find({ 
-      course: courseId, 
-      isActive: true 
-    }).sort({ order: 1 });
+    const videos = await Video.find({
+      course: courseId,
+      isActive: true
+    }).sort({ order: 1 }).lean();
 
     res.json({
       success: true,
@@ -92,7 +92,9 @@ const getVideo = async (req, res) => {
     }
 
     // Ko'rishlar sonini oshirish (background)
-    Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }).exec();
+    Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } })
+      .exec()
+      .catch((e) => console.error('[video] viewCount inc:', e.message));
 
     res.json({
       success: true,
@@ -308,7 +310,7 @@ const updateVideo = async (req, res) => {
     }
 
     // Update fields
-    if (title) video.title = title;
+    if (title !== undefined) video.title = title;
     if (description !== undefined) video.description = description;
     if (order !== undefined) video.order = order;
     if (duration !== undefined) video.duration = duration;
@@ -684,12 +686,13 @@ const searchVideos = async (req, res) => {
  */
 const getTopVideos = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+
     const videos = await Video.find({ isActive: true })
       .sort({ viewCount: -1 })
       .limit(limit)
-      .populate('course', 'title category');
+      .populate('course', 'title category')
+      .lean();
 
     res.json({
       success: true,

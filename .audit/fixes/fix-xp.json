@@ -1,0 +1,29 @@
+{
+  "agent": "fix-xp",
+  "files": [
+    "backend/controllers/xpController.js",
+    "backend/controllers/promptController.js"
+  ],
+  "applied": [
+    {
+      "id": "BQ-002",
+      "file": "backend/controllers/xpController.js",
+      "status": "fixed",
+      "note": "addVideoWatchXP: XP yozish endi atomik — UserStats.findOneAndUpdate($inc:{xp:50,weeklyXp:50,videosWatched:1}, upsert+setDefaultsOnInsert) read-modify-write o'rniga. User.xp mirror ham atomik User.findByIdAndUpdate($inc:{xp:50}, $set:{streak,rankTitle}). Streak/level/lastActivity logikasi va awardBadges saqlangan; level yangilangan xp'dan calculateLevel() bilan hisoblanadi. IDEMPOTENTLIK SKIPPED: UserStats'da watchedVideos/seen sxemasi yo'q va funksiya videoId'ni saqlamaydi — ishonchli 'ko'rilgan video' manbasi bo'lmagani uchun double-award guard qo'shilmadi (sxemani buzmaslik uchun). Faqat race fix qo'llandi."
+    },
+    {
+      "id": "API-005",
+      "file": "backend/controllers/promptController.js",
+      "status": "fixed",
+      "note": "likePrompt: atomik toggle — Prompt.exists() bilan holatni aniqlab, $pull+$inc:-1 yoki $addToSet+$inc:+1 (findByIdAndUpdate new:true). Lost-update race bartaraf etildi. Javob shakli saqlangan: {success, liked, likesCount}. 404 guard updated==null holati uchun qo'shildi."
+    },
+    {
+      "id": "API-006",
+      "file": "backend/controllers/promptController.js",
+      "status": "fixed",
+      "note": "getPrompt (GET /:id) endi read-only: Prompt.findById(...).populate(...).lean() — viewsCount $inc OLIB TASHLANDI. View inkrement faqat POST /:id/view (viewPrompt) da qoladi. Double view-count bartaraf etildi. Javob shakli {success, data} saqlangan."
+    }
+  ],
+  "node_check": "pass",
+  "summary": "3/3 fix qo'llandi. xpController.addVideoWatchXP atomik XP $inc (idempotentlik skipped — sxema noaniq). promptController.likePrompt atomik toggle, getPrompt read-only .lean() (view double-count bartaraf). node --check ikkala faylda ham pass."
+}

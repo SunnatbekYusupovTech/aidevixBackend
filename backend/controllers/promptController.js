@@ -19,15 +19,18 @@ const getPrompts = async (req, res) => {
       views: { viewsCount: -1 },
     };
 
+    const lim = Math.min(Math.max(1, parseInt(limit) || 20), 100);
+    const pg = Math.max(1, parseInt(page) || 1);
+
     const prompts = await Prompt.find(filter)
       .populate('author', 'username firstName avatar aiStack')
       .sort(sortMap[sort] || sortMap.newest)
-      .skip((+page - 1) * +limit)
-      .limit(+limit);
+      .skip((pg - 1) * lim)
+      .limit(lim);
 
     const total = await Prompt.countDocuments(filter);
 
-    res.json({ success: true, data: { prompts, total, page: +page, pages: Math.ceil(total / +limit) } });
+    res.json({ success: true, data: { prompts, total, page: pg, pages: Math.ceil(total / lim) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -165,11 +168,10 @@ const unsavePrompt = async (req, res) => {
 /** @route GET /api/prompts/:id | @access Public */
 const getPrompt = async (req, res) => {
   try {
-    const prompt = await Prompt.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { viewsCount: 1 } },
-      { new: true }
-    ).populate('author', 'username firstName avatar aiStack rankTitle');
+    // GET idempotent/xavfsiz — view inkrement faqat POST /:id/view (viewPrompt) da.
+    const prompt = await Prompt.findById(req.params.id)
+      .populate('author', 'username firstName avatar aiStack rankTitle')
+      .lean();
 
     if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
     res.json({ success: true, data: prompt });
@@ -208,7 +210,8 @@ const createPrompt = async (req, res) => {
     // Prompt yaratgani uchun XP +30
     await UserStats.findOneAndUpdate(
       { userId: req.user._id },
-      { $inc: { xp: 30, weeklyXp: 30 } }
+      { $inc: { xp: 30, weeklyXp: 30 } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     await prompt.populate('author', 'username firstName avatar');
@@ -221,22 +224,26 @@ const createPrompt = async (req, res) => {
 /** @route POST /api/prompts/:id/like | @access Private */
 const likePrompt = async (req, res) => {
   try {
-    const prompt = await Prompt.findById(req.params.id);
-    if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
-
-    const userId = req.user._id.toString();
-    const alreadyLiked = prompt.likes.some(id => id.toString() === userId);
-
-    if (alreadyLiked) {
-      prompt.likes = prompt.likes.filter(id => id.toString() !== userId);
-      prompt.likesCount = Math.max(0, prompt.likesCount - 1);
+    const id = req.params.id;
+    // Atomik toggle (lost-update race fix): load-modify-save o'rniga $addToSet/$pull + $inc
+    const already = await Prompt.exists({ _id: id, likes: req.user._id });
+    let updated;
+    if (already) {
+      updated = await Prompt.findByIdAndUpdate(
+        id,
+        { $pull: { likes: req.user._id }, $inc: { likesCount: -1 } },
+        { new: true }
+      );
     } else {
-      prompt.likes.push(req.user._id);
-      prompt.likesCount += 1;
+      updated = await Prompt.findByIdAndUpdate(
+        id,
+        { $addToSet: { likes: req.user._id }, $inc: { likesCount: 1 } },
+        { new: true }
+      );
     }
 
-    await prompt.save();
-    res.json({ success: true, liked: !alreadyLiked, likesCount: prompt.likesCount });
+    if (!updated) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
+    res.json({ success: true, liked: !already, likesCount: updated.likesCount });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

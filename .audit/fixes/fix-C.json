@@ -1,0 +1,62 @@
+{
+  "agent": "FIX-C",
+  "file": "backend/controllers/adminController.js",
+  "syntaxCheck": "node --check PASS",
+  "fixes": [
+    {
+      "id": "BQ-016",
+      "fn": "updateUser",
+      "status": "fixed",
+      "detail": "Added isValidId(req.params.id) guard (400 on invalid). Added runValidators:true to findByIdAndUpdate options so role enum is enforced (bypass closed)."
+    },
+    {
+      "id": "BQ-017",
+      "fn": "deleteUser",
+      "status": "fixed",
+      "detail": "Added isValidId(req.params.id) guard at start (400 on invalid)."
+    },
+    {
+      "id": "BQ-017",
+      "fn": "getUserDetail",
+      "status": "fixed",
+      "detail": "Added isValidId(req.params.id) guard at start (400 on invalid)."
+    },
+    {
+      "id": "BQ-017",
+      "fn": "getCourseEnrollmentStats",
+      "status": "fixed",
+      "detail": "Param name is 'id' (route /courses/:id/enrollments). Added isValidId(req.params.id) guard at start (400 on invalid)."
+    },
+    {
+      "id": "BQ-018/PERF-004",
+      "fn": "reorderVideos",
+      "status": "fixed",
+      "detail": "Replaced Promise.all of N findByIdAndUpdate with single Video.bulkWrite (updateOne $set order). Video model already required at top."
+    },
+    {
+      "id": "BQ-018",
+      "fn": "bulkLinkBunny",
+      "status": "fixed",
+      "detail": "Fixed failed index bug: previously map index over filtered array gave wrong index. Now map original results with idx, filter rejected, emit original index + videoId from links[idx]."
+    },
+    {
+      "id": "BQ-023",
+      "fn": "sendTelegramMessage",
+      "status": "fixed",
+      "detail": "Added parseMode whitelist VALID_PARSE=['HTML','MarkdownV2','Markdown'] -> fallback 'HTML'. Added 4096-char length cap (400 if exceeded)."
+    },
+    {
+      "id": "PERF-006/PERF-008",
+      "fn": "getTopStudents,getCoursesStats,getRecentPayments,getUsers,getUserDetail,getCourseEnrollmentStats",
+      "status": "fixed",
+      "detail": "Added .lean() to read-only find/populate queries. getRecentPayments: find() + countDocuments() now run in parallel via Promise.all."
+    }
+  ],
+  "alreadyFixed": [
+    "adminUpdateChallenge: isValidId + runValidators already present",
+    "adminDeleteChallenge: isValidId already present",
+    "updatePayment: isValidId already present",
+    "getAllEnrollments: already uses .lean() and aggregation",
+    "adminListChallenges: already uses .lean()"
+  ]
+}

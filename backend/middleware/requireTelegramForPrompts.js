@@ -20,6 +20,13 @@ const requireTelegramForPromptsRead = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user._id).select('socialSubscriptions role');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        code: 'AUTH_REQUIRED',
+        message: 'Tizimga kiring.',
+      });
+    }
     const { instagramSubscribed, telegramSubscribed, changed } = await performSubscriptionCheck(user);
     if (changed) await user.save();
 
@@ -38,7 +45,8 @@ const requireTelegramForPromptsRead = async (req, res, next) => {
 
     next();
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message || 'Server xatosi' });
+    console.error('[prompt-sub-check]', err);
+    return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 

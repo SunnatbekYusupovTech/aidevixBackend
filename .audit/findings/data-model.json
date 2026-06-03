@@ -1,0 +1,139 @@
+{
+  "role": "data-model",
+  "score": 7,
+  "partial": false,
+  "files_reviewed": [
+    "backend/models/User.js",
+    "backend/models/Prompt.js",
+    "backend/models/Payment.js",
+    "backend/models/Session.js",
+    "backend/models/Enrollment.js",
+    "backend/models/UserStats.js",
+    "backend/models/Course.js",
+    "backend/models/Certificate.js"
+  ],
+  "findings": [
+    {
+      "id": "DM-001",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "Prompt.likes — cheksiz o'suvchi embedded array (unbounded)",
+      "file": "backend/models/Prompt.js",
+      "line": 36,
+      "description": "`likes` har bir like uchun ObjectId push qiladi. Mashhur prompt minglab like olsa, document 16MB BSON limitiga yaqinlashadi va har query/serializatsiyada butun massiv yuklanadi (xotira + tarmoq yuki). `likesCount` alohida saqlanadi, lekin like-membership tekshirish uchun `likes` to'liq o'qiladi.",
+      "fix": "Like'larni alohida `PromptLike` collection'ga ko'chiring (`{promptId,userId}` unique compound index), prompt'da faqat `likesCount` qoldiring. Toggle uchun alohida hujjat upsert/delete + atomik `$inc likesCount`.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-002",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Payment.providerResponse / providerData — Mixed type sanitatsiyasiz saqlanadi",
+      "file": "backend/models/Payment.js",
+      "line": 42,
+      "description": "`providerResponse` va `providerData` `Schema.Types.Mixed` — Payme/Click webhook'dan kelgan to'liq javob to'g'ridan-to'g'ri saqlanadi. Tashqi payload ichida `$`/`.`/`__proto__` kalitlari bo'lsa prototype-pollution / operator-injection xavfi (ayniqsa keyin bu obyektdan field bilan boshqa query qurilsa). Mixed schema validatsiyadan o'tmaydi.",
+      "fix": "Webhook payload'ni saqlashdan oldin kerakli maydonlarni pluck qiling yoki `JSON.parse(JSON.stringify(...))` orqali tozalang. Mumkin bo'lsa Mixed o'rniga aniq sub-schema.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-003",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "User.knownDevices — cheksiz o'suvchi array (cap yo'q)",
+      "file": "backend/models/User.js",
+      "line": 76,
+      "description": "`knownDevices` device fingerprint hash'larini saqlaydi, lekin `passwordHistory` (5 cap) va `totpBackupCodes` (10 fixed)dan farqli ravishda cap yo'q. Har yangi qurilma/IP-/24 dan login bo'lsa massiv cheksiz o'sib boraveradi.",
+      "fix": "knownDevices'ni so'nggi N (10-20) qurilma bilan cheklang — qo'shishda `slice(0,N)` yoki `$push` + `$slice` modifikatori.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-004",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Enrollment.watchedVideos — cheksiz o'suvchi embedded array; dedupe kafolati yo'q",
+      "file": "backend/models/Enrollment.js",
+      "line": 39,
+      "description": "`watchedVideos` har watch eventida o'sadigan embedded massiv. Schema darajasida videoId-unique kafolati yo'q — markVideoWatched logikasi atomik bo'lmasa bir videoni ikki marta push qilib progressPercent buzilishi mumkin. Katta kurslarda + qayta ko'rishlarda document kattalashadi.",
+      "fix": "videoId bo'yicha dedupe'ni atomik `$addToSet`/upsert bilan ta'minlang yoki watch-progress'ni alohida collection'ga (`{enrollmentId,videoId}` unique) ajrating.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-005",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Payment — providerTransactionId / clickTransId unique constraint yo'q (idempotency)",
+      "file": "backend/models/Payment.js",
+      "line": 77,
+      "description": "`providerTransactionId` (77) va `clickTransId` (79) faqat sparse non-unique index. To'lov provayderlari webhook'ni qayta yuborishi mumkin (retry). Unique constraint bo'lmasa bir tranzaksiya uchun ikki Payment yozuvi yoki ikki marta enrollment/proSubscription grant xavfi bor. Idempotency model darajasida emas, faqat controller logikasiga tayanadi.",
+      "fix": "`providerTransactionId` va `clickTransId` index'larini `unique:true, sparse:true` qiling (yoki `{provider, providerTransactionId}` compound unique). Webhook qayta-ishlovga qarshi himoyani DB darajasida bering.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-006",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "Course.title / description — required, lekin maxlength yo'q (unbounded string)",
+      "file": "backend/models/Course.js",
+      "line": 9,
+      "description": "`title` (4) va `description` (9) required, ammo maxlength yo'q. Admin yoki buzilgan endpoint orqali ixtiyoriy katta string saqlash mumkin — document bloat + list-query payload kattalashadi. Prompt'da bu field'lar cheklangan (150/5000), Course'da yo'q.",
+      "fix": "Course.title (~200) va description (~5000) ga maxlength qo'shing.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-007",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Prompt.tags / UserStats.skills — array uzunligi cheklanmagan",
+      "file": "backend/models/Prompt.js",
+      "line": 30,
+      "description": "`Prompt.tags` har bir tag'ni 30 belgi bilan cheklaydi, lekin ARRAY uzunligi cheklanmagan (minglab tag bilan DoS). UserStats.skills va reactionHistory ham uzunlik cap'siz. likes bilan birga bular document'ni shishiradi.",
+      "fix": "tags array'iga validator (len <= 10) va skills'ga ham cap qo'shing.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-008",
+      "severity": "suggestion",
+      "confidence": 0.8,
+      "title": "Cascade / orphan himoyasi yo'q — Course/User o'chirilganda dangling ref'lar qoladi",
+      "file": "backend/models/Enrollment.js",
+      "line": 13,
+      "description": "Hech bir model'da pre/post-remove hook yo'q. Course o'chirilsa (Course'da soft-delete yo'q) bog'liq Enrollment, Certificate, Payment, CourseRating, Wishlist orphan bo'ladi; populate null qaytaradi va populated obyekt kutgan kod buziladi. User soft-delete (deletedAt) bilan himoyalangan, lekin Course/Enrollment/Certificate'da bunday pattern yo'q.",
+      "fix": "Course uchun soft-delete (isActive=false) pattern'ini doimiy ishlating yoki deleteCourse controller'ida bog'liq Enrollment/Certificate/Payment/Rating/Wishlist'ni cascade tozalang (yoki model post('findOneAndDelete') hook).",
+      "snippet": ""
+    },
+    {
+      "id": "DM-009",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Denormallashtirilgan counter'lar atomik bo'lmasligi mumkin (drift)",
+      "file": "backend/models/Prompt.js",
+      "line": 37,
+      "description": "`likesCount`/`viewsCount` (Prompt), `viewCount`/`studentsCount`/`ratingCount`/`rating` (Course), `referralsCount` (User) denormallashtirilgan. Agar controller `doc.count++; save()` (read-modify-write) ishlatsa concurrent so'rovlarda lost-update bo'ladi va manba massiv/collection bilan drift qiladi. likesCount/viewsCount/referralsCount'da `min:0` ham yo'q (manfiy bo'lib qolishi mumkin).",
+      "fix": "Counter increment'larni atomik `findByIdAndUpdate(id,{$inc:{...}})` bilan qiling, manbani mutatsiya qilgan operatsiya ichida. Counter field'lariga `min:0` qo'shing. Davriy reconcile job.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-010",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "User.telegramUserId / socialSubscriptions.telegram.telegramUserId — index yo'q",
+      "file": "backend/models/User.js",
+      "line": 197,
+      "description": "Bot/subscription oqimida user telegramUserId bo'yicha izlanadi (`findOne({telegramUserId})`), lekin bu field index'siz. Foydalanuvchilar soni o'sganda collection scan. Mavjud index'lar: role, createdAt, isActive, {email,isActive}, xp, googleId — telegram lookup yo'q.",
+      "fix": "`userSchema.index({ telegramUserId:1 }, { sparse:true })` qo'shing. Bot referredBy bo'yicha query qilsa {referredBy:1} ham qo'shing.",
+      "snippet": ""
+    },
+    {
+      "id": "DM-011",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "Certificate.certificateCode format validatsiyasi yo'q; leaderboard uchun {isActive,xp} compound yo'q",
+      "file": "backend/models/Certificate.js",
+      "line": 23,
+      "description": "certificateCode `unique:true` (to'g'ri, qo'shimcha index kerak emas — kommen line 58 to'g'ri), lekin maxlength yoki format match (`/^[A-Z0-9-]+$/`) yo'q. Bog'liq kuzatuv: User.js leaderboard `find({isActive:true}).sort({xp:-1})` uchun standalone {xp:-1} filter+sort qiladi — {isActive:1, xp:-1} compound samaraliroq bo'lardi.",
+      "fix": "certificateCode'ga maxlength + match pattern qo'shing. Leaderboard hot-path bo'lsa User'ga {isActive:1, xp:-1} compound index qo'shing.",
+      "snippet": ""
+    }
+  ],
+  "summary": "8 model (User, Prompt, Payment, Session, Enrollment, UserStats, Course, Certificate) umuman yaxshi tuzilgan: timestamps hamma joyda, sezgir field'lar (password, refreshToken, tokenVersion, totpSecret, passwordHistory, kodlar, Session.refreshTokenHash) to'g'ri select:false, password pre-save hook tokenVersion-load guard bilan to'g'ri, passwordHistory(5)/totpBackupCodes(10) cap'langan, Session.absoluteExpiresAt TTL index bor, duplicate-index collision'lar (referralCode/certificateCode komment'lari) ongli ravishda oldini olingan, asosiy compound unique index'lar (Enrollment userId+courseId, Certificate userId+courseId) o'rnida. Eng yuqori xavflar: (1) cheksiz embedded array'lar — Prompt.likes [DM-001], User.knownDevices [DM-003], Enrollment.watchedVideos [DM-004] 16MB doc cap va lost-update xavfi; (2) Payment Mixed payload sanitatsiyasiz [DM-002] va providerTransactionId idempotency-unique yo'qligi [DM-005] webhook-replay double-credit'ga olib kelishi mumkin; (3) Course string'lari va tags/skills array'lari cap'siz [DM-006/007]; (4) cascade/orphan himoyasi yo'q [DM-008]. Critical schema-buzilishi topilmadi — score 7/10. Eng muhim ish: DM-005 (to'lov idempotency) va DM-001/DM-004 (membership'ni alohida collection'ga ajratish)."
+}

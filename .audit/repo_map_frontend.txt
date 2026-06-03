@@ -1,0 +1,147 @@
+frontend/src/api/adminApi.ts:5:export function unwrapAdmin<T>(res: AxiosResponse<{ success?: boolean; data: T }>): T {
+frontend/src/api/adminApi.ts:10:export const getDashboardStats  = ()       => axiosInstance.get('admin/stats')
+frontend/src/api/adminApi.ts:11:export const getTopStudents     = ()       => axiosInstance.get('admin/top-students')
+frontend/src/api/adminApi.ts:12:export const getCoursesStats    = ()       => axiosInstance.get('admin/courses/stats')
+frontend/src/api/adminApi.ts:13:export const getRecentPayments  = (params) => axiosInstance.get('admin/payments', { params })
+frontend/src/api/adminApi.ts:16:export const getUsers    = (params)      => axiosInstance.get('admin/users', { params })
+frontend/src/api/adminApi.ts:17:export const updateUser  = (id, data)    => axiosInstance.put(`admin/users/${id}`, data)
+frontend/src/api/adminApi.ts:18:export const deleteUser  = (id)          => axiosInstance.delete(`admin/users/${id}`)
+frontend/src/api/adminApi.ts:21:export const getAllCourses  = (params)   => axiosInstance.get('courses', { params })
+frontend/src/api/adminApi.ts:22:export const getCourseById = (id)        => axiosInstance.get(`courses/${id}`)
+frontend/src/api/adminApi.ts:23:export const createCourse  = (data)      => axiosInstance.post('courses', data)
+frontend/src/api/adminApi.ts:24:export const updateCourse  = (id, data)  => axiosInstance.put(`courses/${id}`, data)
+frontend/src/api/adminApi.ts:25:export const deleteCourse  = (id)        => axiosInstance.delete(`courses/${id}`)
+frontend/src/api/adminApi.ts:28:export const getCourseVideos       = (courseId)          => axiosInstance.get(`videos/course/${courseId}`)
+frontend/src/api/adminApi.ts:29:export const createVideo           = (data)              => axiosInstance.post('videos', data)
+frontend/src/api/adminApi.ts:30:export const updateVideo           = (id, data)          => axiosInstance.put(`videos/${id}`, data)
+frontend/src/api/adminApi.ts:31:export const deleteVideo           = (id)                => axiosInstance.delete(`videos/${id}`)
+frontend/src/api/adminApi.ts:32:export const getUploadCredentials  = (id)                => axiosInstance.get(`videos/${id}/upload-credentials`)
+frontend/src/api/adminApi.ts:33:export const getVideoStatus        = (id)                => axiosInstance.get(`videos/${id}/status`)
+frontend/src/api/adminApi.ts:34:export const linkVideoToBunny      = (id, bunnyVideoId)  => axiosInstance.patch(`videos/${id}/link-bunny`, { bunnyVideoId })
+frontend/src/api/adminApi.ts:37:export const getUserDetail = (id: string) => axiosInstance.get(`admin/users/${id}`)
+frontend/src/api/adminApi.ts:40:export const getAnalytics = () => axiosInstance.get('admin/analytics')
+frontend/src/api/adminApi.ts:43:export const globalSearch = (q: string) => axiosInstance.get('admin/search', { params: { q } })
+frontend/src/api/adminApi.ts:46:export const getCourseEnrollmentStats = (courseId: string) =>
+frontend/src/api/adminApi.ts:50:export const sendTelegramMessage = (message: string, parseMode?: string) =>
+frontend/src/api/adminApi.ts:54:export const bulkLinkBunny = (links: { videoId: string; bunnyVideoId: string }[]) =>
+frontend/src/api/adminApi.ts:58:export const reorderVideos = (videos: { id: string; order: number }[]) =>
+frontend/src/api/adminApi.ts:62:export const uploadThumbnail = (courseId: string, file: File) => {
+frontend/src/api/adminApi.ts:71:export const createDailyChallenge = (body: {
+frontend/src/api/adminApi.ts:81:export const getAiNewsAdmin = () => axiosInstance.get('admin/ai-news')
+frontend/src/api/adminApi.ts:82:export const createAiNewsAdmin = (body: {
+frontend/src/api/adminApi.ts:94:export const updateAiNewsAdmin = (id: string, body: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:96:export const deleteAiNewsAdmin = (id: string) => axiosInstance.delete(`admin/ai-news/${id}`)
+frontend/src/api/adminApi.ts:99:export const getPromoCodes = (params?: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:101:export const createPromoCode = (body: {
+frontend/src/api/adminApi.ts:110:export const updatePromoCode = (id: string, body: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:112:export const deletePromoCode = (id: string) => axiosInstance.delete(`admin/promos/${id}`)
+frontend/src/api/adminApi.ts:115:export const getAllEnrollments = (params?: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:119:export const awardXpToUser = (id: string, xp: number, reason?: string) =>
+frontend/src/api/adminApi.ts:123:export const updatePaymentStatus = (
+frontend/src/api/adminApi.ts:130:export const getAdminPrompts = (params?: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:132:export const setPromptVisibility = (id: string, isPublic: boolean) =>
+frontend/src/api/adminApi.ts:134:export const featurePromptAdmin = (id: string, featured: boolean) =>
+frontend/src/api/adminApi.ts:136:export const deletePromptAdmin = (id: string) =>
+frontend/src/api/adminApi.ts:140:export const getAdminChallenges = (params?: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:142:export const updateChallenge = (id: string, body: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:144:export const deleteChallenge = (id: string) =>
+frontend/src/api/adminApi.ts:148:export const getAdminBugReports = (params?: Record<string, unknown>) =>
+frontend/src/api/adminApi.ts:150:export const reviewBugReport = (
+frontend/src/api/authApi.ts:3:export const authApi = {
+frontend/src/api/axiosInstance.ts:13:export const setCsrfToken = (token: string | null | undefined) => {
+frontend/src/api/axiosInstance.ts:19:const readCsrfFromCookie = (): string | null => {
+frontend/src/api/axiosInstance.ts:29:const getCsrfToken = (): string | null => csrfTokenInMemory || readCsrfFromCookie()
+frontend/src/api/axiosInstance.ts:31:const fetchCsrfToken = async (): Promise<string | null> => {
+frontend/src/api/axiosInstance.ts:51:export const primeCsrfToken = (): void => {
+frontend/src/api/bugReportApi.ts:3:export interface BugReportMine {
+frontend/src/api/bugReportApi.ts:13:export const bugReportApi = {
+frontend/src/api/contactApi.ts:3:export const contactApi = {
+frontend/src/api/courseApi.ts:3:export const courseApi = {
+frontend/src/api/forgotPasswordApi.ts:3:export const forgotPasswordApi = {
+frontend/src/api/jobApi.ts:3:export const jobApi = {
+frontend/src/api/mentorshipApi.ts:3:export const mentorshipApi = {
+frontend/src/api/playgroundApi.ts:3:export type PlaygroundIssue = {
+frontend/src/api/playgroundApi.ts:10:export type PlaygroundReview = {
+frontend/src/api/playgroundApi.ts:22:export const playgroundApi = {
+frontend/src/api/promptApi.ts:3:export interface Prompt {
+frontend/src/api/promptApi.ts:20:export interface PromptsResponse {
+frontend/src/api/promptApi.ts:27:export const promptApi = {
+frontend/src/api/rankingApi.ts:8:export const rankingApi = {
+frontend/src/api/sessionApi.ts:3:export type SessionInfo = {
+frontend/src/api/sessionApi.ts:13:export const sessionApi = {
+frontend/src/api/subscriptionApi.ts:3:export const subscriptionApi = {
+frontend/src/api/teamApi.ts:3:export const teamApi = {
+frontend/src/api/uploadApi.ts:3:export const uploadApi = {
+frontend/src/api/userApi.ts:9:export const userApi = {
+frontend/src/api/videoApi.ts:3:export const videoApi = {
+frontend/src/store/index.ts:31:export const getState  = store.getState
+frontend/src/store/index.ts:32:export const dispatch  = store.dispatch
+frontend/src/store/slices/authSlice.ts:7:export const register = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:26:export const login = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:52:export const googleAuth = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:69:export const verify2FALogin = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:83:export const logout = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:96:export const checkAuthStatus = createAsyncThunk(
+frontend/src/store/slices/authSlice.ts:209:export const selectUser      = (state) => state.auth.user
+frontend/src/store/slices/authSlice.ts:210:export const selectIsLoggedIn = (state) => state.auth.isLoggedIn
+frontend/src/store/slices/authSlice.ts:211:export const selectAuthLoading = (state) => state.auth.loading
+frontend/src/store/slices/authSlice.ts:212:export const selectAuthError  = (state) => state.auth.error
+frontend/src/store/slices/authSlice.ts:213:export const selectIsAdmin    = (state) => state.auth.user?.role === 'admin'
+frontend/src/store/slices/authSlice.ts:214:export const selectPending2FA = (state) => state.auth.pending2FA
+frontend/src/store/slices/authSlice.ts:215:export const selectPendingEmailVerification = (state) => state.auth.pendingEmailVerification
+frontend/src/store/slices/courseSlice.ts:6:export const fetchCourses = createAsyncThunk(
+frontend/src/store/slices/courseSlice.ts:18:export const fetchCourseById = createAsyncThunk(
+frontend/src/store/slices/courseSlice.ts:30:export const fetchTopCourses = createAsyncThunk(
+frontend/src/store/slices/courseSlice.ts:114:export const selectCourses    = (state) => state.courses.list
+frontend/src/store/slices/courseSlice.ts:115:export const selectTopCourses = (state) => state.courses.topCourses
+frontend/src/store/slices/courseSlice.ts:116:export const selectCurrent    = (state) => state.courses.current
+frontend/src/store/slices/courseSlice.ts:117:export const selectFilters    = (state) => state.courses.filters
+frontend/src/store/slices/courseSlice.ts:118:export const selectCoursesLoading = (state) => state.courses.loading
+frontend/src/store/slices/courseSlice.ts:119:export const selectCoursesTotal   = (state) => state.courses.total
+frontend/src/store/slices/courseSlice.ts:120:export const selectCoursesPages   = (state) => state.courses.pages
+frontend/src/store/slices/rankingSlice.ts:14:export const fetchTopCourses = createAsyncThunk(
+frontend/src/store/slices/rankingSlice.ts:29:export const fetchTopUsers = createAsyncThunk(
+frontend/src/store/slices/rankingSlice.ts:102:export const selectTopCourses = (state) => state.ranking.topCourses
+frontend/src/store/slices/rankingSlice.ts:103:export const selectCoursesLoading = (state) => state.ranking.coursesLoading
+frontend/src/store/slices/rankingSlice.ts:104:export const selectTopUsers = (state) => state.ranking.topUsers
+frontend/src/store/slices/rankingSlice.ts:105:export const selectUsersLoading = (state) => state.ranking.usersLoading
+frontend/src/store/slices/rankingSlice.ts:106:export const selectUsersPagination = (state) => state.ranking.usersPagination
+frontend/src/store/slices/subscriptionSlice.ts:4:export const fetchSubscriptionStatus = createAsyncThunk(
+frontend/src/store/slices/subscriptionSlice.ts:16:export const verifyTelegram = createAsyncThunk(
+frontend/src/store/slices/subscriptionSlice.ts:28:export const verifyInstagram = createAsyncThunk(
+frontend/src/store/slices/subscriptionSlice.ts:106:export const selectTelegramSub  = (state) => state.subscription.telegram
+frontend/src/store/slices/subscriptionSlice.ts:107:export const selectInstagramSub = (state) => state.subscription.instagram
+frontend/src/store/slices/subscriptionSlice.ts:108:export const selectAllVerified  = (state) => state.subscription.allVerified
+frontend/src/store/slices/subscriptionSlice.ts:109:export const selectSubLoading   = (state) => state.subscription.loading
+frontend/src/store/slices/subscriptionSlice.ts:110:export const selectSubError     = (state) => state.subscription.error
+frontend/src/store/slices/userStatsSlice.ts:10:export const fetchUserStats = createAsyncThunk(
+frontend/src/store/slices/userStatsSlice.ts:22:export const submitQuizThunk = createAsyncThunk(
+frontend/src/store/slices/userStatsSlice.ts:34:export const updateProfileThunk = createAsyncThunk(
+frontend/src/store/slices/userStatsSlice.ts:123:export const selectUserStats = (state) => state.userStats
+frontend/src/store/slices/userStatsSlice.ts:124:export const selectXP = (state) => state.userStats.xp
+frontend/src/store/slices/userStatsSlice.ts:125:export const selectLevel = (state) => state.userStats.level
+frontend/src/store/slices/userStatsSlice.ts:126:export const selectStreak = (state) => state.userStats.streak
+frontend/src/store/slices/userStatsSlice.ts:127:export const selectJustLeveledUp = (state) => state.userStats.justLeveledUp
+frontend/src/store/slices/userStatsSlice.ts:128:export const selectQuizResult = (state) => state.userStats.quizResult
+frontend/src/store/slices/videoSlice.ts:6:export const fetchCourseVideos = createAsyncThunk(
+frontend/src/store/slices/videoSlice.ts:18:export const fetchVideo = createAsyncThunk(
+frontend/src/store/slices/videoSlice.ts:33:export const fetchTopVideos = createAsyncThunk(
+frontend/src/store/slices/videoSlice.ts:45:export const rateVideo = createAsyncThunk(
+frontend/src/store/slices/videoSlice.ts:57:export const useVideoLink = createAsyncThunk(
+frontend/src/store/slices/videoSlice.ts:138:export const selectCourseVideos = (state) => state.videos.courseVideos
+frontend/src/store/slices/videoSlice.ts:139:export const selectTopVideos    = (state) => state.videos.topVideos
+frontend/src/store/slices/videoSlice.ts:140:export const selectCurrentVideo = (state) => state.videos.current
+frontend/src/store/slices/videoSlice.ts:141:export const selectVideoLink    = (state) => state.videos.videoLink
+frontend/src/store/slices/videoSlice.ts:142:export const selectVideoPlayer  = (state) => state.videos.player
+frontend/src/store/slices/videoSlice.ts:143:export const selectVideoLoading = (state) => state.videos.loading
+frontend/src/store/slices/videoSlice.ts:144:export const selectVideoError   = (state) => state.videos.error
+frontend/src/store/slices/videoSlice.ts:145:export const selectRatings      = (state) => state.videos.ratings
+frontend/src/hooks/useAuth.ts:10:export function useAuth() {
+frontend/src/hooks/useCourses.ts:10:export function useCourses() {
+frontend/src/hooks/useCourses.ts:32:export function useCourse(id) {
+frontend/src/hooks/useRanking.ts:22:export const useTopCourses = (params = {}) => {
+frontend/src/hooks/useRanking.ts:38:export const useTopUsers = (params = {}) => {
+frontend/src/hooks/useSubscription.ts:9:export function useSubscription() {
+frontend/src/hooks/useUserStats.ts:20:export const useUserStats = () => {
+frontend/src/hooks/useVideos.ts:9:export function useVideos() {
+frontend/src/hooks/useVideos.ts:28:export function useVideo(id) {

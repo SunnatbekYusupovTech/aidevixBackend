@@ -1,0 +1,293 @@
+{
+  "role": "backend-quality",
+  "score": 6,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/xpController.js",
+    "backend/controllers/courseController.js",
+    "backend/controllers/videoController.js",
+    "backend/controllers/promptController.js",
+    "backend/controllers/rankingController.js",
+    "backend/controllers/subscriptionController.js",
+    "backend/controllers/adminController.js",
+    "backend/controllers/userController.js"
+  ],
+  "findings": [
+    {
+      "id": "BQ-001",
+      "severity": "critical",
+      "confidence": 0.95,
+      "title": "submitQuiz: javoblar validatsiyasi yo'q — answers undefined/non-array bo'lsa 500",
+      "file": "backend/controllers/xpController.js",
+      "line": 193,
+      "description": "req.body.answers tekshirilmaydi. answers undefined yoki array bo'lmasa `answers.map(...)` throw qiladi (500). Yana a.questionIndex chegaradan tashqarida bo'lsa question undefined — bu OK, lekin null index/manfiy index uchun himoya yo'q. Bu foydalanuvchi yuboradigan input — validatsiya majburiy.",
+      "fix": "submitQuiz boshida: `if (!Array.isArray(answers)) return res.status(400).json({ success:false, message:'answers massiv bo\\'lishi kerak' });`. quizId uchun ham mongoose.Types.ObjectId.isValid tekshiruvi qo'shing (CastError → 500 o'rniga 404/400).",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-002",
+      "severity": "critical",
+      "confidence": 0.9,
+      "title": "XP double-award / race condition: read-modify-write naqshi atomik emas",
+      "file": "backend/controllers/xpController.js",
+      "line": 104,
+      "description": "addVideoWatchXP va submitQuiz `stats.xp += X; await stats.save()` naqshini ishlatadi (read-modify-write). Bir foydalanuvchi tez-tez ikki marta so'rov yuborsa (double-click yoki parallel request), ikkala handler ham eski xp ni o'qib, bittasi yutqaziladi YOKI streak/videosWatched ikki marta hisoblanadi. addVideoWatchXP da hech qanday idempotency (videoId bo'yicha takror tekshiruv) yo'q — bir video uchun cheksiz marta +50 XP olish mumkin. submitQuiz da QuizResult unique guard bor (yaxshi), lekin video XP da yo'q.",
+      "fix": "addVideoWatchXP da $inc atomik update ishlating: `UserStats.findOneAndUpdate({userId},{ $inc:{xp:50,weeklyXp:50,videosWatched:1} },{new:true,upsert:true})`. Idempotency uchun ko'rilgan videolar ro'yxatini (watchedVideos set) saqlab, takror XP bermang yoki Enrollment progress bilan bog'lang.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-003",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "getAllCourses: pagination limit clamp yo'q — DoS (cheksiz limit)",
+      "file": "backend/controllers/courseController.js",
+      "line": 45,
+      "description": "limit query'dan to'g'ridan-to'g'ri parseInt(limit) sifatida ishlatiladi, yuqori chegara yo'q. ?limit=100000 yuborilsa butun kolleksiya populate bilan tortiladi. page ham clamp qilinmagan (manfiy page → manfiy skip). parseInt natijasi NaN bo'lsa (limit=abc) skip=NaN, Math.ceil(total/NaN)=NaN.",
+      "fix": "`const lim = Math.min(Math.max(1, parseInt(limit)||12), 50); const pg = Math.max(1, parseInt(page)||1); const skip=(pg-1)*lim;` va hamma joyda lim/pg ishlating.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-004",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "getTopCourses / getTopVideos / getRecommendedCourses: limit clamp yo'q",
+      "file": "backend/controllers/courseController.js",
+      "line": 82,
+      "description": "courseController.getTopCourses (line 82), getRecommendedCourses (line 175), videoController.getTopVideos (line 687), rankingController.getTopCourses (line 27), getTopUsers (line 58), promptController.getPrompts (line 9, +limit clamp yo'q) — barchasida parseInt(limit) yuqori chegarasiz. Cheksiz limit DoS xavfi.",
+      "fix": "Har birida Math.min(parseInt(limit)||default, MAX) qo'llang (MAX=20-50). promptController.getPrompts da `+limit` ni `Math.min(Math.max(1,+limit||20),100)` ga o'zgartiring.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-005",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "updateProfile: User.save() runValidators ishlatmaydi, lekin .save() default validatorlarni ishlatadi — aiStack enum tekshiruvi",
+      "file": "backend/controllers/xpController.js",
+      "line": 334,
+      "description": "aiStack to'g'ridan-to'g'ri req.body.aiStack dan olinadi va saqlanadi. .save() schema validatorlarini ishlatadi (enum), lekin agar aiStack array emas (masalan string) bo'lsa noaniq xato. skills, bio uchun ham uzunlik/tur tekshiruvi yo'q. Bu input sanitizatsiya yetishmasligi.",
+      "fix": "aiStack uchun `Array.isArray` tekshiruvi va element enum filtri qo'shing. skills/bio uchun uzunlik cheklovi (.slice/maxlength).",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-006",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "getVideo / useVideoLink / getQuizByVideo / askQuestion: ObjectId validatsiya yo'q — CastError → 500",
+      "file": "backend/controllers/videoController.js",
+      "line": 46,
+      "description": "videoController.getVideo (line 46), getCourseVideos (line 21, courseId), askQuestion (line 385), getVideoQuestions (line 416), upvote/answer/markBest, subscriptionController hech yerda ID validatsiya qilmaydi. Yaroqsiz ID kelganda Mongoose CastError → errorMiddleware uni 500 qilib qaytaradi (404 emas). xpController.submitQuiz (quizId), getQuizByVideo (videoId), rankingController.getUserPosition (userId), getUserDetail/updateUser/deleteUser ba'zilarida bor ba'zilarida yo'q — izchillik yo'q. Admin controllerda isValidId helper bor lekin getUserDetail/updateUser/deleteUser/getRecentPayments-dagi userId/courseId populate ID larida ishlatilmagan.",
+      "fix": "Har bir :id/:videoId/:userId param ishlatiladigan handlerda mongoose.Types.ObjectId.isValid(id) tekshiruvini qo'shing yoki route darajasida validateObjectId middleware'ni qo'llang (CLAUDE.md da courseRoutes uchun mavjud — videoRoutes/xpRoutes/rankingRoutes ga ham qo'llang).",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-007",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "useVideoLink: subscriptionCheck uchun fetch qilingan user save'da to'liq doc — performSubscriptionCheck null user bilan crash xavfi",
+      "file": "backend/controllers/videoController.js",
+      "line": 167,
+      "description": "User.findById(req.user._id) null qaytarsa (user o'chirilgan, lekin token hali amal qiladi), performSubscriptionCheck(null) va keyin user.save() throw qiladi → 500. Auth middleware odatda buni oldini oladi, lekin defensive guard yo'q.",
+      "fix": "`if (!user) return res.status(401).json({success:false,message:'User topilmadi'});` performSubscriptionCheck chaqiruvidan oldin.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-008",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "getVideo: viewCount inc fire-and-forget .exec() catch yo'q — unhandledRejection",
+      "file": "backend/controllers/videoController.js",
+      "line": 95,
+      "description": "`Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }).exec();` — .catch() yo'q. DB xatosi unhandledRejection beradi. courseController.getCourse da bu to'g'ri qilingan (.exec().catch(...)) — videoController izchilliq emas.",
+      "fix": "`.exec().catch((e)=>console.error('[video] viewCount inc:', e.message));` qo'shing.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-009",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "getTopUsers: category filter UserStats.skills regex orqali — ReDoS va noto'g'ri natija",
+      "file": "backend/controllers/rankingController.js",
+      "line": 65,
+      "description": "`{ skills: { $regex: new RegExp(category, 'i') } }` — category foydalanuvchi inputidan escape qilinmagan. Maxsus regex belgilari (`.*`, `(a+)+`) ReDoS yoki kutilmagan moslik beradi. Boshqa controllerlarda escapeRegex qo'llangan, bu yerda yo'q.",
+      "fix": "category ni escape qiling: `new RegExp(category.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&'),'i')` yoki to'g'ridan-to'g'ri massiv element tengligi `{ skills: category }`.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-010",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "getTopUsers / getTopCourses / getWeeklyLeaderboard: .lean() yo'q (faqat o'qish)",
+      "file": "backend/controllers/rankingController.js",
+      "line": 70,
+      "description": "rankingController.getTopUsers (line 70), getTopCourses (line 33), getUserPosition (line 120), xpController.getWeeklyLeaderboard (line 437), adminController.getTopStudents (line 49), getCoursesStats (line 72), getRecentPayments (line 89), getUsers (line 131 — .map keyin), videoController.getCourseVideos/getVideo/getTopVideos — read-only so'rovlarda .lean() yo'q. Mongoose hujjat hidratsiyasi keraksiz CPU/xotira (ayniqsa leaderboard tez-tez chaqiriladi).",
+      "fix": "Faqat o'qish va populate qilingan, keyin saqlanmaydigan so'rovlarga .lean() qo'shing. getUserStats kabi .save() qilinadigan joylarda QO'SHMANG.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-011",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "getUserPosition / getPublicProfile: total=0 bo'lsa topPercent NaN/Infinity",
+      "file": "backend/controllers/rankingController.js",
+      "line": 137,
+      "description": "rankingController.getUserPosition (line 137): `Math.round((rank / total) * 100)` — total=0 bo'lsa Infinity/NaN. userController.getPublicProfile (line 130) da bu to'g'ri tekshirilgan (totalUsers>0 ? ... : 100), lekin rankingController da emas.",
+      "fix": "`topPercent: total > 0 ? Math.round((rank/total)*100) : 100`",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-012",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "createPrompt: XP +30 UserStats.findOneAndUpdate upsert yo'q — stats yo'q userda XP berilmaydi",
+      "file": "backend/controllers/promptController.js",
+      "line": 209,
+      "description": "`UserStats.findOneAndUpdate({userId},{ $inc:{xp:30,weeklyXp:30} })` — upsert:true yo'q. Agar foydalanuvchining UserStats hujjati hali yaratilmagan bo'lsa (yangi user prompt yaratsa), update hech narsa qilmaydi va +30 XP yo'qoladi (jim). Yana User.xp mirror yangilanmaydi (xpController boshqa joyda ikkalasini sinxron qiladi).",
+      "fix": "`{ upsert:true, new:true, setDefaultsOnInsert:true }` qo'shing. Iloji bo'lsa awardXp util'ini ishlating (User mirror uchun).",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-013",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "getPrompt / viewPrompt: yaroqsiz ID CastError → 500; getPrompts $text search index talab qiladi",
+      "file": "backend/controllers/promptController.js",
+      "line": 168,
+      "description": "getPrompt (line 168), viewPrompt (line 184), likePrompt (line 224), savePrompt, deletePrompt, featurePrompt — req.params.id ObjectId validatsiya yo'q (adminSetPromptVisibility da bor, qolganlarda yo'q). CastError → 500. getPrompts (line 14) `$text` ishlatadi — Prompt model'da text index bo'lmasa so'rov xato beradi (500).",
+      "fix": "Har bir handlerda ObjectId.isValid tekshiruvi. getPrompts da text index mavjudligini tasdiqlang yoki regex search'ga o'ting.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-014",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "createVideo: course.videos.push + course.save() — Bunny xatosi yoki concurrent push race",
+      "file": "backend/controllers/videoController.js",
+      "line": 271,
+      "description": "createBunnyVideo() await qilinadi (yaxshi), lekin agar Video.create muvaffaqiyatli bo'lib, course.save() throw qilsa — Bunny slot va Video doc qoladi, course esa videoni ko'rsatmaydi (yetim ma'lumot, transaction yo'q). Bundan tashqari course.videos.push read-modify-write — bir vaqtda ikki video qo'shilsa biri yo'qolishi mumkin.",
+      "fix": "course.videos uchun atomik `Course.findByIdAndUpdate(courseId,{ $push:{videos:video._id} })` ishlating. Imkon bo'lsa Video+Course yangilanishini transaction (session) ichiga oling.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-015",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "updateVideo: runValidators yo'q (doc.save) hamda partial truthy tekshiruv title=''  ni rad etadi",
+      "file": "backend/controllers/videoController.js",
+      "line": 311,
+      "description": "`if (title) video.title = title;` — bo'sh string yoki order=0 to'g'ri ishlaydi (order undefined check bor), lekin title='' yangilanmaydi (truthy check). save() validatorlarni ishlatadi, lekin courseController.updateCourse findByIdAndUpdate da runValidators:true bor — videoController bu naqshda emas (izchillik yo'q, lekin save() bilan default validate ishlaydi, shu sabab kichik).",
+      "fix": "title uchun `if (title !== undefined) video.title = title;` izchillik uchun.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-016",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "updateUser (admin): runValidators yo'q — role enum tekshirilmaydi",
+      "file": "backend/controllers/adminController.js",
+      "line": 148,
+      "description": "`User.findByIdAndUpdate(id, update, { new: true })` — runValidators:true yo'q. role maydoniga ixtiyoriy qiymat (masalan 'superadmin') yozish mumkin, schema enum tekshirilmaydi. isValidId(req.params.id) ham tekshirilmagan → yaroqsiz ID CastError → 500. courseController.updateCourse va adminUpdateChallenge da runValidators bor, bu yerda yo'q.",
+      "fix": "`{ new:true, runValidators:true }` qo'shing va boshida `if(!isValidId(req.params.id)) return res.status(400)...`. role uchun VALID_ROLES whitelist tekshiruvi.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-017",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "deleteUser / getUserDetail / getRecentPayments: isValidId tekshiruvi yo'q",
+      "file": "backend/controllers/adminController.js",
+      "line": 165,
+      "description": "deleteUser (line 165), getUserDetail (line 187), getCourseEnrollmentStats (line 370) — isValidId helper mavjud bo'lsa-da, bu handlerlarda req.params.id tekshirilmaydi. Yaroqsiz ID → CastError → 500.",
+      "fix": "Har birining boshida `if(!isValidId(req.params.id)) return res.status(400).json({success:false,message:'Yaroqsiz ID'});`.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-018",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "reorderVideos / bulkLinkBunny: Promise.all/allSettled — ko'p hujjatli parallel update, failed index mismatch",
+      "file": "backend/controllers/adminController.js",
+      "line": 338,
+      "description": "bulkLinkBunny (line 338): `failed.map((r,i)=>({index:i...}))` — i bu yerda filterlangan massivdagi index, asl links massivdagi index emas. Xato qaysi linkda bo'lganini noto'g'ri ko'rsatadi. reorderVideos (line 362) Promise.all 500 tagacha parallel findByIdAndUpdate — DB connection pool zo'riqishi (bulkWrite yaxshiroq).",
+      "fix": "failed index uchun results.forEach((r,idx)=>...) bilan asl idx saqlang. reorderVideos uchun Video.bulkWrite(ops) ishlating.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-019",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "getUserStats: User va UserStats sinxronizatsiya naqshi har GET'da save() — yozish-og'ir read endpoint",
+      "file": "backend/controllers/xpController.js",
+      "line": 42,
+      "description": "getUserStats har chaqirilganda User va UserStats ni o'qiydi va nomuvofiqlik bo'lsa ikkalasini ham save() qiladi. Bu read endpoint bo'lib, har chaqiruvda potentsial 2 yozish — leaderboard/profil ochilganda yuk. XP ikki manbada (User.xp va UserStats.xp) saqlanishi arxitektura muammosi (single source of truth yo'q) — double-award/drift xavfi.",
+      "fix": "XP ni faqat UserStats da saqlang (single source). User.xp ni denormalize qilish kerak bo'lsa, faqat yozish vaqtida (awardXp util) atomik yangilang, read'da emas.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-020",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "getXPHistory: o'lik kod — har doim bo'sh massiv qaytaradi",
+      "file": "backend/controllers/xpController.js",
+      "line": 464,
+      "description": "getXPHistory XPTransaction model o'chirilgani uchun har doim `history=[]` qaytaradi. Frontend bu endpointni chaqirsa, foydasiz so'rov. O'lik kod / yo'qolgan funksionallik.",
+      "fix": "Yoki endpointni olib tashlang (route + frontend api), yoki XPTransaction modelini tiklab haqiqiy tarix qaytaring.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-021",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "getWeeklyPrizes: daysUntilSunday hisobi va Toshkent UTC offset qattiq kodlangan",
+      "file": "backend/controllers/rankingController.js",
+      "line": 191,
+      "description": "`setHours(19,0,0,0)` UTC bo'yicha Toshkent 00:00 deb taxmin qilingan, lekin server timezone UTC bo'lmasa noto'g'ri. now.getDay() server local timezone'ga bog'liq. DST yo'q O'zbekistonda OK, lekin server TZ noaniqligi xavf.",
+      "fix": "UTC metodlaridan foydalaning (getUTCDay, setUTCHours) yoki Toshkent uchun aniq TZ kutubxonasi (Intl/date-fns-tz).",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-022",
+      "severity": "suggestion",
+      "confidence": 0.55,
+      "title": "getPublicProfile: rank hisoblash countDocuments({xp:$gt}) — har profil ochilishida butun kolleksiya skani",
+      "file": "backend/controllers/userController.js",
+      "line": 71,
+      "description": "Har public profil ochilganda `UserStats.countDocuments({ xp: { $gt: stats.xp } })` ishga tushadi. Foydalanuvchilar ko'paygach va profil tez-tez ochilsa qimmat (xp index yo'q bo'lsa to'liq skan). Aynan shu naqsh getUserPosition (rankingController:126) da ham bor.",
+      "fix": "UserStats.xp ga index qo'shing (mavjud bo'lmasa). Yuqori trafik bo'lsa rank'ni periodik hisoblab keshlang.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-023",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "sendTelegramMessage: foydalanuvchi inputi parse_mode bilan to'g'ridan-to'g'ri Telegramga — HTML injection emas, lekin validatsiya yetishmaydi",
+      "file": "backend/controllers/adminController.js",
+      "line": 285,
+      "description": "parseMode req.body dan keladi, oq ro'yxat yo'q (faqat 'HTML'/'MarkdownV2' ruxsat etilishi kerak). Admin-only bo'lgani uchun xavf past, lekin noto'g'ri parseMode Telegram xatosini keltiradi. message uzunligi cheklanmagan (Telegram 4096 limit).",
+      "fix": "parseMode ni ['HTML','MarkdownV2','Markdown'] whitelist bilan tekshiring, message.length 4096 dan oshmasligini tekshiring.",
+      "auto_safe": true
+    },
+    {
+      "id": "BQ-024",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "getVideoQuestions: replies sanog'i to'liq emas — faqat joriy sahifadagi reply'lar ko'rinadi",
+      "file": "backend/controllers/videoController.js",
+      "line": 425,
+      "description": "Pagination questions (root+reply aralash) ustida ishlaydi, keyin client-side roots/replies ajratiladi. Agar root sahifa 1 da, lekin uning reply'lari boshqa sahifada bo'lsa — reply'lar ko'rsatilmaydi (off-by-page mantiq xatosi). total ham root+reply aralash sanaydi, foydalanuvchi uchun chalg'ituvchi.",
+      "fix": "Faqat root'larni paginate qiling (parentId:null filter), so'ng o'sha sahifadagi root'larning barcha reply'larini alohida so'rov bilan oling.",
+      "auto_safe": false
+    },
+    {
+      "id": "BQ-025",
+      "severity": "suggestion",
+      "confidence": 0.5,
+      "title": "courseController/promptController: require() funksiya ichida — har chaqiruvda module cache lookup",
+      "file": "backend/controllers/courseController.js",
+      "line": 344,
+      "description": "getUserRecommendedCourses ichida `const User = require('../models/User')` (line 344). adminController da ham axios/bunny/logger funksiya ichida require qilinadi. Module cache tufayli og'ir emas, lekin izchillik yo'q — fayl boshida import qilish toza.",
+      "fix": "Top-level import'ga ko'chiring (faylning boshqa joyida User boshqa nom bilan import qilinmaganini tekshiring).",
+      "auto_safe": true
+    }
+  ],
+  "summary": "8 ta controller tahlil qilindi. Eng jiddiy muammolar: (1) submitQuiz da foydalanuvchi answers inputi validatsiyasiz — undefined/non-array 500 beradi (BQ-001); (2) video XP read-modify-write atomik emas va idempotency yo'q — bir videodan cheksiz/takror XP olish va race condition mumkin (BQ-002, BQ-019); XP ikki manbada (User.xp + UserStats.xp) saqlanishi single-source-of-truth yo'qligi tufayli drift/double-award xavfi. Keng tarqalgan naqsh muammolari: ObjectId validatsiya izchil emas (ko'p handlerda CastError→500), pagination limit clamp ko'p read endpointlarda yo'q (DoS), read-only so'rovlarda .lean() yetishmaydi, ba'zi update'larda runValidators:false (admin updateUser role enum bypass). Kichik: createPrompt XP upsert'siz jim yo'qoladi (BQ-012), getTopUsers da escape qilinmagan regex (ReDoS, BQ-009), getVideo viewCount fire-and-forget catch'siz (BQ-008). Auto-safe tuzatishlar: limit clamp, .lean(), runValidators, ObjectId guard, regex escape, fire-and-forget catch. Behavior o'zgartiradigan (auto_safe=false): XP atomicity refactor, quiz validatsiya, single-source-of-truth, transaction."
+}

@@ -31,6 +31,19 @@ export const tokenStorage = {
       return user ? JSON.parse(user) : null
     } catch { return null }
   },
-  setUser: (user: any) =>
-    isBrowser && localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
+  // Faqat sezgir bo'lmagan display fieldlarni cache qilamiz — email, role,
+  // socialSubscriptions, proSubscription kabi PII localStorage'ga yozilmaydi
+  // (umumiy/jamoaviy kompyuterlarda ma'lumot sizib chiqmasligi uchun).
+  setUser: (user: any) => {
+    if (!isBrowser || !user) return
+    const safe = {
+      _id: user._id,
+      username: user.username,
+      firstName: user.firstName,
+      avatar: user.avatar,
+      level: user.level,
+      rankTitle: user.rankTitle,
+    }
+    try { localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(safe)) } catch { /* quota */ }
+  },
 }

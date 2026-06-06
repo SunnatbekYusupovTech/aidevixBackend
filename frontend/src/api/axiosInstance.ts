@@ -171,6 +171,9 @@ api.interceptors.response.use(
           setCsrfToken(refreshBody.csrfToken)
         }
 
+        // Navbatdagi so'rovlar yangi cookie bilan mustaqil retry qiladi (.then → api(original)).
+        // isRefreshing finally'da reset bo'ladi; yuqori concurrency'da kamdan-kam double-refresh
+        // bo'lishi mumkin, lekin har retry idempotent va xavfsiz — qabul qilingan trade-off.
         refreshQueue.forEach((cb) => cb.resolve(true))
         refreshQueue = []
         return api(original)
@@ -188,14 +191,13 @@ api.interceptors.response.use(
     }
 
     // Obuna bekor qilingan bo'lsa — Redux state ni yangilash
+    // (dynamic import — circular dependency oldini olish uchun; xato silent qolmasin)
     if (error.response?.status === 403 && error.response?.data?.isSubscriptionError) {
-      import('@store/index').then(({ dispatch }) => {
-        import('@store/slices/subscriptionSlice').then(({ resetSubscription }) => {
-          dispatch(resetSubscription({
-            subscriptions: error.response.data.subscriptions,
-          }))
+      Promise.all([import('@store/index'), import('@store/slices/subscriptionSlice')])
+        .then(([{ dispatch }, { resetSubscription }]) => {
+          dispatch(resetSubscription({ subscriptions: error.response.data.subscriptions }))
         })
-      })
+        .catch((e) => console.error('[axios] resetSubscription dispatch failed:', e))
     }
 
     // Admin 2FA enrollment required — auto-redirect once

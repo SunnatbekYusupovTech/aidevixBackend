@@ -1370,9 +1370,12 @@ class AidevixBot {
       });
       if (!user) return this.sendMessage(chatId, "⚠️ Hisob topilmadi.");
 
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-      const loginLink = `${this._getFrontendUrl()}/auth/telegram-login#token=${token}`;
+      // Opaque single-use token — JWT URL fragment o'rniga (xavfsizroq, revocable, DB-backed)
+      const crypto = require('crypto');
+      const MagicLoginToken = require('../models/MagicLoginToken');
+      const code = crypto.randomBytes(32).toString('hex');
+      await MagicLoginToken.create({ token: code, userId: user._id });
+      const loginLink = `${this._getFrontendUrl()}/auth/telegram-login?code=${code}`;
 
       const keyboard = { inline_keyboard: [[{ text: '🔓 Saytga kirish', url: loginLink }]] };
       await this.sendMessage(chatId, `🔐 <b>Magic Login</b>\n\nTugmani bosing va tizimga parolsiz kiring.`, { parse_mode: 'HTML', reply_markup: keyboard });

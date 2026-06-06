@@ -5,7 +5,7 @@ import {
   getCourseById, updateCourse,
   getCourseVideos, createVideo, updateVideo, deleteVideo,
   getUploadCredentials, getVideoStatus, linkVideoToBunny,
-  uploadThumbnail,
+  uploadThumbnail, uploadVideoBinary,
   unwrapAdmin,
 } from '@/api/adminApi';
 import { useParams } from 'next/navigation';
@@ -175,24 +175,14 @@ export default function EditCoursePage() {
       const upload  = payload.upload;
 
       if (!upload?.uploadUrl) {
-        toast.error('Bunny upload URL olishda xato — BUNNY_STREAM_API_KEY tekshiring');
+        toast.error('Upload URL olishda xato — BUNNY_STREAM_API_KEY tekshiring');
         setPhase('error');
         return;
       }
 
-      // 2️⃣ Faylni Bunny ga to'g'ridan-to'g'ri yuklash (XHR — progress uchun)
+      // 2️⃣ Faylni backend proxy orqali Bunny ga yuklash (AccessKey leak qilinmaydi)
       setPhase('uploading');
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', upload.uploadUrl, true);
-        Object.entries(upload.headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
-        };
-        xhr.onload  = () => (xhr.status < 300 ? resolve() : reject(new Error(`Bunny ${xhr.status}`)));
-        xhr.onerror = () => reject(new Error("Tarmoq xatosi — CORS bloklagan bo'lishi mumkin"));
-        xhr.send(file);
-      });
+      await uploadVideoBinary(upload.uploadUrl, file, setProgress);
 
       // 3️⃣ Bunny encoding tugashini kutish (har 5 sekundda tekshirish)
       setPhase('processing');

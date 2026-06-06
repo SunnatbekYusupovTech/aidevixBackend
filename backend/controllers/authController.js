@@ -1514,6 +1514,55 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Telegram "Magic Login" — bot yuborgan opaque single-use kodni cookie sessiyaga almashtirish.
+// @route   POST /api/auth/telegram-login
+// @access  Public (kod o'zi autentifikatsiya)
+const telegramMagicLogin = asyncHandler(async (req, res, next) => {
+  const { code } = req.body;
+  if (!code || typeof code !== 'string' || code.length > 128) {
+    return next(new ErrorResponse('Kod yaroqsiz', 400));
+  }
+
+  const MagicLoginToken = require('../models/MagicLoginToken');
+  // Atomic single-use: faqat ishlatilmagan kodni "used" qilamiz (replay/parallel oldini olish)
+  const tokenDoc = await MagicLoginToken.findOneAndUpdate(
+    { token: code, used: false },
+    { $set: { used: true } },
+    { new: true }
+  );
+  if (!tokenDoc) {
+    return next(new ErrorResponse('Kod yaroqsiz yoki muddati o\'tgan', 401));
+  }
+
+  const user = await User.findById(tokenDoc.userId).select('+tokenVersion +totpEnabled');
+  // Bir martalik kod — ishlatilgach o'chiramiz
+  MagicLoginToken.deleteOne({ _id: tokenDoc._id }).catch(() => {});
+
+  if (!user || !user.isActive || user.deletedAt) {
+    return next(new ErrorResponse('Hisob topilmadi yoki faol emas', 401));
+  }
+
+  // 2FA gate — Telegram identity birinchi faktor, lekin TOTP mustaqil
+  if (user.totpEnabled) {
+    const challengeId = generate2FAChallenge({ uid: String(user._id) });
+    securityLogger.loginSuccess(req, user);
+    return res.json({ success: true, requires2FA: true, challengeId });
+  }
+
+  const { accessToken, refreshToken } = await issueTokens(user, req);
+  const csrfToken = attachAuthCookies(res, accessToken, refreshToken);
+  await trackDeviceAndAlert(req, user);
+  securityLogger.loginSuccess(req, user);
+
+  const fresh = await User.findById(user._id).select('+password');
+  res.json({
+    success: true,
+    data: { user: sanitizeUser(fresh) },
+    source: 'telegram-magic-login',
+    csrfToken,
+  });
+});
+
 // @desc    Step-up reauth — issue 5-min reauth token.
 //
 // Accepts EITHER:
@@ -1615,6 +1664,7 @@ module.exports = {
   verify2FALogin,
   googleAuth,
   telegramMiniAppAuth,
+  telegramMagicLogin,
   refreshToken: refresh,
   logout,
   logoutAll,

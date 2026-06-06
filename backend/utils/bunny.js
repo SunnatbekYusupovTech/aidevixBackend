@@ -111,6 +111,30 @@ const getUploadCredentials = (bunnyVideoId) => ({
   },
 });
 
+/**
+ * Video binary'ni backend orqali Bunny'ga oqizadi (server-side proxy).
+ * AccessKey FRONTENDGA chiqmaydi — backend'da qoladi (INT-001 fix).
+ * @param {string} bunnyVideoId
+ * @param {import('stream').Readable} sourceStream  Express req (octet-stream)
+ * @param {string|number} [contentLength]
+ */
+const streamUploadToBunny = async (bunnyVideoId, sourceStream, contentLength) => {
+  if (!process.env.BUNNY_STREAM_API_KEY) throw new Error('BUNNY_STREAM_API_KEY not configured');
+  const url = `${BUNNY_API_BASE}/library/${process.env.BUNNY_LIBRARY_ID}/videos/${bunnyVideoId}`;
+  const headers = {
+    AccessKey: process.env.BUNNY_STREAM_API_KEY,
+    'Content-Type': 'application/octet-stream',
+  };
+  if (contentLength) headers['Content-Length'] = contentLength;
+  const { data } = await axios.put(url, sourceStream, {
+    headers,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    timeout: 0, // katta fayllar uchun timeout yo'q
+  });
+  return data;
+};
+
 // ─── Status helper ───────────────────────────────────────────────────────────
 
 const BUNNY_STATUS = {
@@ -130,5 +154,6 @@ module.exports = {
   getBunnyVideoInfo,
   generateSignedEmbedUrl,
   getUploadCredentials,
+  streamUploadToBunny,
   parseBunnyStatus,
 };

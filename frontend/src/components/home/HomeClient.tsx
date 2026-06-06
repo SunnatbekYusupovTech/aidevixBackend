@@ -530,7 +530,10 @@ export default function HomeClient({
     if (!item) return SOCIAL_LINKS.telegram;
     if (String(item.platform).toLowerCase() === 'telegram') return SOCIAL_LINKS.telegram;
     if (String(item.platform).toLowerCase() === 'instagram') return SOCIAL_LINKS.instagram;
-    return item.href || SOCIAL_LINKS.telegram;
+    // Faqat http(s) URL'ga ruxsat — javascript:/data: open-redirect/XSS oldini olish
+    const href = item.href || '';
+    if (/^https?:\/\//i.test(href)) return href;
+    return SOCIAL_LINKS.telegram;
   };
 
   const skillGrowthData = useMemo(() => {

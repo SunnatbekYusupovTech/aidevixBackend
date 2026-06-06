@@ -9,9 +9,17 @@ const {
   deleteBunnyVideo,
   getBunnyVideoInfo,
   generateSignedEmbedUrl,
-  getUploadCredentials,
+  streamUploadToBunny,
   parseBunnyStatus,
 } = require('../utils/bunny');
+
+// Admin video yuklash uchun same-origin proxy ma'lumoti (AccessKey FRONTENDGA chiqmaydi).
+// Frontend bu URL'ga PUT qiladi (cookie auth), backend Bunny'ga oqizadi.
+const buildProxyUploadInfo = (videoDbId) => ({
+  uploadUrl: `videos/${videoDbId}/upload-proxy`,
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/octet-stream' },
+});
 
 // Get all videos for a course
 const getCourseVideos = async (req, res) => {
@@ -273,9 +281,9 @@ const createVideo = async (req, res) => {
     course.videos.push(video._id);
     await course.save();
 
-    // Upload credentials ni darhol qaytaramiz (admin shu yerdan yuklaydi)
+    // Upload proxy ma'lumoti — admin backend orqali yuklaydi (AccessKey leak qilinmaydi)
     const uploadInfo = bunnyVideoId
-      ? getUploadCredentials(bunnyVideoId)
+      ? buildProxyUploadInfo(video._id)
       : null;
 
     res.status(201).json({
@@ -542,7 +550,7 @@ const getUploadCredentialsForVideo = async (req, res) => {
       });
     }
 
-    const uploadInfo = getUploadCredentials(video.bunnyVideoId);
+    const uploadInfo = buildProxyUploadInfo(video._id);
 
     res.json({
       success: true,
@@ -550,11 +558,29 @@ const getUploadCredentialsForVideo = async (req, res) => {
         videoId: video._id,
         bunnyVideoId: video.bunnyVideoId,
         ...uploadInfo,
-        note: 'uploadUrl ga PUT so\'rov yuboring, body = video fayl binary, header = AccessKey',
+        note: 'uploadUrl ga (backend proxy) PUT so\'rov yuboring, body = video fayl binary. AccessKey backend\'da qoladi.',
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching upload credentials.' });
+  }
+};
+
+// Admin video binary'ni backend orqali Bunny'ga oqizadi (INT-001: AccessKey leak qilinmaydi).
+// req — octet-stream (body-parser tegmaydi), to'g'ridan-to'g'ri Bunny'ga pipe qilinadi.
+const uploadVideoProxy = async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id).select('bunnyVideoId').lean();
+    if (!video) return res.status(404).json({ success: false, message: 'Video not found.' });
+    if (!video.bunnyVideoId) {
+      return res.status(400).json({ success: false, message: 'Bu video Bunny.net ga ulangan emas.' });
+    }
+
+    const data = await streamUploadToBunny(video.bunnyVideoId, req, req.headers['content-length']);
+    res.json({ success: true, message: 'Video Bunny.net ga yuklandi.', data });
+  } catch (error) {
+    console.error('[video] upload proxy xato:', error.message);
+    res.status(502).json({ success: false, message: 'Bunny.net ga yuklashda xato.' });
   }
 };
 
@@ -727,6 +753,7 @@ module.exports = {
   upvoteQuestion,
   markBestAnswer,
   getUploadCredentialsForVideo,
+  uploadVideoProxy,
   checkVideoStatus,
   linkToBunny,
 };

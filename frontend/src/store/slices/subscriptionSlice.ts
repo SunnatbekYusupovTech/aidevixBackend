@@ -68,9 +68,9 @@ const subscriptionSlice = createSlice({
   },
   extraReducers: (builder) => {
     const setStatus = (state, action) => {
-      const source = action.payload?.subscriptions || action.payload || {}
-      const telegram = action.payload?.telegram || source.telegram
-      const instagram = action.payload?.instagram || source.instagram
+      const source = action.payload?.subscriptions ?? action.payload ?? {}
+      const telegram = action.payload?.telegram ?? source.telegram
+      const instagram = action.payload?.instagram ?? source.instagram
       // undefined tekshirish — null/false qiymatlarni to'g'ri qabul qilish uchun
       state.telegram   = telegram  !== undefined ? telegram  : state.telegram
       state.instagram  = instagram !== undefined ? instagram : state.instagram

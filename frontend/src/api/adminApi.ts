@@ -58,6 +58,20 @@ export const bulkLinkBunny = (links: { videoId: string; bunnyVideoId: string }[]
 export const reorderVideos = (videos: { id: string; order: number }[]) =>
   axiosInstance.put('admin/videos/reorder', { videos })
 
+// ─── Video binary upload (backend proxy — AccessKey leak qilinmaydi) ───────────
+export const uploadVideoBinary = (
+  uploadUrl: string,
+  file: File,
+  onProgress?: (pct: number) => void,
+) =>
+  axiosInstance.put(uploadUrl, file, {
+    headers: { 'Content-Type': 'application/octet-stream' },
+    timeout: 0, // katta video fayllar uchun
+    onUploadProgress: (ev) => {
+      if (onProgress && ev.total) onProgress(Math.round((ev.loaded / ev.total) * 100))
+    },
+  })
+
 // ─── Thumbnail upload ─────────────────────────────────────────────────────────
 export const uploadThumbnail = (courseId: string, file: File) => {
   const fd = new FormData()

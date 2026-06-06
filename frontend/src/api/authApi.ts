@@ -14,6 +14,10 @@ export const authApi = {
   telegramMiniAppAuth: (data: { initData: string }) =>
     api.post('auth/telegram-init', data),
 
+  /** POST /auth/telegram-login — bot "Magic Login" opaque kodini sessiyaga almashtirish */
+  telegramMagicLogin: (code: string) =>
+    api.post('auth/telegram-login', { code }),
+
   /** POST /auth/2fa/verify-login — exchange challengeId + TOTP code for session */
   verify2FALogin: (data: { challengeId: string; code: string }) =>
     api.post('auth/2fa/verify-login', data),

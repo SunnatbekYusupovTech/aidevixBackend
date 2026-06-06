@@ -97,10 +97,8 @@ export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async (_, { rejectWithValue }) => {
     try {
-      const cachedUser = tokenStorage.getUser()
-      if (!cachedUser) {
-        return rejectWithValue('No cached user')
-      }
+      // Cookie (httpOnly) — haqiqiy manba. localStorage cache yo'q bo'lsa ham
+      // valid sessiya cookie'si bo'lishi mumkin, shuning uchun har doim /me chaqiramiz.
       const { data } = await authApi.getMe()
       tokenStorage.clearTokens()
       tokenStorage.setUser(data.data)
@@ -143,11 +141,6 @@ const authSlice = createSlice({
       state.user = null
       state.isLoggedIn = false
     }
-    const registerFulfilled = (state, action) => {
-      state.loading = false
-      state.user = action.payload.user
-      state.isLoggedIn = true
-    }
     const fulfilled = (state, action) => {
       state.loading   = false
       // 2FA pending: don't mark logged in yet
@@ -172,7 +165,7 @@ const authSlice = createSlice({
 
     builder
       .addCase(register.pending,         pending)
-      .addCase(register.fulfilled,       registerFulfilled)
+      .addCase(register.fulfilled,       fulfilled)
       .addCase(register.rejected,        rejected)
 
       .addCase(login.pending,            pending)

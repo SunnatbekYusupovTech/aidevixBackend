@@ -59,6 +59,13 @@ const RSS_FEEDS = [
 
 // ─── Dublikat boshqaruvi ───────────────────────────────────────────────────
 
+// Atomic write — temp faylga yozib, rename qilamiz (partial-write/korrupsiya oldini olish)
+function atomicWriteJson(file, obj) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
+  fs.renameSync(tmp, file);
+}
+
 function loadSentLinks() {
   try {
     if (fs.existsSync(SENT_FILE)) {
@@ -66,7 +73,7 @@ function loadSentLinks() {
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const filtered = data.filter(e => e.ts > weekAgo);
       if (filtered.length !== data.length) {
-        fs.writeFileSync(SENT_FILE, JSON.stringify(filtered, null, 2));
+        atomicWriteJson(SENT_FILE, filtered);
       }
       return new Set(filtered.map(e => e.link));
     }
@@ -81,7 +88,7 @@ function markAsSent(link) {
     let data = [];
     if (fs.existsSync(SENT_FILE)) data = JSON.parse(fs.readFileSync(SENT_FILE, 'utf8'));
     data.push({ link, ts: Date.now() });
-    fs.writeFileSync(SENT_FILE, JSON.stringify(data, null, 2));
+    atomicWriteJson(SENT_FILE, data);
   } catch (err) {
     console.error('[News] Sent file write error:', err.message);
   }

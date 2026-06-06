@@ -14,6 +14,7 @@ const {
   upvoteQuestion,
   markBestAnswer,
   getUploadCredentialsForVideo,
+  uploadVideoProxy,
   checkVideoStatus,
   linkToBunny,
   getTopVideos,
@@ -53,6 +54,9 @@ router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteVide
 // ════════════════════════════════════════════════════════════════
 
 router.get('/:id/upload-credentials', validateObjectId(), authenticate, requireAdmin, getUploadCredentialsForVideo);
+
+// Video binary'ni backend orqali Bunny'ga oqizadi (octet-stream raw body — body-parser tegmaydi)
+router.put('/:id/upload-proxy', validateObjectId(), authenticate, requireAdmin, uploadVideoProxy);
 
 router.get('/:id/status', validateObjectId(), authenticate, requireAdmin, checkVideoStatus);
 

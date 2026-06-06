@@ -16,6 +16,7 @@ const EXEMPT_PATHS = [
   /^\/api\/auth\/register$/,
   /^\/api\/auth\/google$/,
   /^\/api\/auth\/telegram-init$/,
+  /^\/api\/auth\/telegram-login$/,
   /^\/api\/auth\/2fa\/verify-login$/,
   /^\/api\/auth\/refresh-token$/,
   /^\/api\/auth\/forgot-password$/,

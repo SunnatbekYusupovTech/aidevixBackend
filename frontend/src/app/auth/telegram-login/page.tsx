@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SiteLogoMark from '@components/common/SiteLogoMark';
+import { authApi } from '@api/authApi';
 
 function TelegramLoginContent() {
   const router = useRouter();
@@ -11,22 +12,36 @@ function TelegramLoginContent() {
   const [message, setMessage] = useState('Tizimga kirilmoqda...');
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const code = searchParams.get('code');
 
-    if (!token) {
+    if (!code) {
       setStatus('error');
-      setMessage('Token topilmadi. Iltimos, botdan qayta /login buyrug\'ini yuboring.');
+      setMessage('Kod topilmadi. Iltimos, botdan qayta /login buyrug\'ini yuboring.');
       return;
     }
 
-    // Auth tokenlari faqat HttpOnly cookie orqali saqlanadi (CLAUDE.md qoidasi).
-    // Bot orqali login flow backenddan cookie o'rnatadi; bu sahifa shunchaki redirect qiladi.
-    setStatus('success');
-    setMessage('Muvaffaqiyatli! Profilga yo\'naltirilmoqda...');
-    const timer = setTimeout(() => {
-      router.replace('/profile');
-    }, 1200);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    (async () => {
+      try {
+        // Opaque kodni backendga yuboramiz — backend HttpOnly cookie sessiya o'rnatadi (CLAUDE.md).
+        const { data } = await authApi.telegramMagicLogin(code);
+        if (cancelled) return;
+        if (data?.requires2FA) {
+          setStatus('success');
+          setMessage('2FA talab qilinadi. Yo\'naltirilmoqda...');
+          setTimeout(() => router.replace('/login'), 1000);
+          return;
+        }
+        setStatus('success');
+        setMessage('Muvaffaqiyatli! Profilga yo\'naltirilmoqda...');
+        setTimeout(() => router.replace('/profile'), 1000);
+      } catch {
+        if (cancelled) return;
+        setStatus('error');
+        setMessage('Kod yaroqsiz yoki muddati o\'tgan. Botdan qayta /login yuboring.');
+      }
+    })();
+    return () => { cancelled = true; };
   }, [searchParams, router]);
 
   return (

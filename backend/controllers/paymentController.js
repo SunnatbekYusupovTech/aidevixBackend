@@ -68,24 +68,21 @@ const maybeGrantProSubscription = async (payment, course) => {
   const isEnoughAmount = Number(payment.amount || 0) >= PRO_PRICE_UZS;
   if (!isAiCourse || !isEnoughAmount) return;
 
-  // Idempotent: bu payment'dan allaqachon pro berilgan bo'lsa qayta yozma
-  const already = await User.findOne({
-    _id: payment.userId,
-    'proSubscription.active': true,
-    'proSubscription.sourcePaymentId': payment._id,
-  }).select('_id').lean();
-  if (already) return;
-
-  await User.findByIdAndUpdate(payment.userId, {
-    $set: {
-      'proSubscription.active': true,
-      'proSubscription.plan': 'ai_pro',
-      'proSubscription.amount': Number(payment.amount || 0),
-      'proSubscription.purchasedAt': new Date(),
-      'proSubscription.expiresAt': null,
-      'proSubscription.sourcePaymentId': payment._id,
-    },
-  });
+  // Atomic + idempotent: bitta query. Agar shu payment allaqachon pro bergan bo'lsa
+  // (sourcePaymentId === payment._id) — hech qaysi doc mos kelmaydi, no-op.
+  await User.findOneAndUpdate(
+    { _id: payment.userId, 'proSubscription.sourcePaymentId': { $ne: payment._id } },
+    {
+      $set: {
+        'proSubscription.active': true,
+        'proSubscription.plan': 'ai_pro',
+        'proSubscription.amount': Number(payment.amount || 0),
+        'proSubscription.purchasedAt': new Date(),
+        'proSubscription.expiresAt': null,
+        'proSubscription.sourcePaymentId': payment._id,
+      },
+    }
+  );
 };
 
 /**

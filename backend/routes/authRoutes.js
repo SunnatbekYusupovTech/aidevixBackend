@@ -6,6 +6,7 @@ const {
   verify2FALogin,
   googleAuth,
   telegramMiniAppAuth,
+  telegramMagicLogin,
   refreshToken,
   logout,
   logoutAll,
@@ -53,6 +54,7 @@ router.post('/2fa/verify-login', totpLimiter, verify2FALogin);
 router.post('/google', googleLimiter, googleAuth);
 // Telegram Mini App auth — HMAC validate qilingan initData ostida login/register
 router.post('/telegram-init', telegramAuthLimiter, telegramMiniAppAuth);
+router.post('/telegram-login', telegramAuthLimiter, telegramMagicLogin);
 router.post('/refresh-token', refreshLimiter, refreshToken);
 // CSRF token issuance — works for unauthenticated and authenticated users.
 // Cross-site frontends call this on boot to prime the in-memory token store.

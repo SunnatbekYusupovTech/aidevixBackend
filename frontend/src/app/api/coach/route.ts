@@ -6,7 +6,9 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const AI_GATEWAY_URL = process.env.AI_GATEWAY_URL;
 const AI_GATEWAY_KEY = process.env.AI_GATEWAY_KEY;
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+// Server-to-server uchun private env afzal (client bundle'ga NEXT_PUBLIC sizmasin);
+// o'rnatilmagan bo'lsa mavjud public env'ga fallback — hech narsa buzilmaydi.
+const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
 // ------- Video & Course search helpers -------
 

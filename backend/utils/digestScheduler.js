@@ -116,8 +116,9 @@ async function runWeeklyDigest() {
       return;
     }
 
-    // Rank hisoblash uchun — bitta marta sortlangan ro'yxat
-    const allRanked = await UserStats.find({})
+    // Rank hisoblash uchun — faqat xp>0 userlar (0-XP userlar digestda baribir yo'q,
+    // bu memory'ni katta userbase'da sezilarli kamaytiradi, rank to'g'ri qoladi)
+    const allRanked = await UserStats.find({ xp: { $gt: 0 } })
       .select('userId xp')
       .sort({ xp: -1 })
       .lean();

@@ -56,7 +56,7 @@ export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
             </p>
           )}
         </div>
-        <Link href="/courses" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-wider">
+        <Link href="/courses" className="text-xs font-bold text-platinum-400 hover:text-platinum-300 uppercase tracking-wider">
           {t('home.viewAll')} →
         </Link>
       </div>
@@ -64,7 +64,7 @@ export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className={`h-64 rounded-2xl animate-pulse ${isDark ? 'bg-white/5' : 'bg-slate-200'}`} />
+            <div key={i} className={`h-64 rounded-none animate-pulse ${isDark ? 'bg-white/5' : 'bg-slate-200'}`} />
           ))}
         </div>
       ) : (

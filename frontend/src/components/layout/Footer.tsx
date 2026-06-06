@@ -57,26 +57,26 @@ export default function Footer() {
   ]
 
   const shell = isDark 
-    ? 'bg-gradient-to-br from-[#0c0f17] via-[#121622] to-[#0c0f17] text-slate-100 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)]' 
-    : 'bg-gradient-to-br from-amber-earth-50/40 via-[#f8fafc] to-[#f1f5f9] text-[#1e293b] shadow-[0_-20px_50px_-20px_rgba(99,102,241,0.05)]'
+    ? 'bg-gradient-to-br from-[#0a0c10] via-[#141720] to-[#0a0c10] text-slate-100 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)]' 
+    : 'bg-gradient-to-br from-platinum-50 via-platinum-100 to-platinum-200/50 text-[#1e293b] shadow-[0_-20px_50px_-20px_rgba(111,127,144,0.05)]'
   
   const borderClr = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-  const brandText = isDark ? 'text-amber-earth-50' : 'text-slate-900'
+  const brandText = isDark ? 'text-platinum-100' : 'text-slate-900'
   const descText = isDark ? 'text-slate-400' : 'text-slate-600'
   const headingText = isDark ? 'text-slate-200' : 'text-slate-800'
-  const linkText = isDark ? 'text-slate-400 hover:text-amber-earth-400' : 'text-slate-600 hover:text-indigo-600'
-  const socialText = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'
+  const linkText = isDark ? 'text-slate-400 hover:text-platinum-300' : 'text-slate-600 hover:text-platinum-600'
+  const socialText = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-platinum-600'
   const copyText = isDark ? 'text-slate-500' : 'text-slate-500'
 
   return (
     <div className="w-full relative px-4 sm:px-6 lg:px-8 pb-12 pt-8 overflow-hidden">
       <footer 
-        className={`relative mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] border transition-all duration-300 ${shell}`} 
+        className={`relative mx-auto max-w-7xl overflow-hidden rounded-none border transition-all duration-300 ${shell}`} 
         style={{ borderColor: borderClr }}
       >
         {/* Ambient premium lights */}
-        <div className={`absolute top-0 left-0 w-[40%] h-[40%] blur-[120px] rounded-full pointer-events-none transition-opacity duration-300 ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-500/5'}`} />
-        <div className={`absolute bottom-0 right-0 w-[30%] h-[30%] blur-[120px] rounded-full pointer-events-none transition-opacity duration-300 ${isDark ? 'bg-amber-earth-500/10' : 'bg-amber-earth-500/5'}`} />
+        <div className={`absolute top-0 left-0 w-[40%] h-[40%] blur-[120px] rounded-none pointer-events-none transition-opacity duration-300 ${isDark ? 'bg-platinum-500/10' : 'bg-platinum-500/5'}`} />
+        <div className={`absolute bottom-0 right-0 w-[30%] h-[30%] blur-[120px] rounded-none pointer-events-none transition-opacity duration-300 ${isDark ? 'bg-platinum-500/10' : 'bg-platinum-500/5'}`} />
         
         {/* Grid pattern overlay */}
         <div 
@@ -87,17 +87,17 @@ export default function Footer() {
         {!isHomePage && (
           <div className="relative border-b overflow-hidden" style={{ borderColor: borderClr }}>
             {/* CTA Background Highlight */}
-            <div className={`absolute inset-0 opacity-40 ${isDark ? 'bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.15),transparent_40%)]' : 'bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.08),transparent_40%)]'}`} />
+            <div className={`absolute inset-0 opacity-40 ${isDark ? 'bg-[radial-gradient(circle_at_30%_20%,rgba(111,127,144,0.15),transparent_40%)]' : 'bg-[radial-gradient(circle_at_30%_20%,rgba(111,127,144,0.08),transparent_40%)]'}`} />
             
             <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 sm:px-12 sm:py-16 md:px-16 flex flex-col lg:flex-row items-center justify-between gap-8">
               <div className="max-w-2xl text-center lg:text-left">
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider ${isDark ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300' : 'border-indigo-500/20 bg-indigo-50 text-indigo-600'}`}>
+                <div className={`inline-flex items-center gap-2 rounded-none border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider ${isDark ? 'border-platinum-500/30 bg-platinum-500/10 text-platinum-300' : 'border-platinum-500/20 bg-platinum-100 text-platinum-700'}`}>
                   <HiLightningBolt className="h-3.5 w-3.5 animate-bounce" />
                   <span>{t('pro.badge') || 'AIDEVIX PRO'}</span>
                 </div>
                 <h3 className={`mt-4 text-2xl sm:text-3xl md:text-4xl font-display font-extrabold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {t('cta.title1')}
-                  <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-amber-400 via-amber-earth-400 to-indigo-400' : 'from-indigo-600 via-purple-600 to-amber-earth-600'}`}>
+                  {t('cta.title1')}{' '}
+                  <span className={`bg-clip-text text-transparent bg-gradient-to-r ${isDark ? 'from-white via-platinum-200 to-platinum-400' : 'from-platinum-700 via-platinum-500 to-platinum-800'}`}>
                     {t('cta.titleHighlight')}
                   </span>
                 </h3>
@@ -110,7 +110,7 @@ export default function Footer() {
                 <Link
                   href="/register"
                   onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
-                  className="group flex h-12 sm:h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 px-8 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center"
+                  className="group flex h-12 sm:h-14 items-center justify-center gap-2 rounded-none bg-gradient-to-r from-platinum-700 to-platinum-600 hover:from-platinum-600 hover:to-platinum-500 px-8 text-sm font-semibold text-white shadow-lg shadow-platinum-600/20 hover:shadow-platinum-500/30 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center"
                 >
                   <span>{t('cta.start')}</span>
                   <HiArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -118,8 +118,8 @@ export default function Footer() {
                 <Link
                   href="/courses"
                   onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
-                  className={`flex h-12 sm:h-14 items-center justify-center rounded-full border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center ${
-                    isDark ? 'border-white/10 text-white bg-white/5 hover:bg-white/10 hover:border-white/20' : 'border-slate-200 text-slate-800 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
+                  className={`flex h-12 sm:h-14 items-center justify-center rounded-none border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center ${
+                    isDark ? 'border-zinc-800 text-white bg-white/5 hover:bg-white/10 hover:border-zinc-700' : 'border-slate-200 text-slate-800 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
                   {t('cta.allCourses')}
@@ -135,10 +135,10 @@ export default function Footer() {
             <div className="flex flex-col items-start">
               <Link href={ROUTES.HOME} className="group flex items-center gap-3">
                 <div className="relative">
-                  <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500 to-amber-500 opacity-20 blur-sm group-hover:opacity-55 transition-opacity duration-300" />
+                  <div className="absolute -inset-1 rounded-none bg-gradient-to-r from-platinum-500 to-platinum-300 opacity-20 blur-sm group-hover:opacity-55 transition-opacity duration-300" />
                   <SiteLogoMark
                     size={42}
-                    className="relative shadow-[0_12px_30px_rgba(235,138,20,0.2)] transition-all duration-300 group-hover:-translate-y-0.5 ring-amber-earth-500/25"
+                    className="relative shadow-[0_12px_30px_rgba(111,127,144,0.2)] transition-all duration-300 group-hover:-translate-y-0.5 ring-platinum-500/25"
                   />
                 </div>
                 <span className={`font-display text-2xl font-bold tracking-tight ${brandText}`}>
@@ -159,10 +159,10 @@ export default function Footer() {
                     rel="noopener noreferrer"
                     aria-label={s.label}
                     onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-none border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
                       isDark
-                        ? 'border-white/5 bg-white/[0.03] text-slate-400 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-white hover:shadow-indigo-500/10'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-500/20 hover:bg-indigo-50/50 hover:text-indigo-600 hover:shadow-indigo-500/5'
+                        ? 'border-white/5 bg-white/[0.03] text-slate-400 hover:border-platinum-500/30 hover:bg-platinum-500/10 hover:text-white hover:shadow-platinum-500/10'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-platinum-500/20 hover:bg-platinum-100 text-platinum-600 hover:shadow-platinum-500/5'
                     }`}
                   >
                     {s.icon}
@@ -207,8 +207,8 @@ export default function Footer() {
             <span className={isDark ? 'text-slate-800' : 'text-slate-300'}>|</span>
             <span className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
               </span>
               <span>{t('footer.status')}</span>
             </span>

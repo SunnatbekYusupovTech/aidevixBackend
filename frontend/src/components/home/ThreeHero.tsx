@@ -6,9 +6,9 @@
  * bilan animatsiya o'chiriladi.
  */
 export default function ThreeHero({ isDark }: { isDark: boolean }) {
-  const blobOne = isDark ? 'rgba(235,138,20,0.25)' : 'rgba(235,138,20,0.15)';
-  const blobTwo = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)';
-  const blobThree = isDark ? 'rgba(235,138,20,0.08)' : 'rgba(235,138,20,0.04)';
+  const blobOne = isDark ? 'rgba(111,127,144,0.18)' : 'rgba(111,127,144,0.1)';
+  const blobTwo = isDark ? 'rgba(226,230,233,0.06)' : 'rgba(226,230,233,0.04)';
+  const blobThree = isDark ? 'rgba(111,127,144,0.08)' : 'rgba(111,127,144,0.04)';
 
   return (
     <div

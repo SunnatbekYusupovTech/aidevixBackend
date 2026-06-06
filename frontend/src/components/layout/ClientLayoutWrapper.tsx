@@ -68,7 +68,7 @@ export default function ClientLayoutWrapper({
       }
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isMounted, hideLayout, pathname]);
+  }, [isMounted, hideLayout]);
 
   useEffect(() => {
     if (!isMounted || hideLayout) {
@@ -99,7 +99,7 @@ export default function ClientLayoutWrapper({
       }
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isMounted, hideLayout, pathname]);
+  }, [isMounted, hideLayout]);
 
   return (
     <>
@@ -110,8 +110,8 @@ export default function ClientLayoutWrapper({
         {children}
       </main>
 
-      {showEnhancements && showAmbientWidgets && <LiveActivityTicker />}
-      {showEnhancements && showAmbientWidgets && <AICoach />}
+      {showEnhancements && <LiveActivityTicker visible={showAmbientWidgets} />}
+      {showEnhancements && <AICoach visible={showAmbientWidgets} />}
       {showDeferredPrompts && <BetaWelcomeModal />}
       {showDeferredPrompts && <ExitIntentModal />}
       {showDeferredPrompts && <PWAInstallPrompt />}

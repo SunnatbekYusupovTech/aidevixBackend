@@ -65,7 +65,7 @@ export default function ContinueWatching() {
         </h2>
         <Link
           href="/profile"
-          className="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-wider"
+          className="text-xs font-bold text-platinum-400 hover:text-platinum-300 uppercase tracking-wider"
         >
           Barchasi →
         </Link>
@@ -73,10 +73,10 @@ export default function ContinueWatching() {
 
       <Link
         href={`/videos/${nextVideo._id}`}
-        className={`group block rounded-3xl overflow-hidden border transition-all hover:-translate-y-0.5 ${
+        className={`group block rounded-none overflow-hidden border transition-all hover:-translate-y-0.5 ${
           isDark
-            ? 'bg-gradient-to-r from-indigo-500/10 via-[#0d1224]/80 to-cyan-500/5 border-white/5 hover:border-indigo-400/40'
-            : 'bg-gradient-to-r from-indigo-50 via-white to-cyan-50 border-slate-200 hover:border-indigo-400/60'
+            ? 'bg-gradient-to-r from-platinum-500/10 via-[#101214]/80 to-platinum-500/5 border-white/5 hover:border-platinum-400/40'
+            : 'bg-gradient-to-r from-platinum-50 via-white to-platinum-100 border-slate-200 hover:border-platinum-400/60'
         }`}
       >
         <div className="flex flex-col sm:flex-row">
@@ -90,14 +90,14 @@ export default function ContinueWatching() {
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-4xl text-indigo-400/40">📚</div>
+              <div className="absolute inset-0 flex items-center justify-center text-4xl text-platinum-400/40">📚</div>
             )}
             <div className="absolute inset-0 bg-gradient-to-tr from-black/60 to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center">
               <IoPlayCircle className="text-white/90 text-5xl drop-shadow-lg group-hover:scale-110 transition-transform" />
             </div>
             {nextVideo.duration ? (
-              <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded-md text-[10px] font-bold text-white flex items-center gap-1">
+              <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded-none text-[10px] font-bold text-white flex items-center gap-1">
                 <IoTimeOutline />
                 {formatDuration(nextVideo.duration)}
               </div>
@@ -105,7 +105,7 @@ export default function ContinueWatching() {
           </div>
 
           <div className="flex-1 p-5 sm:p-6">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-2">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-platinum-400 mb-2">
               {course.category || 'KURS'}
             </div>
             <h3 className={`text-base sm:text-lg font-black mb-1 line-clamp-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -118,14 +118,14 @@ export default function ContinueWatching() {
             <div className="mt-4">
               <div className="flex justify-between text-[11px] font-bold mb-1">
                 <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Progress</span>
-                <span className="text-indigo-400">{progressPercent}%</span>
+                <span className="text-platinum-400">{progressPercent}%</span>
               </div>
-              <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-200'}`}>
+              <div className={`h-2 rounded-none overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-200'}`}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(progressPercent, 4)}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400"
+                  className="h-full bg-gradient-to-r from-platinum-600 via-platinum-400 to-platinum-300"
                 />
               </div>
             </div>

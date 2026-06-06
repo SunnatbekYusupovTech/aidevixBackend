@@ -108,7 +108,7 @@ function CourseCardItem({ course }: { course: CourseCard }) {
 }
 
 // ------- Main Component -------
-export default function AICoach() {
+export default function AICoach({ visible = true }: { visible?: boolean }) {
   const { t, lang } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -253,6 +253,8 @@ export default function AICoach() {
   const handleSuggestionClick = (suggestion: string) => {
     void sendMessage(suggestion);
   };
+
+  if (!visible) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[100] font-sans sm:bottom-8 sm:right-8">

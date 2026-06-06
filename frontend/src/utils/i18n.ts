@@ -54,12 +54,12 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     // ─── Hero ───
     'hero.badge': 'Professional dasturlash platformasi',
-    'hero.title1': 'Kelajak kasbini',
-    'hero.titleHighlight': "o'zbek tilida",
-    'hero.title2': "o'rgan",
-    'hero.subtitle': "Eng talabgir dasturlash yo'nalishlarini noldan boshlab amaliy loyihalar orqali o'rganing va IT sohasiga birinchi qadamingizni qo'ying.",
-    'hero.cta1': "Kurslarni ko'rish",
-    'hero.cta2': "Ro'yxatdan o'tish",
+    'hero.title1': 'Kelajakni',
+    'hero.titleHighlight': 'biz bilan',
+    'hero.title2': 'kodlang!',
+    'hero.subtitle': 'Kurslar, video darslar va real roadmap bilan kod yozishni barqaror tizimga aylantiring.',
+    'hero.cta1': 'Hozir boshlang',
+    'hero.cta2': 'Bepul boshlash',
 
     // ─── Stats ───
     'stats.students': "Faol o'quvchilar",

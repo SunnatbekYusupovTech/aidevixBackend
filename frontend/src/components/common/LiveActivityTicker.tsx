@@ -11,7 +11,7 @@ const TYPE_STYLE: Record<string, { icon: JSX.Element; color: string }> = {
   default: { icon: <IoStar className="text-yellow-400" />, color: 'from-yellow-400/20' },
 };
 
-export default function LiveActivityTicker() {
+export default function LiveActivityTicker({ visible = true }: { visible?: boolean }) {
   const [index, setIndex] = useState(0);
   const [activities, setActivities] = useState<any[]>([]);
   const itemRef = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export default function LiveActivityTicker() {
   }, [activities.length]);
 
   const current = activities[index];
-  if (!current) return null;
+  if (!current || !visible) return null;
   const style = TYPE_STYLE[current.type] || TYPE_STYLE.default;
 
   return (

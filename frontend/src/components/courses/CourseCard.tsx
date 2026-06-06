@@ -103,7 +103,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       className={
-        'group block overflow-hidden rounded-[2rem] bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
+        'group block overflow-hidden rounded-none bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
         'transition-all duration-500 ' +
         cat.glow + ' ' + className
       }
@@ -112,7 +112,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         {course.thumbnail ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center" style={{ backgroundColor: 'var(--course-logo-bg, #0c0d12)' }}>
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#11141b]">
               <div className="relative w-full h-full">
                 <DynamicSVG
                   src={course.thumbnail}
@@ -137,7 +137,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
 
 
 
-        <div className={'absolute right-2.5 top-2.5 rounded-full border px-2 py-0.5 text-[9px] font-bold backdrop-blur-md sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
+        <div className={'absolute right-2.5 top-2.5 rounded-none border px-2 py-0.5 text-[9px] font-bold backdrop-blur-md sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] ' + cat.bg + ' ' + cat.text + ' ' + cat.border}>
           {(t(`cat.${course.category}`) || cat.label || '').toUpperCase()}
         </div>
       </div>
@@ -147,8 +147,8 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
         <div className="space-y-3">
           {/* Lessons badge (top of body) */}
           <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-white/40">
-            <span className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/5 px-2.5 py-1">
-              <IoBookOutline className="text-amber-500 text-xs" />
+            <span className="flex items-center gap-1.5 rounded-none border border-white/8 bg-white/5 px-2.5 py-1">
+              <IoBookOutline className="text-platinum-400 text-xs" />
               {videoCount} {t('courses.lessons')}
             </span>
           </div>
@@ -170,13 +170,13 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
             <span className="text-white/40 font-medium">
               {t('courses.rating')} ({ratingCount})
             </span>
-            <span className="text-amber-500 font-bold flex items-center gap-1">
+            <span className="text-platinum-400 font-bold flex items-center gap-1">
               {rating > 0 ? Number(rating).toFixed(1) : '0.0'} ★
             </span>
           </div>
 
           {/* Orange Divider */}
-          <div className="relative h-[3px] w-full bg-white/10 rounded-full my-3 overflow-hidden">
+          <div className="relative h-[3px] w-full bg-white/10 rounded-none my-3 overflow-hidden">
             <div 
               style={{ backgroundColor: cat.hex }} 
               className="absolute inset-y-0 left-0 w-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" 
@@ -187,7 +187,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           <div className="flex items-center justify-between pt-1">
             {/* Instructor */}
             <div className="group/author flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-amber-500/20 bg-[#1e1b18] text-[10px] font-bold text-amber-500 transition-colors group-hover/author:bg-amber-600/10 sm:h-7 sm:w-7">
+              <div className="flex h-6 w-6 items-center justify-center rounded-none border border-platinum-800 bg-[#15181e] text-[10px] font-bold text-platinum-400 transition-colors group-hover/author:bg-platinum-800/20 sm:h-7 sm:w-7">
                 {instructorName?.[0]?.toUpperCase() || 'A'}
               </div>
               <div className="flex flex-col">
@@ -201,7 +201,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
             </div>
 
             {/* Ko'rish button */}
-            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-500 sm:text-xs hover:text-amber-400 transition-colors">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-platinum-400 sm:text-xs hover:text-platinum-300 transition-colors">
               Ko'rish <span className="text-[10px] sm:text-xs">▸</span>
             </span>
           </div>

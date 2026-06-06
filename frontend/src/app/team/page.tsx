@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { FaInstagram, FaTelegram } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
 
@@ -9,705 +9,511 @@ type TeamMember = {
   id: string;
   name: string;
   age: number;
-  stack: string[];
-  contribution: string;
-  imageFile: string;
-  badge: string;
-  color: string;
-  accentBg: string;
-  emoji: string;
-  roadmapRole: string;
-  objectPos?: string;
-  portfolioUrl?: string;
-  instagramUrl?: string;
-  telegramUrl?: string;
-  /** Rahbariyat kartasida yoshni ko‘rsatmaslik */
   hideAge?: boolean;
+  roleBadge: string;
+  details: string;
+  stack: string[];
+  asset: string;
+  cursorColor: string;
+  textColor: string;
+  telegram?: string;
+  instagram?: string;
+  portfolio?: string;
 };
 
-function getFounderLead(t: (key: string) => string): TeamMember {
-  return {
-    id: 'sunnatbee',
+const TEAM_MEMBERS: TeamMember[] = [
+  {
+    id: 'sunnatbek',
     name: 'Sunnatbek Yusupov',
     age: 0,
     hideAge: true,
-    stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Product vision', 'Team leadership'],
-    contribution: t('team.member.sunnatbee.contribution'),
-    imageFile: 'sunnatbee.jpg',
-    badge: t('team.member.sunnatbee.badge'),
-    color: '#eab308',
-    accentBg: 'rgba(234,179,8,0.18)',
-    emoji: '👑',
-    roadmapRole: t('team.member.sunnatbee.roadmapRole'),
-    objectPos: '50% 22%',
-    instagramUrl: 'https://www.instagram.com/sunnatbee?igsh=ZGNxdjd2ajVpc20w',
-    telegramUrl: 'https://t.me/SUNNATBEE',
-  };
-}
+    roleBadge: 'CEO / FOUNDER',
+    details: 'Aidevix strategiyasi, mahsulot yo‘nalishi va frontend arxitekturasi.',
+    stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
+    asset: '/team/sunnatbee.jpg',
+    cursorColor: 'bg-yellow-500',
+    textColor: 'text-yellow-400',
+    telegram: 'https://t.me/SUNNATBEE',
+    instagram: 'https://www.instagram.com/sunnatbee',
+  },
+  {
+    id: 'sardor',
+    name: 'SARDOR',
+    age: 15,
+    roleBadge: 'TEAM LEAD / QA',
+    details: 'UI/UX dizayn tizimlari va kreativ g‘oyalar yaratuvchisi. Muammolarni tezkor bartaraf etuvchi faol bug fixer, JWT cookie auth, Mongoose sxemalari va CI/CD.',
+    stack: ['UI/UX Design', 'Figma', 'Node.js', 'Mongoose', 'Swagger API'],
+    asset: '/team/Sardor.jpg',
+    cursorColor: 'bg-emerald-500',
+    textColor: 'text-emerald-400',
+  },
+  {
+    id: 'firdavs',
+    name: 'FIRDAVS',
+    age: 16,
+    roleBadge: 'AUTH SPECIALIST',
+    details: 'Autentifikatsiya tizimi, Cookie-based JWT sessiyasi, ProtectedRoute, email validation, kunlik mukofot modali.',
+    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
+    asset: '/team/Firdavs.jpg',
+    cursorColor: 'bg-blue-500',
+    textColor: 'text-blue-400',
+  },
+  {
+    id: 'abduvohid',
+    name: 'ABDUVOHID',
+    age: 15,
+    roleBadge: 'HOME UI / FRONTEND',
+    details: 'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
+    stack: ['Framer Motion', 'GSAP', 'CSS 3D', 'UI/UX'],
+    asset: '/team/abduvohid.jpg',
+    cursorColor: 'bg-purple-500',
+    textColor: 'text-purple-400',
+  },
+  {
+    id: 'abduvoris',
+    name: 'ABDUVORIS',
+    age: 16,
+    roleBadge: 'VIDEO ENGINEER',
+    details: 'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
+    stack: ['Bunny.net', 'HLS.js', 'Video Stream', 'Skeleton CSS'],
+    asset: '/team/Abduvoris.jpg',
+    cursorColor: 'bg-cyan-500',
+    textColor: 'text-cyan-400',
+  },
+  {
+    id: 'doniyor',
+    name: 'DONIYOR',
+    age: 16,
+    roleBadge: 'COURSE ARCHITECT',
+    details: 'Kurslar tuzilishi, modullar tizimi va darslar ketma-ketligi arxitekturasi.',
+    stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
+    asset: '/team/Doniyor.jpg',
+    cursorColor: 'bg-teal-500',
+    textColor: 'text-teal-400',
+  },
+  {
+    id: 'suhrob',
+    name: 'SUHROB',
+    age: 14,
+    roleBadge: 'RANKING BUILDER',
+    details: 'Reyting tizimi, XP (tajriba ballari) hisoblash logikasi va peshqadamlar jadvali (leaderboard).',
+    stack: ['Leaderboards', 'Gamification', 'XP Logic', 'MongoDB'],
+    asset: '/team/Suhrob.jpg',
+    cursorColor: 'bg-pink-500',
+    textColor: 'text-pink-400',
+  },
+  {
+    id: 'qudrat',
+    name: 'QUDRAT',
+    age: 14,
+    roleBadge: 'MOTION CREATOR',
+    details: 'Foydalanuvchi tajribasini boyitish uchun interaktiv GSAP va Framer Motion animatsiyalari.',
+    stack: ['GSAP 3', 'Three.js', 'Framer Motion'],
+    asset: '/team/Qudrat.jpg',
+    cursorColor: 'bg-violet-500',
+    textColor: 'text-violet-400',
+  },
+  {
+    id: 'mystery',
+    name: 'WANTED_NODE',
+    age: 0,
+    hideAge: true,
+    roleBadge: 'WANTED / ?????',
+    details: '#WANTED #CREATIVE_MIND // Tizimda bo‘shliq aniqlandi. _Bizga kreativ va nostandart fikrlaydigan dev kerak!_ #JOIN_US // matrix_integrity: unstable.',
+    stack: ['#CREATIVE', '#CODER', '#BUG_FIXER', 'YOU?'],
+    asset: '/team/mystery.jpg',
+    cursorColor: 'bg-red-500',
+    textColor: 'text-red-400',
+  },
+];
 
-function getLeadershipRoles(t: (key: string) => string) {
-  return [
-    t('team.role.ceo'),
-    t('team.role.generalDirector'),
-    t('team.role.founder'),
-    t('team.role.frontendDeveloper'),
-  ];
-}
-
-function getMembers(t: (key: string) => string): TeamMember[] {
-  return [
-    {
-      id: 'sardor',
-      name: 'Sardor',
-      age: 15,
-      stack: ['Next.js 14', 'TypeScript', 'Node.js', 'Express.js', 'MongoDB', 'React Native', 'Tailwind CSS', 'Railway', 'Vercel'],
-      contribution: t('team.member.sardor.contribution'),
-      imageFile: 'Sardor.jpg',
-      badge: t('team.member.sardor.badge'),
-      color: '#f59e0b',
-      accentBg: 'rgba(245,158,11,0.15)',
-      emoji: '🚀',
-      roadmapRole: t('team.member.sardor.roadmapRole'),
-      objectPos: '50% 20%',
-      portfolioUrl: 'https://sardoruz.vercel.app',
-    },
-    {
-      id: 'firdavs',
-      name: 'Firdavs',
-      age: 16,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit', 'Axios', 'Tailwind CSS'],
-      contribution: t('team.member.firdavs.contribution'),
-      imageFile: 'Firdavs.jpg',
-      badge: t('team.member.firdavs.badge'),
-      color: '#6366f1',
-      accentBg: 'rgba(99,102,241,0.15)',
-      emoji: '🔐',
-      roadmapRole: t('team.member.firdavs.roadmapRole'),
-      objectPos: '50% 15%',
-    },
-    {
-      id: 'abduvohid',
-      name: 'Abduvohid',
-      age: 15,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Tailwind CSS', 'Framer Motion', 'GSAP', 'Home UX'],
-      contribution: t('team.member.abduvohid.contribution'),
-      imageFile: 'abduvohid.jpg',
-      badge: t('team.member.abduvohid.badge'),
-      color: '#14b8a6',
-      accentBg: 'rgba(20,184,166,0.15)',
-      emoji: '🏠',
-      roadmapRole: t('team.member.abduvohid.roadmapRole'),
-      objectPos: '50% 20%',
-    },
-    {
-      id: 'abduvoris',
-      name: 'Abduvoris',
-      age: 16,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Bunny.net SDK', 'HLS.js', 'Redux Toolkit'],
-      contribution: t('team.member.abduvoris.contribution'),
-      imageFile: 'Abduvoris.jpg',
-      badge: t('team.member.abduvoris.badge'),
-      color: '#06b6d4',
-      accentBg: 'rgba(6,182,212,0.15)',
-      emoji: '🎬',
-      roadmapRole: t('team.member.abduvoris.roadmapRole'),
-      objectPos: '50% 20%',
-    },
-    {
-      id: 'doniyor',
-      name: 'Doniyor',
-      age: 16,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit', 'Tailwind CSS'],
-      contribution: t('team.member.doniyor.contribution'),
-      imageFile: 'Doniyor.jpg',
-      badge: t('team.member.doniyor.badge'),
-      color: '#10b981',
-      accentBg: 'rgba(16,185,129,0.15)',
-      emoji: '📚',
-      roadmapRole: t('team.member.doniyor.roadmapRole'),
-      objectPos: '50% 20%',
-    },
-    {
-      id: 'suhrob',
-      name: 'Suhrob',
-      age: 14,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'Node.js', 'React Native', 'Redux Toolkit'],
-      contribution: t('team.member.suhrob.contribution'),
-      imageFile: 'Suhrob.jpg',
-      badge: t('team.member.suhrob.badge'),
-      color: '#ec4899',
-      accentBg: 'rgba(236,72,153,0.15)',
-      emoji: '🏆',
-      roadmapRole: t('team.member.suhrob.roadmapRole'),
-      objectPos: '50% 20%',
-    },
-    {
-      id: 'qudrat',
-      name: 'Qudrat',
-      age: 14,
-      stack: ['React 18', 'TypeScript', 'Next.js 14', 'GSAP 3', 'Three.js', 'Framer Motion', 'Node.js'],
-      contribution: t('team.member.qudrat.contribution'),
-      imageFile: 'Qudrat.jpg',
-      badge: t('team.member.qudrat.badge'),
-      color: '#a855f7',
-      accentBg: 'rgba(168,85,247,0.15)',
-      emoji: '✨',
-      roadmapRole: t('team.member.qudrat.roadmapRole'),
-      objectPos: '50% 20%',
-    },
-  ];
-}
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2 && parts[0][0] && parts[parts.length - 1][0]) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+const LOCALIZED_CONTENT = {
+  uz: {
+    title: 'OUR_HUMAN_INTELLIGENCE',
+    subtitle: 'AIDEVIX RIVOJLANISH JAMOASI',
+    heroDesc: 'Zamonaviy sun\'iy intellekt va dasturlash o\'quv platformasi - Aidevix asoschilari va ishlab chiquvchilari.',
+    status: 'HOLAT: FAOL_RIVOJLANISH_TIZIMI',
+    agents: 'BARCHA AGENTLAR',
+    tech: 'TEXNOLOGIYALAR',
+    years: 'YOSH',
+    stack: 'TEXNOLOGIYALAR RO\'YHATI',
+    experience: 'JAMOADAGI VAZIFASI',
+    socials: 'ALOQA KANALLARI',
+    portfolio: 'PORTFOLIO ULANISHI',
+    systemLogs: 'TIZIM TINGLOVCHISI: INSON NODE ULANIROVCHI FAOL...',
+  },
+  en: {
+    title: 'OUR_HUMAN_INTELLIGENCE',
+    subtitle: 'AIDEVIX DEVELOPMENT TEAM',
+    heroDesc: 'The founders and builders of the modern artificial intelligence and coding platform - Aidevix.',
+    status: 'STATUS: ACTIVE_DEVELOPMENT_CYCLE',
+    agents: 'TOTAL AGENTS',
+    tech: 'TECHNOLOGIES',
+    years: 'Y.O',
+    stack: 'TECH STACK',
+    experience: 'PLATFORM CONTRIBUTION',
+    socials: 'COMMUNICATION NODES',
+    portfolio: 'PORTFOLIO INTERCONNECT',
+    systemLogs: 'SYSTEM LISTENER: HUMAN NODE INTERCONNECT ACTIVE...',
+  },
+  ru: {
+    title: 'OUR_HUMAN_INTELLIGENCE',
+    subtitle: 'КОМАНДА РАЗРАБОТКИ AIDEVIX',
+    heroDesc: 'Основатели и разработчики современной платформы обучения искусственному интеллекту и программированию - Aidevix.',
+    status: 'СТАТУС: АКТИВНЫЙ_ЦИКЛ_РАЗРАБОТКИ',
+    agents: 'ВСЕГО АГЕНТОВ',
+    tech: 'ТЕХНОЛОГИИ',
+    years: 'ЛЕТ',
+    stack: 'СТЕК ТЕХНОЛОГИЙ',
+    experience: 'ВКЛАД В ПЛАТФОРМУ',
+    socials: 'УЗЛЫ СВЯЗИ',
+    portfolio: 'ПОРТФОЛИО СВЯЗЬ',
+    systemLogs: 'СИСТЕМНЫЙ СЛУШАТЕЛЬ: ИНТЕРКОННЕКТ ЧЕЛОВЕЧЕСКИХ НОД АКТИВЕН...',
   }
-  return name.slice(0, 2).toUpperCase();
-}
-
-function LeadershipCard({ member }: { member: TeamMember }) {
-  const { t } = useLang();
-  const leadershipRoles = getLeadershipRoles(t);
-  const [imgError, setImgError] = useState(false);
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-      className="relative mx-auto mb-14 max-w-7xl"
-    >
-      <div className="pointer-events-none absolute -inset-px rounded-[34px] bg-gradient-to-br from-amber-400/70 via-indigo-500/55 to-cyan-400/45 opacity-90 blur-[1px]" />
-      <div className="relative overflow-hidden rounded-[32px] border border-amber-500/25 bg-[#070a10] shadow-[0_0_0_1px_rgba(234,179,8,0.12),0_24px_80px_rgba(0,0,0,0.55)]">
-        <div className="absolute right-6 top-6 z-20 hidden text-4xl sm:block">{member.emoji}</div>
-
-        <div className="flex flex-col lg:flex-row lg:items-stretch">
-          <div className="relative flex w-full min-h-[280px] items-center justify-center bg-[#080b10] sm:min-h-[320px] lg:w-[44%] lg:min-h-[min(100%,440px)] lg:max-w-none">
-            {!imgError ? (
-              <img
-                src={`/team/${member.imageFile}`}
-                alt={member.name}
-              loading="lazy"
-              decoding="async"
-                className="max-h-[min(72vh,520px)] w-full object-contain object-center p-4 sm:max-h-[560px] sm:p-5 lg:h-full lg:max-h-none lg:min-h-[400px] lg:object-contain lg:p-6"
-                style={{ objectPosition: member.objectPos ?? '50% center' }}
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div
-                className="flex min-h-[280px] w-full items-center justify-center lg:min-h-[400px]"
-                style={{ background: `radial-gradient(circle at 40% 30%, ${member.color}30, #070a10 72%)` }}
-              >
-                <span className="select-none text-5xl font-black text-amber-500/35 sm:text-6xl md:text-7xl">{getInitials(member.name)}</span>
-              </div>
-            )}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#070a10] to-transparent lg:inset-y-0 lg:left-auto lg:right-0 lg:h-auto lg:w-24 lg:bg-gradient-to-l" />
-            <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/35 bg-amber-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200 backdrop-blur-md">
-                {member.badge}
-              </span>
-            </div>
-          </div>
-
-          <div className="relative flex flex-1 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:max-w-none lg:py-12 lg:pl-10 lg:pr-12">
-            <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
-              {leadershipRoles.map((role) => (
-                <span
-                  key={role}
-                  className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100/95 sm:px-3 sm:py-1 sm:text-[11px]"
-                >
-                  {role}
-                </span>
-              ))}
-            </div>
-
-            <h2 className="text-balance font-display text-2xl font-black tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12] xl:text-[2.55rem]">
-              {member.name}
-            </h2>
-
-            <p className="mt-5 max-w-2xl text-sm leading-[1.75] text-slate-400 sm:text-[15px]">{member.contribution}</p>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {member.stack.map((tech) => (
-                <span
-                  key={tech}
-                  className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-300"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-
-            {(member.instagramUrl || member.telegramUrl) && (
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t('team.social')}</span>
-                {member.instagramUrl && (
-                  <a
-                    href={member.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Sunnatbek Instagram"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-200 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
-                  >
-                    <FaInstagram className="text-lg" />
-                  </a>
-                )}
-                {member.telegramUrl && (
-                  <a
-                    href={member.telegramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Sunnatbek Telegram"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
-                  >
-                    <FaTelegram className="text-lg" />
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
-function TiltCard({ member, index, reduceMotion = false }: { member: TeamMember; index: number; reduceMotion?: boolean }) {
-  const { t } = useLang();
-  const [imgError, setImgError] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [hovered, setHovered] = useState(false);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (reduceMotion) return;
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: y * 12, y: -x * 12 });
-  }, [reduceMotion]);
-
-  const handleMouseLeave = useCallback(() => {
-    setTilt({ x: 0, y: 0 });
-    setHovered(false);
-  }, []);
-
-  return (
-    <motion.div
-      ref={cardRef}
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => {
-        if (!reduceMotion) setHovered(true);
-      }}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transform: reduceMotion
-          ? 'none'
-          : `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(${hovered ? 6 : 0}px) scale(${hovered ? 1.02 : 1})`,
-        transition: hovered ? 'transform 0.12s ease-out' : 'transform 0.5s cubic-bezier(0.22,1,0.36,1)',
-        transformStyle: 'preserve-3d',
-      }}
-      className="relative cursor-default overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#0c1018]"
-    >
-      {/* hover glow */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[28px] transition-opacity duration-400"
-        style={{
-          opacity: hovered ? 1 : 0,
-          background: `radial-gradient(ellipse at 50% -10%, ${member.accentBg}, transparent 65%)`,
-          boxShadow: `inset 0 1px 0 ${member.color}30`,
-        }}
-      />
-      {/* hover border */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[28px] transition-opacity duration-400"
-        style={{ opacity: hovered ? 1 : 0, border: `1px solid ${member.color}40` }}
-      />
-
-      {/* Photo */}
-      <div className="relative h-72 overflow-hidden">
-        <div
-          className="absolute inset-0 transition-transform duration-700 ease-out"
-          style={{ transform: hovered ? 'scale(1.06)' : 'scale(1)' }}
-        >
-          {!imgError ? (
-            <img
-              src={`/team/${member.imageFile}`}
-              alt={member.name}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-              style={{ objectPosition: member.objectPos ?? '50% 20%' }}
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div
-              className="flex h-full w-full items-center justify-center"
-              style={{ background: `radial-gradient(circle at 40% 30%, ${member.color}25, #0c1018 70%)` }}
-            >
-                <span
-                className="select-none text-5xl font-black tracking-tight sm:text-7xl md:text-8xl"
-                style={{ color: `${member.color}50` }}
-              >
-                {getInitials(member.name)}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* bottom gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0c1018] via-[#0c1018]/30 to-transparent" />
-
-        {/* badge */}
-        <div className="absolute left-4 top-4">
-          <span
-            className="rounded-full px-3 py-1.5 text-[11px] font-bold tracking-[0.06em]"
-            style={{
-              background: `${member.color}20`,
-              color: member.color,
-              border: `1px solid ${member.color}35`,
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            {member.badge}
-          </span>
-        </div>
-
-        {/* emoji */}
-        <div className="absolute right-4 top-4 text-2xl drop-shadow-lg">{member.emoji}</div>
-      </div>
-
-      {/* Body */}
-      <div className="p-5 pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="text-[22px] font-black tracking-tight text-white">{member.name}</h2>
-          {!member.hideAge && (
-            <span className="mt-0.5 shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-400">
-              {member.age} yosh
-            </span>
-          )}
-        </div>
-
-        <p className="mt-3 text-sm leading-[1.7] text-slate-400">{member.contribution}</p>
-
-        {member.portfolioUrl && (
-          <motion.a
-            href={member.portfolioUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ y: -3, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            animate={{
-              boxShadow: [
-                `0 0 0 ${member.color}00`,
-                `0 0 0 6px ${member.color}18`,
-                `0 0 0 ${member.color}00`,
-              ],
-            }}
-            transition={{
-              boxShadow: { duration: 2.1, repeat: Infinity, ease: 'easeInOut' },
-              y: { duration: 0.2 },
-              scale: { duration: 0.2 },
-            }}
-            className="group relative mt-4 inline-flex items-center gap-2 overflow-hidden rounded-xl border px-3.5 py-2 text-xs font-bold uppercase tracking-[0.08em]"
-            style={{
-              borderColor: `${member.color}60`,
-              color: '#fff',
-              background: `linear-gradient(90deg, ${member.color}cc, ${member.color}88)`,
-            }}
-          >
-            <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.22), transparent)' }} />
-            <span className="relative">{t('team.portfolio')}</span>
-            <motion.span
-              aria-hidden
-              className="relative"
-              animate={{ x: [0, 3, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              ↗
-            </motion.span>
-          </motion.a>
-        )}
-
-        {/* Stack pills */}
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {member.stack.map((tech) => (
-            <span
-              key={tech}
-              className="rounded-full px-2.5 py-[3px] text-[10px] font-bold uppercase tracking-[0.08em]"
-              style={{
-                background: `${member.color}14`,
-                color: member.color,
-                border: `1px solid ${member.color}28`,
-              }}
-            >
-              {tech}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* dot grid depth layer */}
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[28px] opacity-[0.03]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      />
-    </motion.div>
-  );
-}
-
-function RoadmapNode({ member, index }: { member: TeamMember; index: number }) {
-  const { t } = useLang();
-  const isLeft = index % 2 === 0;
-  const isLead = member.id === 'sunnatbee';
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: isLeft ? -40 : 40 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: '-30px' }}
-      transition={{ duration: 0.55, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-      className={`relative flex items-center gap-3 sm:gap-5 flex-col sm:${isLeft ? 'flex-row' : 'flex-row-reverse'}`}
-    >
-      {/* Content */}
-      <div
-        className={`w-full sm:flex-1 rounded-2xl border p-3 sm:p-4 text-left sm:${isLeft ? 'text-right' : 'text-left'} ${
-          isLead ? 'border-amber-500/35 shadow-[0_0_40px_rgba(234,179,8,0.12)]' : 'border-white/[0.07]'
-        }`}
-        style={{ background: `linear-gradient(135deg, ${member.accentBg}, rgba(12,16,24,0.96))` }}
-      >
-        <div className={`flex items-center gap-2 justify-start sm:${isLeft ? 'justify-end' : 'justify-start'}`}>
-          <span className="text-lg">{member.emoji}</span>
-          <span className="font-bold text-white">{member.name}</span>
-          {!member.hideAge && member.age > 0 && (
-            <span className="text-xs text-slate-500">· {member.age} {t('team.ageYears')}</span>
-          )}
-        </div>
-        <p
-          className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em]"
-          style={{ color: member.color }}
-        >
-          {member.roadmapRole}
-        </p>
-        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
-          {member.contribution}
-        </p>
-      </div>
-
-      {/* Node circle */}
-      <div className="relative z-10 shrink-0">
-        <div
-          className={`flex items-center justify-center rounded-full text-xl ${isLead ? 'h-14 w-14 ring-2 ring-amber-400/50 ring-offset-2 ring-offset-[#060a12]' : 'h-12 w-12'}`}
-          style={{
-            background: `radial-gradient(circle at 35% 30%, ${member.color}ee, ${member.color}77)`,
-            boxShadow: `0 0 28px ${member.color}55, 0 0 8px ${member.color}33`,
-          }}
-        >
-          {member.emoji}
-        </div>
-        <span
-          className="absolute inset-0 rounded-full animate-ping opacity-[0.15]"
-          style={{ background: member.color }}
-        />
-      </div>
-
-      <div className="hidden sm:block flex-1" />
-    </motion.div>
-  );
-}
+};
 
 export default function TeamPage() {
-  const { t } = useLang();
-  const reduceMotion = useReducedMotion();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const founderLead = getFounderLead(t);
-  const members = getMembers(t);
-  const allMembers = [founderLead, ...members];
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start end', 'end start'] });
-  const lineHeight = useTransform(scrollYProgress, [0.35, 0.92], ['0%', '100%']);
-  const smoothLine = useSpring(lineHeight as any, { stiffness: 55, damping: 18 });
+  const { lang } = useLang();
+  const c = LOCALIZED_CONTENT[lang as keyof typeof LOCALIZED_CONTENT] || LOCALIZED_CONTENT.uz;
 
-  const ageSample = allMembers.filter((m) => !m.hideAge && m.age > 0);
-  const avgAge = (ageSample.reduce((s, m) => s + m.age, 0) / Math.max(1, ageSample.length)).toFixed(1);
-  const techCount = new Set(allMembers.flatMap((m) => m.stack)).size;
+  const avgAge = (TEAM_MEMBERS.filter(m => !m.hideAge).reduce((sum, m) => sum + m.age, 0) / TEAM_MEMBERS.filter(m => !m.hideAge).length).toFixed(1);
+  const totalTech = Array.from(new Set(TEAM_MEMBERS.flatMap(m => m.stack))).length;
 
   return (
-    <main ref={containerRef} className="relative min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#060a12] text-white">
-      {/* fixed ambient bg */}
-      <div className="pointer-events-none fixed inset-0 -z-0">
-        <div className="absolute left-[-18%] top-[-8%] h-[560px] w-[560px] rounded-full bg-indigo-600/10 blur-[130px]" />
-        <div className="absolute right-[-12%] top-[18%] h-[480px] w-[480px] rounded-full bg-cyan-500/7 blur-[110px]" />
-        <div className="absolute bottom-[8%] left-[28%] h-[420px] w-[420px] rounded-full bg-amber-500/6 blur-[100px]" />
+    <main className="relative min-h-screen w-full bg-black text-[#e2e6e9] overflow-hidden rounded-none select-none font-mono">
+      {/* 1. Tactical Green Matrix Grid Overlay */}
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" 
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #10b981 1px, transparent 1px),
+            linear-gradient(to bottom, #10b981 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}
+      />
+      
+      {/* 2. CRT Scanline Overlay */}
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.015] bg-[linear-gradient(to_bottom,rgba(16,185,129,0.3)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_4px]"
+      />
+
+      {/* 3. High-End Background Ambient Glows */}
+      <div className="absolute inset-x-0 top-0 h-[45rem] pointer-events-none z-0">
+        <div className="absolute left-[10%] top-[-10%] w-[35%] h-[25rem] rounded-none blur-[150px] opacity-[0.07] bg-emerald-500" />
+        <div className="absolute right-[10%] top-[5%] w-[30%] h-[20rem] rounded-none blur-[150px] opacity-[0.04] bg-emerald-600" />
       </div>
 
-      {/* ── HERO ── */}
-      <section className="relative z-10 overflow-hidden">
-        {/* hero bg overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(99,102,241,0.22),transparent)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
-
-        <div className="mx-auto max-w-7xl px-3 pb-12 pt-14 sm:px-4 sm:pb-14 sm:pt-16 md:px-6 lg:px-8">
-          {/* badge */}
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-indigo-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-              {t('team.heroBadge')}
-            </span>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        
+        {/* Header Terminal Console Block */}
+        <div className="border border-emerald-500/20 bg-emerald-950/5 p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
+              <span className="h-2 w-2 animate-ping bg-emerald-500 rounded-none" />
+              <span>{c.status}</span>
+            </div>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">
+              {c.systemLogs}
+            </p>
           </div>
-
-          {/* heading — 2 clear lines */}
-          <h1 className="mt-4 max-w-full text-balance font-black leading-[1.08] tracking-[-0.03em] sm:mt-5"
-              style={{ fontSize: 'clamp(1.45rem, 7.5vw, 4rem)' }}>
-            <span className="text-white">{t('team.heroH1a')}</span>
-            <br />
-            <span
-              style={{
-                background: 'linear-gradient(90deg, #a5b4fc 0%, #67e8f9 45%, #fcd34d 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              {t('team.heroH1b')}
+          <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+            <span className="border border-emerald-500/35 px-2.5 py-1 text-emerald-400 bg-emerald-950/20 rounded-none">
+              GRID: COMPRESSED
             </span>
-          </h1>
-
-          {/* description */}
-          <p className="mt-4 max-w-xl text-sm sm:text-[15px] leading-relaxed text-slate-400">
-            {t('team.heroDesc', { avgAge: String(avgAge) })}
-          </p>
-
-          {/* stats grid */}
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: t('team.stat.participants'), value: `${allMembers.length}`, icon: '👥' },
-              { label: t('team.stat.avgAge'), value: avgAge, icon: '🎂' },
-              { label: t('team.stat.tech'), value: `${techCount}+`, icon: '⚡' },
-              { label: t('team.stat.status'), value: t('team.stat.production'), icon: '🚀' },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{s.icon}</span>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{s.label}</p>
-                </div>
-                <p className="mt-2 text-[1.35rem] sm:text-[1.75rem] font-black leading-none text-white">{s.value}</p>
-              </div>
-            ))}
+            <span className="border border-zinc-800 px-2.5 py-1 text-zinc-400 bg-zinc-900/40 rounded-none">
+              ENCRYPTION: AES-256
+            </span>
           </div>
         </div>
 
-        {/* bottom divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      </section>
+        {/* Title & Description */}
+        <div className="mb-14 border-b border-emerald-500/10 pb-8">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold italic uppercase tracking-wider text-white">
+            {c.title}
+          </h1>
+          <p className="mt-3 text-xs sm:text-sm text-emerald-500/70 font-semibold tracking-wider uppercase">
+            {"// "}{c.subtitle}
+          </p>
+          <p className="mt-4 max-w-2xl text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans font-light">
+            {c.heroDesc}
+          </p>
+        </div>
 
-      {/* ── CEO / RAHBARIYAT (alohida) ── */}
-      <section className="relative z-10 mx-auto max-w-7xl px-3 pt-10 sm:px-4 sm:pt-12 md:px-6 lg:px-8">
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mb-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-500/90"
-        >
-          {t('team.leadSection')}
-        </motion.p>
-        <LeadershipCard member={founderLead} />
-      </section>
-
-      {/* ── CARDS ── */}
-      <section className="relative z-10 mx-auto max-w-7xl px-3 pb-20 pt-2 sm:px-4 sm:pb-24 md:px-6 lg:px-8">
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mb-8 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600"
-        >
-          {t('team.coreTeam', { count: String(members.length) })}
-        </motion.p>
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {members.map((m, i) => (
-            <TiltCard key={m.id} member={m} index={i} reduceMotion={Boolean(reduceMotion)} />
+        {/* Tactical Metrics Dashboard */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+          {[
+            { label: c.agents, value: `[0${TEAM_MEMBERS.length}]`, desc: 'Active human nodes' },
+            { label: 'AVERAGE_AGE', value: `[${avgAge}]`, desc: 'Mean crew age' },
+            { label: c.tech, value: `[${totalTech}+]`, desc: 'Direct stack elements' },
+            { label: 'NODE_INTEGRITY', value: '[100%]', desc: 'No latency detected' },
+          ].map((m, idx) => (
+            <div 
+              key={idx} 
+              className="border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 rounded-none flex flex-col justify-between hover:border-emerald-500/30 transition-colors duration-300"
+            >
+              <span className="text-[9px] sm:text-[10px] font-bold text-zinc-500 tracking-wider uppercase">{m.label}</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-2 font-mono">{m.value}</span>
+              <span className="text-[9px] text-zinc-600 mt-1 font-sans">{m.desc}</span>
+            </div>
           ))}
         </div>
-      </section>
 
-      {/* ── 3D ROADMAP ── */}
-      <section className="relative z-10 mx-auto max-w-3xl px-3 pb-24 sm:px-4 sm:pb-32 md:px-6 lg:px-8">
-        {/* section header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.55 }}
-          className="mb-14 text-center"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-amber-300">
-            🗺 {t('team.roadmapBadge')}
-          </span>
-          <h2 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight sm:text-[2.4rem]">
-            {t('team.roadmapTitle1')}
-            <span className="block bg-gradient-to-r from-amber-300 to-orange-200 bg-clip-text text-transparent">
-              {t('team.roadmapTitle2')}
-            </span>
-          </h2>
-          <p className="mx-auto mt-3 max-w-sm text-sm text-slate-500">
-            {t('team.roadmapSub')}
-          </p>
-        </motion.div>
+        {/* Staggered Asymmetric Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {TEAM_MEMBERS.map((member, index) => {
+            const isCEO = member.id === 'sunnatbek';
+            const isMystery = member.id === 'mystery';
+            return (
+              <div
+                key={member.id}
+                className={`group relative border bg-zinc-950/40 transition-all duration-300 rounded-none flex flex-col justify-between col-span-1 ${
+                  isCEO 
+                    ? 'border-yellow-500/20 hover:border-yellow-500/70 shadow-[0_0_15px_rgba(234,179,8,0.02)] hover:shadow-[0_0_25px_rgba(234,179,8,0.05)]' 
+                    : isMystery
+                      ? 'border-red-500/20 hover:border-red-500/70 shadow-[0_0_15px_rgba(239,68,68,0.02)] hover:shadow-[0_0_25px_rgba(239,68,68,0.05)]'
+                      : 'border-zinc-850 hover:border-emerald-500/60'
+                }`}
+              >
+                {/* 4 Corner Minimalist Neon Bracket Lines */}
+                <div className={`absolute top-0 left-0 w-3.5 h-3.5 border-t border-l z-20 pointer-events-none group-hover:border-t-2 group-hover:border-l-2 transition-all duration-200 ${
+                  isCEO ? 'border-yellow-500' : isMystery ? 'border-red-500' : 'border-emerald-500'
+                }`} />
+                <div className={`absolute top-0 right-0 w-3.5 h-3.5 border-t border-r z-20 pointer-events-none group-hover:border-t-2 group-hover:border-r-2 transition-all duration-200 ${
+                  isCEO ? 'border-yellow-500' : isMystery ? 'border-red-500' : 'border-emerald-500'
+                }`} />
+                <div className={`absolute bottom-0 left-0 w-3.5 h-3.5 border-b border-l z-20 pointer-events-none group-hover:border-b-2 group-hover:border-l-2 transition-all duration-200 ${
+                  isCEO ? 'border-yellow-500' : isMystery ? 'border-red-500' : 'border-emerald-500'
+                }`} />
+                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-b border-r z-20 pointer-events-none group-hover:border-b-2 group-hover:border-r-2 transition-all duration-200 ${
+                  isCEO ? 'border-yellow-500' : isMystery ? 'border-red-500' : 'border-emerald-500'
+                }`} />
 
-        {/* road container */}
-        <div className="relative" style={{ perspective: '1000px' }}>
-          {/* vertical line */}
-          <div className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 hidden sm:block">
-            <div className="absolute inset-0 bg-white/[0.06]" />
-            <motion.div
-              className="absolute inset-x-0 top-0 origin-top"
-              style={{
-                height: smoothLine,
-                background: 'linear-gradient(to bottom, #6366f1, #06b6d4 45%, #10b981 70%, #f59e0b)',
-                boxShadow: '0 0 10px rgba(99,102,241,0.5)',
-              }}
-            />
-          </div>
+                {/* Corner-locked Glowing Mock Cursors (Slide in on Hover) */}
+                {/* Top-Left Cursor */}
+                <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-x-3 pointer-events-none select-none">
+                  <svg className={`w-3.5 h-3.5 fill-current ${
+                    isCEO 
+                      ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]' 
+                      : isMystery
+                        ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                        : 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                  }`} viewBox="0 0 24 24">
+                    <path d="M4.5 3v15.25l4.5-4.25h6.25L4.5 3z" />
+                  </svg>
+                  <span className={`text-black text-[8px] font-bold px-1.5 py-0.5 tracking-wider rounded-none uppercase ${
+                    isCEO ? 'bg-yellow-500' : isMystery ? 'bg-red-500' : 'bg-emerald-500'
+                  }`}>
+                    NODE_{member.name.split(/[ _]/)[0]}
+                  </span>
+                </div>
 
-          <div className="relative flex flex-col gap-7 py-2">
-            {allMembers.map((m, i) => (
-              <RoadmapNode key={m.id} member={m} index={i} />
-            ))}
-          </div>
+                {/* Bottom-Right Cursor */}
+                <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-3 pointer-events-none select-none">
+                  <span className="bg-purple-600 text-white text-[8px] font-bold px-1.5 py-0.5 tracking-wider rounded-none uppercase">
+                    SYS_CONN
+                  </span>
+                  <svg className="w-3.5 h-3.5 text-purple-400 fill-current transform rotate-180 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" viewBox="0 0 24 24">
+                    <path d="M4.5 3v15.25l4.5-4.25h6.25L4.5 3z" />
+                  </svg>
+                </div>
+
+                {/* Card Top: Image / Portrait Box */}
+                <div className="relative overflow-hidden bg-zinc-950/80 aspect-[4/5] w-full border-b border-zinc-900 flex items-center justify-center">
+                  {isMystery ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-black/75 relative select-none overflow-hidden group-hover:bg-black/60 transition-colors duration-500">
+                      {/* Cyber scanline & noise textures */}
+                      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(239,68,68,0.08)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_8px] pointer-events-none" />
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_100%)] pointer-events-none" />
+                      
+                      {/* Glitchy Matrix Grid Lines */}
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(239,68,68,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(239,68,68,0.03)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
+
+                      {/* WANTED Cyber Stamp Banner */}
+                      <div className="absolute top-1/4 w-[120%] text-center transform -rotate-12 bg-red-600/90 border-y-2 border-red-500 py-2 shadow-[0_0_25px_rgba(220,38,38,0.6)] z-10 transition-transform group-hover:scale-105 duration-500 select-none">
+                        <span className="text-xl font-black text-black tracking-[0.3em] font-mono animate-pulse">
+                          WANTED
+                        </span>
+                      </div>
+
+                      {/* Glitchy Question Mark */}
+                      <span className="text-8xl font-black text-red-950/40 group-hover:text-red-500/80 transition-all duration-500 font-mono tracking-tighter drop-shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse mt-8">
+                        ?
+                      </span>
+
+                      <div className="absolute bottom-6 text-center z-10 px-4">
+                        <span className="text-[10px] tracking-[0.25em] font-mono text-red-500/40 group-hover:text-red-400 font-bold uppercase animate-pulse block">
+                          {"// SEEKING_CREATIVE_NODE"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={member.asset}
+                      alt={member.name}
+                      className="w-full h-full object-cover object-top origin-top filter grayscale opacity-60 contrast-125 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500 ease-out rounded-none"
+                    />
+                  )}
+                  {/* Grid Lines Pattern Inside Photo */}
+                  <div className={`absolute inset-0 bg-[linear-gradient(to_right,rgba(16,185,129,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none ${
+                    isMystery ? 'opacity-0' : ''
+                  }`} />
+                  
+                  {/* Tactical gradient fade to bottom */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none" />
+                  
+                  {/* Console Style Top Badges */}
+                  <div className="absolute top-4 right-4 flex gap-1.5 z-20 font-bold">
+                    <span className={`px-2 py-0.5 text-[9px] tracking-wider uppercase rounded-none ${
+                      isCEO 
+                        ? 'bg-yellow-950/85 border border-yellow-500/40 text-yellow-400' 
+                        : isMystery
+                          ? 'bg-red-950/90 border border-red-500/50 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.3)] animate-pulse'
+                          : 'bg-emerald-950/85 border border-emerald-500/40 text-emerald-400'
+                    }`}>
+                      [{member.roleBadge}]
+                    </span>
+                    {!member.hideAge && (
+                      <span className="bg-zinc-900/85 border border-zinc-700 text-zinc-400 px-2 py-0.5 text-[9px] tracking-wider uppercase rounded-none">
+                        [{member.age} {c.years}]
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Bottom: Member Specifications */}
+                <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className={`text-lg font-black tracking-wider uppercase text-white transition-colors duration-300 ${
+                        isCEO 
+                          ? 'group-hover:text-yellow-400' 
+                          : isMystery
+                            ? 'group-hover:text-red-400 animate-pulse text-red-500/90'
+                            : 'group-hover:text-emerald-400'
+                      }`}>
+                        {member.name}
+                      </h3>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                        {isMystery ? '// ID: ANOMALY_NODE' : `// ID: DEV_NODE_0${index + 1}`}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase block">{"// "}{c.experience}</span>
+                      {isMystery ? (
+                        <div className="space-y-2 font-mono text-xs">
+                          {/* Red Neon Hashtags */}
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-950/50 border border-red-500/40 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.2)]">
+                              #WANTED
+                            </span>
+                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-950/30 border border-red-500/30 text-red-400">
+                              #CREATIVE_MIND
+                            </span>
+                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-950/30 border border-red-500/30 text-red-400">
+                              #JOIN_US
+                            </span>
+                          </div>
+                          
+                          {/* Slanted, highly styled italic details */}
+                          <p className="text-xs text-zinc-200 leading-relaxed italic border-l-2 border-red-500/40 pl-2.5 py-1 bg-red-950/10 font-serif">
+                            Bizga kreativ va nostandart fikrlaydigan dev kerak!
+                          </p>
+
+                          <div className="text-[9px] text-red-500/50 leading-tight">
+                            {"// Tizimda bo‘shliq aniqlandi. matrix_integrity: unstable."}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-300 leading-relaxed font-sans font-light font-italic italic">
+                          {member.details}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase block">{"// "}{c.stack}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {member.stack.map(tech => (
+                          <span 
+                            key={tech} 
+                            className={`px-2 py-0.5 border text-[9px] font-bold bg-zinc-900/20 rounded-none transition-colors duration-300 ${
+                              isCEO 
+                                ? 'border-zinc-800 text-zinc-400 group-hover:border-yellow-500/35 group-hover:text-yellow-300' 
+                                : isMystery
+                                  ? 'border-red-500/30 text-red-400/90 shadow-[0_0_4px_rgba(239,68,68,0.15)] group-hover:border-red-500/60 group-hover:text-red-300 font-bold italic'
+                                  : 'border-zinc-800 text-zinc-400 group-hover:border-emerald-500/20 group-hover:text-emerald-300'
+                            }`}
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Social Handles / Call to Action */}
+                  {isMystery ? (
+                    <div className="pt-3 border-t border-zinc-900/80">
+                      <a
+                        href="https://t.me/SUNNATBEE"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 border border-red-500/35 hover:border-red-500 bg-red-950/20 hover:bg-red-500/10 text-[10px] font-bold text-red-400 hover:text-red-300 transition-all duration-300 rounded-none flex items-center justify-center gap-2 tracking-widest uppercase shadow-[0_0_10px_rgba(239,68,68,0.05)] hover:shadow-[0_0_15px_rgba(239,68,68,0.25)]"
+                      >
+                        <span className="w-1.5 h-1.5 bg-red-500 animate-ping rounded-none" />
+                        <span>JOIN_US_NODE // CONNECT</span>
+                      </a>
+                    </div>
+                  ) : (member.telegram || member.instagram) ? (
+                    <div className="flex gap-2 pt-2 border-t border-zinc-900">
+                      {member.telegram && (
+                        <a
+                          href={member.telegram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${
+                            isCEO 
+                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5' 
+                              : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
+                          }`}
+                        >
+                          <FaTelegram size={13} />
+                        </a>
+                      )}
+                      {member.instagram && (
+                        <a
+                          href={member.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${
+                            isCEO 
+                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5' 
+                              : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
+                          }`}
+                        >
+                          <FaInstagram size={13} />
+                        </a>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* finish */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.75 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-10 flex flex-col items-center gap-2"
-        >
-          <div
-            className="flex h-16 w-16 items-center justify-center rounded-full text-2xl"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #06b6d4)', boxShadow: '0 0 40px rgba(99,102,241,0.45)' }}
-          >
-            🌐
-          </div>
-          <p className="mt-1 text-sm font-bold text-white tracking-tight">{t('team.footerUrl')}</p>
-          <p className="text-xs text-slate-500">{t('team.footerTag')}</p>
-        </motion.div>
-      </section>
+        {/* Footer System Console Printout */}
+        <div className="mt-20 border-t border-emerald-500/10 pt-8 text-center text-[10px] text-zinc-600 space-y-2">
+          <p className="font-mono">
+            {"// END_OF_FILE // SYSTEM_ACTIVE // ALL_NODES_OPERATIONAL: TRUE"}
+          </p>
+          <p className="font-mono text-emerald-500/40 animate-pulse">
+            AIDEVIX PLATFORM CORE HUMAN ASSETS V2.06
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

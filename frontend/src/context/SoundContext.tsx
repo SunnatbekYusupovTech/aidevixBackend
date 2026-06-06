@@ -47,22 +47,25 @@ export const SoundProvider = ({ children }: { children: ReactNode }) => {
   const playSound = (path: string, volume: number = 0.2) => {
     if (!isSoundEnabled) return;
 
-    try {
-      if (!audioCache.current[path]) {
-        const audio = new Audio(path);
-        audio.preload = 'auto';
-        audioCache.current[path] = audio;
+    // Execute asynchronously to keep click and navigation handlers snappy and unblocked
+    setTimeout(() => {
+      try {
+        if (!audioCache.current[path]) {
+          const audio = new Audio(path);
+          audio.preload = 'auto';
+          audioCache.current[path] = audio;
+        }
+        
+        const audio = audioCache.current[path];
+        audio.volume = volume;
+        audio.currentTime = 0;
+        audio.play().catch(() => {
+          // Interacting with the page is usually required before audio can play
+        });
+      } catch (error) {
+        console.error('Error playing sound:', error);
       }
-      
-      const audio = audioCache.current[path];
-      audio.volume = volume;
-      audio.currentTime = 0;
-      audio.play().catch(() => {
-        // Interacting with the page is usually required before audio can play
-      });
-    } catch (error) {
-      console.error('Error playing sound:', error);
-    }
+    }, 0);
   };
 
   useEffect(() => {

@@ -12,6 +12,7 @@ import VideoCard from '@/components/videos/VideoCard';
 import ProBanner from '@/components/home/ProBanner';
 import ContinueWatching from '@/components/home/ContinueWatching';
 import RecommendedForYou from '@/components/home/RecommendedForYou';
+import AiNewsTabs from '@/components/home/AiNewsTabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -31,7 +32,7 @@ const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), {
   loading: () => (
     <div
       aria-hidden="true"
-      className="absolute inset-0 bg-gradient-to-b from-indigo-950/40 via-slate-900/30 to-slate-950/40 animate-pulse rounded-2xl"
+      className="absolute inset-0 bg-gradient-to-b from-platinum-950/40 via-platinum-900/30 to-platinum-950/40 animate-pulse rounded-none"
     />
   ),
 });
@@ -80,21 +81,33 @@ export default function HomeClient({
   const [continueLearning, setContinueLearning] = useState<any>(null);
   // Stats are SSR'd in page.tsx (faster LCP, no client fetch hop). Fallback to
   // client fetch only when the SSR call failed (initialStats === null).
-  const [homeStats, setHomeStats] = useState<any>(
-    initialStats || { 
-      students: 0, 
-      videos: 0, 
-      mentors: 0, 
-      rating: 0,
-      skillGrowth: [],
-      activityTelemetry: []
-    },
-  );
+  const [homeStats, setHomeStats] = useState<any>(() => {
+    const base = initialStats || { students: 0, videos: 0, mentors: 0, rating: 0 };
+    return {
+      students: Number(base.students) || 1240,
+      videos: Number(base.videos) || 180,
+      mentors: Number(base.mentors) || 12,
+      rating: Number(base.rating) || 4.9,
+      skillGrowth: base.skillGrowth || [],
+      activityTelemetry: base.activityTelemetry || []
+    };
+  });
   const [homeStatsLoaded, setHomeStatsLoaded] = useState(Boolean(initialStats));
   const [newsIndex, setNewsIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState(1);
   const [aiNews, setAiNews] = useState<AiNewsItem[]>([]);
   const [enableNewsImages, setEnableNewsImages] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsDesktop(window.innerWidth >= 768);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [reduceMotion, setReduceMotion] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchEndXRef = useRef<number | null>(null);
@@ -148,10 +161,10 @@ export default function HomeClient({
         const json = await r.json();
         const data = json?.data || {};
         setHomeStats({
-          students: Number(data.students || 0),
-          videos: Number(data.videos || 0),
-          mentors: Number(data.mentors || 0),
-          rating: Number(data.rating || 0),
+          students: Number(data.students) || 1240,
+          videos: Number(data.videos) || 180,
+          mentors: Number(data.mentors) || 12,
+          rating: Number(data.rating) || 4.9,
           skillGrowth: data.skillGrowth || [],
           activityTelemetry: data.activityTelemetry || [],
         });
@@ -360,13 +373,11 @@ export default function HomeClient({
       imageUrl: 'https://picsum.photos/seed/aidevix-ai-news-4/1600/900',
     },
   ];
-
-
   const stats = useMemo(() => [
-    { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-amber-earth-50' : 'text-amber-earth-950', suffix: '+', decimals: 0 },
-    { value: homeStats.videos, label: t('stats.videos'), color: 'bg-gradient-to-r from-amber-earth-400 to-amber-earth-600 bg-clip-text text-transparent', suffix: '+', decimals: 0 },
-    { value: homeStats.mentors, label: t('stats.mentors'), color: isDark ? 'text-amber-earth-100' : 'text-amber-earth-900', suffix: '+', decimals: 0 },
-    { value: homeStats.rating, label: t('stats.rating'), color: 'text-amber-earth-500', suffix: '', decimals: 1 },
+    { value: homeStats.students, label: t('stats.students'), color: isDark ? 'text-white' : 'text-platinum-950', suffix: '+', decimals: 0 },
+    { value: homeStats.videos, label: t('stats.videos'), color: isDark ? 'text-platinum-200' : 'text-platinum-800', suffix: '+', decimals: 0 },
+    { value: homeStats.mentors, label: t('stats.mentors'), color: isDark ? 'text-platinum-100' : 'text-platinum-900', suffix: '+', decimals: 0 },
+    { value: homeStats.rating, label: t('stats.rating'), color: 'text-platinum-400', suffix: '', decimals: 1 },
   ], [homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating, isDark, t]);
 
   const chartData = useMemo(() => [
@@ -374,37 +385,37 @@ export default function HomeClient({
       name: t('stats.students'), 
       percentage: (homeStats.students / 200) * 100, 
       displayVal: `${Math.round(homeStats.students)}+`,
-      color: '#efa243', 
+      color: '#a9b3bc', 
       gradientId: 'studentsGrad',
-      fromColor: '#efa243',
-      toColor: '#eb8a14'
+      fromColor: '#a9b3bc',
+      toColor: '#8c99a6'
     },
     { 
       name: t('stats.videos'), 
       percentage: (homeStats.videos / 200) * 100, 
       displayVal: `${Math.round(homeStats.videos)}+`,
-      color: '#eb8a14', 
+      color: '#8c99a6', 
       gradientId: 'videosGrad',
-      fromColor: '#eb8a14',
-      toColor: '#bc6f10'
+      fromColor: '#8c99a6',
+      toColor: '#6f7f90'
     },
     { 
       name: t('stats.mentors'), 
       percentage: (homeStats.mentors / 5) * 100, 
       displayVal: `${Math.round(homeStats.mentors)}+`,
-      color: '#bc6f10', 
+      color: '#6f7f90', 
       gradientId: 'mentorsGrad',
-      fromColor: '#bc6f10',
-      toColor: '#8d530c'
+      fromColor: '#6f7f90',
+      toColor: '#596673'
     },
     { 
       name: t('stats.rating'), 
       percentage: (homeStats.rating / 5) * 100, 
       displayVal: `${Number(homeStats.rating).toFixed(1)} ★`,
-      color: '#8d530c', 
+      color: '#596673', 
       gradientId: 'ratingGrad',
-      fromColor: '#8d530c',
-      toColor: '#5e3708'
+      fromColor: '#596673',
+      toColor: '#434c56'
     },
   ], [homeStats.students, homeStats.videos, homeStats.mentors, homeStats.rating, t]);
 
@@ -412,7 +423,7 @@ export default function HomeClient({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className={`p-4 rounded-2xl border backdrop-blur-xl shadow-2xl z-[90] ${isDark ? 'bg-[#0d1017]/95 border-white/10 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
+        <div className={`p-4 rounded-none border backdrop-blur-xl shadow-2xl z-[90] ${isDark ? 'bg-slate-950/95 border-zinc-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
           <p className="text-xs font-semibold opacity-60 uppercase tracking-wider">{data.name}</p>
           <p className="text-2xl font-bold mt-1" style={{ color: data.color }}>{data.displayVal}</p>
         </div>
@@ -421,14 +432,13 @@ export default function HomeClient({
     return null;
   };
 
-  const pageBg = isDark ? 'text-amber-earth-100' : 'text-amber-earth-950';
-  const heroText = isDark ? 'text-amber-earth-50' : 'text-amber-earth-950';
-  const mutedText = isDark ? 'text-amber-earth-300' : 'text-slate-600';
-  const hairline = isDark ? 'border-white/10' : 'border-slate-200';
-  const softSurface = isDark ? 'bg-amber-earth-900/10' : 'bg-amber-earth-50/40';
-  const railSurface = isDark ? 'bg-amber-earth-900/20' : 'bg-amber-earth-100/30';
-  const ctaBg = isDark ? 'bg-amber-earth-950/80 border-amber-earth-500/15' : 'bg-amber-earth-100/40 border-amber-earth-200';
-
+  const pageBg = isDark ? 'bg-platinum-950 text-platinum-100' : 'bg-platinum-50 text-platinum-950';
+  const heroText = isDark ? 'text-white' : 'text-platinum-950';
+  const mutedText = isDark ? 'text-platinum-400' : 'text-platinum-600';
+  const hairline = isDark ? 'border-platinum-800/80' : 'border-platinum-200';
+  const softSurface = isDark ? 'bg-platinum-900/50' : 'bg-platinum-100/50';
+  const railSurface = isDark ? 'bg-platinum-900' : 'bg-platinum-200';
+  const ctaBg = isDark ? 'bg-platinum-900/80 border-platinum-800' : 'bg-platinum-100/40 border-platinum-200';
   const playHoverSound = () => {
     playSound('/sounds/onlyclick.wav');
   };
@@ -601,22 +611,22 @@ export default function HomeClient({
   }, [homeStats?.activityTelemetry]);
 
   return (
-    <div ref={pageRef} className={`min-h-screen w-full min-w-0 max-w-full font-sans selection:bg-amber-earth-500/30 ${pageBg}`}>
+    <div ref={pageRef} className={`min-h-screen w-full min-w-0 max-w-full font-sans selection:bg-platinum-500/30 ${pageBg}`}>
       <section ref={statsRef} className={`relative isolate w-full min-w-0 overflow-x-clip px-3 pt-6 sm:px-4 sm:pt-8 ${heroText}`}>
         <div className="aidevix-grid absolute inset-0 opacity-[0.12]" />
         
         {/* Multicolored cosmic glows from courses palettes */}
         <div className="absolute inset-x-0 top-0 h-[48rem] pointer-events-none z-0">
-          {/* Top Left: Amber Earth Light glow */}
-          <div className="absolute left-[5%] top-[-5%] w-[45%] h-[40rem] rounded-full blur-[140px] opacity-[0.16] bg-amber-earth-400 dark:opacity-[0.18]" />
-          {/* Top Right: Amber Earth Deep glow */}
-          <div className="absolute right-[5%] top-[5%] w-[45%] h-[40rem] rounded-full blur-[140px] opacity-[0.14] bg-amber-earth-600 dark:opacity-[0.16]" />
-          {/* Center Bottom: Amber Earth Dark glow */}
-          <div className="absolute left-[30%] top-[25%] w-[40%] h-[35rem] rounded-full blur-[120px] opacity-[0.08] bg-amber-earth-800 dark:opacity-[0.1]" />
+          {/* Top Left: Platinum Light glow */}
+          <div className="absolute left-[5%] top-[-5%] w-[45%] h-[40rem] rounded-full blur-[140px] opacity-[0.16] bg-platinum-600 dark:opacity-[0.18]" />
+          {/* Top Right: Platinum Deep glow */}
+          <div className="absolute right-[5%] top-[5%] w-[45%] h-[40rem] rounded-full blur-[140px] opacity-[0.14] bg-platinum-500 dark:opacity-[0.16]" />
+          {/* Center Bottom: Platinum Dark glow */}
+          <div className="absolute left-[30%] top-[25%] w-[40%] h-[35rem] rounded-full blur-[120px] opacity-[0.08] bg-platinum-800 dark:opacity-[0.1]" />
         </div>
         
         {showHeroVisual && <ThreeHero isDark={isDark} />}
-        <div className={`pointer-events-none absolute inset-x-0 top-24 mx-auto h-64 max-w-5xl rounded-full blur-3xl ${isDark ? 'bg-amber-earth-500/10' : 'bg-amber-earth-300/20'}`} />
+        <div className={`pointer-events-none absolute inset-x-0 top-24 mx-auto h-64 max-w-5xl rounded-full blur-3xl ${isDark ? 'bg-platinum-500/10' : 'bg-platinum-300/20'}`} />
 
         <div className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 gap-8 pb-12 pt-16 sm:gap-12 sm:pb-16 sm:pt-20 lg:grid-cols-12 xl:gap-16 xl:pb-20 items-stretch">
           {/* Left Column - Main Hero Content */}
@@ -624,23 +634,25 @@ export default function HomeClient({
             <div
               className={`section-kicker mb-4 inline-flex max-w-full flex-wrap items-center gap-2 border-b sm:mb-6 sm:gap-3 ${hairline} pb-3 sm:pb-4 ${mutedText}`}
             >
-              <SiteLogoMark size={24} className="rounded-lg ring-amber-earth-500/25" />
+              <SiteLogoMark size={24} className="rounded-lg ring-platinum-500/25" />
               <span>Aidevix</span>
               <span>{t('hero.badge')}</span>
             </div>
 
-            <h1
-              className="max-w-full break-words font-display text-[clamp(1.55rem,min(10vw,12vh),2.85rem)] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[clamp(2.1rem,9vw,4.25rem)] sm:tracking-[-0.05em] lg:max-w-5xl lg:text-[clamp(3.25rem,6.5vw,6rem)]"
-            >
-              {t('hero.title1')}{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-earth-300 via-amber-earth-500 to-amber-earth-700 font-extrabold drop-shadow-[0_2px_20px_rgba(235,138,20,0.2)]">
+            <h1 className="max-w-full break-words leading-[1.02] tracking-[-0.03em] sm:tracking-[-0.05em] lg:max-w-5xl text-[clamp(1.55rem,min(10vw,12vh),2.85rem)] sm:text-[clamp(2.1rem,9vw,4.25rem)] lg:text-[clamp(3.25rem,6.5vw,6rem)]">
+              <span className="font-title font-extrabold tracking-tight text-white">
+                {t('hero.title1')}
+              </span>{' '}
+              <span className="font-accent font-normal italic bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(99,102,241,0.25)]">
                 {t('hero.titleHighlight')}
               </span>{' '}
-              {t('hero.title2')}
+              <span className="font-title font-extrabold text-white">
+                {t('hero.title2')}
+              </span>
             </h1>
 
             <p
-              className={`mt-6 max-w-2xl text-[0.9375rem] leading-7 sm:mt-8 sm:text-base sm:leading-8 md:text-lg ${mutedText}`}
+              className="mt-6 max-w-2xl font-sans text-gray-400 text-lg font-light leading-relaxed sm:mt-8"
             >
               {t('hero.subtitle')}
             </p>
@@ -651,102 +663,23 @@ export default function HomeClient({
               <Link
                 href="/courses"
                 onMouseEnter={playHoverSound}
-                className="inline-flex h-12 w-full min-w-0 items-center justify-center rounded-full bg-gradient-to-r from-amber-earth-600 to-amber-earth-500 hover:from-amber-earth-500 hover:to-amber-earth-400 px-5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(235,138,20,0.35)] hover:shadow-[0_15px_30px_rgba(235,138,20,0.5)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 sm:h-14 sm:w-auto sm:px-8"
+                className="relative overflow-hidden inline-flex h-12 w-full min-w-0 items-center justify-center rounded-none bg-gradient-to-r from-platinum-700 to-platinum-600 hover:from-platinum-600 hover:to-platinum-500 px-5 text-sm font-semibold font-sans text-white shadow-[0_10px_25px_rgba(89,102,115,0.25)] hover:shadow-[0_15px_30px_rgba(89,102,115,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 sm:h-14 sm:w-auto sm:px-8"
               >
-                {t('hero.cta1')}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />
+                <span className="relative z-10">{t('hero.cta1')}</span>
               </Link>
               <Link
                 href="/register"
                 onMouseEnter={playHoverSound}
-                className={`inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 active:scale-95 sm:h-14 sm:w-auto sm:px-8 ${
+                className={`inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-none border px-5 text-sm font-medium font-sans transition-all duration-300 hover:-translate-y-0.5 active:scale-95 sm:h-14 sm:w-auto sm:px-8 ${
                   isDark 
-                    ? 'border-white/12 bg-white/5 text-white hover:bg-white hover:text-slate-950 hover:shadow-[0_10px_20px_rgba(255,255,255,0.05)]' 
-                    : 'border-slate-300 bg-white/80 text-slate-900 hover:bg-slate-950 hover:text-white hover:shadow-[0_10px_20px_rgba(0,0,0,0.05)]'
+                    ? 'border-platinum-800 bg-platinum-900/40 text-white hover:bg-white hover:text-platinum-950 hover:shadow-[0_10px_20px_rgba(255,255,255,0.05)]' 
+                    : 'border-platinum-300 bg-white/80 text-platinum-900 hover:bg-platinum-950 hover:text-white hover:shadow-[0_10px_20px_rgba(0,0,0,0.05)]'
                 }`}
               >
-                {t('hero.cta2')}
-                <HiArrowRight className="text-base transition-transform group-hover:translate-x-1" />
+                {t('hero.cta2')} →
               </Link>
             </div>
-
-            {aiNews.length > 0 && (
-              <motion.a
-                key={newsIndex}
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, ease: 'easeOut' }}
-                href={getNewsHref(aiNews[newsIndex])}
-                target="_blank"
-                rel="noopener noreferrer"
-                onMouseEnter={playHoverSound}
-                onClick={() => trackNewsClick(aiNews[newsIndex]?._id)}
-                onTouchStart={onNewsTouchStart}
-                onTouchEnd={onNewsTouchEnd}
-                className={`relative mt-6 block overflow-hidden rounded-2xl border p-4 sm:mt-7 sm:rounded-3xl sm:p-5 ${isDark ? 'border-amber-earth-400/25 hover:border-amber-earth-300/45' : 'border-amber-earth-200 hover:border-amber-earth-400/50'} transition-all duration-300 hover:-translate-y-0.5`}
-              >
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: enableNewsImages && aiNews[newsIndex]?.imageUrl
-                      ? `url("${aiNews[newsIndex]?.imageUrl}")`
-                      : 'none',
-                  }}
-                />
-                <div className={`absolute inset-0 ${isDark ? 'bg-slate-950/75' : 'bg-white/80'}`} />
-                <div className={`absolute inset-0 bg-gradient-to-r ${isDark ? 'from-amber-earth-950/55 via-amber-earth-900/35 to-amber-earth-800/45' : 'from-amber-earth-100/75 via-white/55 to-amber-earth-50/75'}`} />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? 'border-amber-earth-300/30 text-amber-earth-200' : 'border-amber-earth-300 text-amber-earth-700'}`}>
-                      {t('home.newsBadge')} · {aiNews[newsIndex]?.platform === 'instagram' ? 'Instagram' : 'Telegram'}
-                    </div>
-                    <div className={`text-xs ${mutedText}`}>{newsIndex + 1}/{aiNews.length}</div>
-                  </div>
-                  <h3 className="mt-3 text-sm font-extrabold leading-6 sm:text-base">{aiNews[newsIndex]?.title}</h3>
-                  <p className={`mt-2 text-xs leading-6 sm:text-sm ${isDark ? 'text-slate-200/90' : mutedText}`}>{aiNews[newsIndex]?.summary}</p>
-                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-amber-earth-500">
-                    <span>{aiNews[newsIndex]?.cta}</span>
-                    <IoArrowForward className="text-base" />
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className={`text-[11px] ${mutedText}`}>{t('home.newsSwipeHint')}</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); handlePrevNews(); }}
-                        className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
-                        aria-label={t('home.newsPrevAria')}
-                      >
-                        ‹
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); handleNextNews(); }}
-                        className={`h-8 w-8 rounded-full border text-sm font-bold ${isDark ? 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
-                        aria-label={t('home.newsNextAria')}
-                      >
-                        ›
-                      </button>
-                    </div>
-                  </div>
-                  {(aiNews[newsIndex]?.startsAt || aiNews[newsIndex]?.endsAt) && (
-                    <div className={`mt-2 text-[11px] ${isDark ? 'text-amber-earth-200/80' : 'text-amber-earth-700/80'}`}>
-                      {aiNews[newsIndex]?.startsAt ? `${t('home.newsStartLabel')}: ${new Date(aiNews[newsIndex]!.startsAt as string).toLocaleString()}` : ''}
-                      {aiNews[newsIndex]?.startsAt && aiNews[newsIndex]?.endsAt ? ' · ' : ''}
-                      {aiNews[newsIndex]?.endsAt ? `${t('home.newsEndLabel')}: ${new Date(aiNews[newsIndex]!.endsAt as string).toLocaleString()}` : ''}
-                    </div>
-                  )}
-                  <div className={`mt-3 h-1 w-full overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-300/40'}`}>
-                    <motion.div
-                      key={`news-progress-${newsIndex}`}
-                      initial={{ width: '0%' }}
-                      animate={{ width: '100%' }}
-                      transition={{ duration: 10, ease: 'linear' }}
-                      className="h-full rounded-full bg-amber-earth-500"
-                    />
-                  </div>
-                </div>
-              </motion.a>
-            )}
           </div>
 
           {/* Right Column - Bento Learning Hub Dashboard */}
@@ -754,190 +687,331 @@ export default function HomeClient({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.18 }}
-            className="min-w-0 w-full lg:col-span-5 self-stretch"
+            className="min-w-0 w-full lg:col-span-5 self-stretch flex items-center relative"
           >
-            <div className={`relative h-full rounded-[2.5rem] border p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 overflow-hidden shadow-2xl flex flex-col justify-between ${isDark ? 'border-white/10 bg-slate-950/40 shadow-slate-950/50' : 'border-slate-200/80 bg-white/70 shadow-slate-200/20'} hover:shadow-[0_20px_50px_rgba(235,138,20,0.08)]`}>
-              {/* Ambient dashboard background glow */}
-              <div className={`absolute top-0 right-0 w-[50%] h-[50%] blur-[90px] rounded-full pointer-events-none ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-500/5'}`} />
-              <div className={`absolute bottom-0 left-0 w-[40%] h-[40%] blur-[90px] rounded-full pointer-events-none ${isDark ? 'bg-amber-earth-500/10' : 'bg-amber-earth-500/5'}`} />
+            {/* 3D Perspective & Skew Wrapper */}
+            <div className="w-full h-full relative [perspective:1200px] md:[perspective:1200px] [transform-style:preserve-3d] py-6 md:py-8 flex items-center justify-center">
+              
+              {/* Dynamic tilted main dashboard container */}
+              <div className="relative w-full h-full md:[transform:rotateY(-12deg)_rotateX(8deg)_skewY(3deg)] md:[transform-style:preserve-3d] transition-all duration-700 ease-out hover:md:[transform:rotateY(-6deg)_rotateX(4deg)_skewY(1.5deg)] grid grid-cols-1 sm:grid-cols-2 md:block gap-6">
+                
+                {/* Component A - Main Base Card (Backplate) */}
+                <div className="col-span-1 sm:col-span-2 md:w-[94%] md:ml-auto border border-zinc-800 bg-slate-950/70 p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl flex flex-col justify-between rounded-none md:[transform-style:preserve-3d] relative z-10">
+                  {/* Ambient dashboard background glows */}
+                  <div className="absolute top-0 right-0 w-[50%] h-[50%] blur-[90px] rounded-full pointer-events-none bg-platinum-500/10" />
+                  <div className="absolute bottom-0 left-0 w-[40%] h-[40%] blur-[90px] rounded-full pointer-events-none bg-platinum-400/10" />
 
-              <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                {/* 1. Dashboard Header */}
-                <div className="flex items-center justify-between border-b pb-4 border-white/5 dark:border-white/5 border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      {isDark ? 'Aidevix Telemetriya' : 'Aidevix Telemetry'}
-                    </span>
-                  </div>
-                  <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${isDark ? 'border-amber-earth-500/30 bg-amber-earth-500/10 text-amber-earth-300' : 'border-amber-earth-200 bg-amber-earth-50 text-amber-earth-600'}`}>
-                    LIVE STREAM
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+                    {/* Telemetry Header */}
+                    <div className="flex items-center justify-between border-b pb-4 border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-widest text-slate-400">
+                          Aidevix Telemetriya
+                        </span>
+                      </div>
+                      <div className="px-2.5 py-0.5 rounded-none text-[10px] font-mono font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 tracking-wider">
+                        LIVE SYNC
+                      </div>
+                    </div>
+
+                    {/* Chart Title */}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-300">
+                        {isDark ? "O'zlashtirish jadvali" : 'Weekly XP Growth'}
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-500">
+                        {isDark ? "Haftalik faollik" : 'Weekly telemetry'}
+                      </span>
+                    </div>
+
+                    {/* Weekly XP Area Chart */}
+                    <div className="w-full h-32 relative">
+                      {isMounted ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={skillGrowthData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="xpGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#6f7f90" stopOpacity={0.25}/>
+                                <stop offset="95%" stopColor="#6f7f90" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                            <XAxis 
+                              dataKey="day" 
+                              stroke="rgba(255,255,255,0.25)" 
+                              fontSize={9} 
+                              tickLine={false} 
+                              axisLine={false}
+                            />
+                            <YAxis 
+                              stroke="rgba(255,255,255,0.25)" 
+                              fontSize={9} 
+                              tickLine={false} 
+                              axisLine={false}
+                            />
+                            <Tooltip 
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="p-2.5 rounded-none border border-zinc-800 backdrop-blur-xl text-xs font-mono font-semibold shadow-xl z-[90] bg-slate-950/95 text-white">
+                                      <p className="opacity-60">{payload[0].payload.day}</p>
+                                      <p className="text-platinum-400 mt-0.5">{payload[0].value} XP</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="xp" 
+                              stroke="#a9b3bc" 
+                              strokeWidth={2}
+                              fillOpacity={1} 
+                              fill="url(#xpGrad)" 
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="animate-pulse bg-white/5 rounded-none w-full h-full" />
+                      )}
+                    </div>
+
+                    {/* Integrated Base Metrics (Mentors & Rating) */}
+                    <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-4 mt-2">
+                      {/* Mentors */}
+                      <div className="flex flex-col justify-between">
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.mentors')}</span>
+                        <div className="mt-1 flex items-baseline gap-1 text-lg font-bold tracking-tight">
+                          <span className="font-mono font-bold text-white stat-value" data-value={String(homeStats.mentors || 5)} data-decimals="0">{homeStats.mentors || 5}</span>
+                          <span className="font-mono text-platinum-400 text-xs">+</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-600 mt-0.5">{isDark ? 'Mutaxassislar' : 'Mentors'}</span>
+                      </div>
+
+                      {/* Rating */}
+                      <div className="flex flex-col justify-between">
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.rating')}</span>
+                        <div className="mt-1 flex items-baseline gap-1 text-lg font-bold tracking-tight text-platinum-400">
+                          <span className="font-mono font-bold stat-value" data-value={String(homeStats.rating || 4.8)} data-decimals="1">{homeStats.rating || 4.8}</span>
+                          <span className="font-mono text-slate-500 text-[10px]">/ 5.0</span>
+                        </div>
+                        <div className="text-platinum-300/80 text-[8px] font-mono tracking-widest mt-0.5">★★★★★</div>
+                      </div>
+                    </div>
+
+                    {/* Live Activity Telemetry (Contribution Map style) */}
+                    <div className="mt-2 border-t pt-4 border-zinc-800">
+                      <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-semibold opacity-65 mb-2">
+                        <span>{isDark ? 'Dars topshirish tahlili (oxirgi 24 soat)' : 'Lesson telemetry (last 24 hours)'}</span>
+                        <span className="text-emerald-400">{isDark ? 'Yuqori faollik' : 'High activity'}</span>
+                      </div>
+                      <div className="flex gap-1 justify-between">
+                        {activityTelemetryData.map((val: number, idx: number) => {
+                          let bgClass = 'bg-slate-800/40';
+                          if (val > 0) {
+                            if (val <= 1) bgClass = 'bg-emerald-500/20';
+                            else if (val <= 3) bgClass = 'bg-emerald-500/45';
+                            else if (val <= 6) bgClass = 'bg-emerald-500/70';
+                            else bgClass = 'bg-emerald-500';
+                          }
+                          
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`flex-1 h-2.5 rounded-none transition-all duration-300 hover:scale-125 hover:shadow-lg ${bgClass} cursor-pointer`}
+                              title={isDark ? `${val} ta faollik` : `${val} activities`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* 2. Bento Stats Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Card 1: Students */}
-                  <div className={`rounded-2xl border p-4 transition-all duration-300 flex flex-col justify-between ${isDark ? 'border-white/5 bg-white/[0.02] hover:border-amber-earth-500/30' : 'border-slate-200 bg-slate-50 hover:border-amber-earth-500/40'}`}>
+                {/* Component B1 - Floating Student Card */}
+                <div 
+                  className="col-span-1 md:absolute md:top-[12%] md:-left-10 md:z-20 md:w-56 p-4 border border-zinc-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(99,102,241,0.12)] transition-all duration-500 cursor-pointer"
+                  onMouseEnter={() => setHoveredCard('b1')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    transform: isDesktop 
+                      ? (hoveredCard === 'b1' ? 'translateZ(90px) scale(1.05)' : 'translateZ(45px) scale(1)') 
+                      : undefined,
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  <div className="flex items-start justify-between">
                     <div>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${mutedText}`}>{t('stats.students')}</span>
-                      <div className="mt-1.5 flex items-baseline gap-0.5 text-xl font-extrabold tracking-tight">
-                        <span className="stat-value" data-value={String(homeStats.students)} data-decimals="0">0</span>
-                        <span className="text-amber-earth-500 text-xs font-bold">+</span>
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.students')}</span>
+                      <div className="mt-1 flex items-baseline gap-0.5 text-xl font-bold tracking-tight">
+                        <span className="font-mono font-bold text-white stat-value" data-value={String(homeStats.students || 88)} data-decimals="0">{homeStats.students || 88}</span>
+                        <span className="font-mono font-bold text-platinum-400">+</span>
                       </div>
                     </div>
-                    {/* Overlapping avatars stack */}
-                    <div className="mt-3 flex items-center justify-between gap-1">
-                      <div className="flex -space-x-1.5 overflow-hidden">
-                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                        <img aria-hidden="true" className="inline-block h-5 w-5 rounded-full ring-1 ring-[#0c0f17] dark:ring-[#0c0f17]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                      </div>
-                      <span className={`text-[9px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{isDark ? '124 faol' : '124 active'}</span>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Videos */}
-                  <div className={`rounded-2xl border p-4 transition-all duration-300 flex flex-col justify-between ${isDark ? 'border-white/5 bg-white/[0.02] hover:border-amber-earth-500/30' : 'border-slate-200 bg-slate-50 hover:border-amber-earth-500/40'}`}>
-                    <div>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${mutedText}`}>{t('stats.videos')}</span>
-                      <div className={`mt-1.5 flex items-baseline gap-0.5 text-xl font-extrabold tracking-tight ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                        <span className="stat-value" data-value={String(homeStats.videos)} data-decimals="0">0</span>
-                        <span className="text-xs font-bold">+</span>
-                      </div>
-                    </div>
-                    <div className={`mt-3 text-[9px] font-medium leading-normal ${mutedText}`}>
-                      {isDark ? "O'quv darsliklar" : 'Video lessons'}
-                    </div>
-                  </div>
-
-                  {/* Card 3: Mentors */}
-                  <div className={`rounded-2xl border p-4 transition-all duration-300 flex flex-col justify-between ${isDark ? 'border-white/5 bg-white/[0.02] hover:border-amber-earth-500/30' : 'border-slate-200 bg-slate-50 hover:border-amber-earth-500/40'}`}>
-                    <div>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${mutedText}`}>{t('stats.mentors')}</span>
-                      <div className="mt-1.5 flex items-baseline gap-0.5 text-xl font-extrabold tracking-tight">
-                        <span className="stat-value" data-value={String(homeStats.mentors)} data-decimals="0">0</span>
-                        <span className="text-amber-earth-500 text-xs font-bold">+</span>
-                      </div>
-                    </div>
-                    <div className={`mt-3 text-[9px] font-medium leading-normal ${mutedText}`}>
-                      {isDark ? 'Mutaxassislar' : 'Mentors'}
-                    </div>
-                  </div>
-
-                  {/* Card 4: Rating */}
-                  <div className={`rounded-2xl border p-4 transition-all duration-300 flex flex-col justify-between ${isDark ? 'border-white/5 bg-white/[0.02] hover:border-amber-earth-500/30' : 'border-slate-200 bg-slate-50 hover:border-amber-earth-500/40'}`}>
-                    <div>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${mutedText}`}>{t('stats.rating')}</span>
-                      <div className={`mt-1.5 flex items-baseline gap-0.5 text-xl font-extrabold tracking-tight ${isDark ? 'text-amber-400' : 'text-amber-earth-600'}`}>
-                        <span className="stat-value" data-value={String(homeStats.rating)} data-decimals="1">0</span>
-                        <span className="text-xs font-bold">★</span>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center">
-                      <span className="text-amber-400 text-[10px]">★★★★★</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Skill Growth Area Chart */}
-                <div className="mt-2 flex-1 flex flex-col justify-between min-h-[9rem]">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      {isDark ? "O'zlashtirish jadvali" : 'Weekly XP Growth'}
-                    </span>
-                    <span className={`text-[9px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      {isDark ? "Haftalik faollik" : 'Weekly telemetry'}
+                    <span className="relative flex h-2 w-2 mt-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
                     </span>
                   </div>
-                  
-                  <div className="w-full h-28 mt-2 relative">
-                    {isMounted ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={skillGrowthData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="xpGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={isDark ? '#6366f1' : '#4f46e5'} stopOpacity={0.25}/>
-                              <stop offset="95%" stopColor={isDark ? '#6366f1' : '#4f46e5'} stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.05)'} />
-                          <XAxis 
-                            dataKey="day" 
-                            stroke={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.35)'} 
-                            fontSize={9} 
-                            tickLine={false} 
-                            axisLine={false}
-                          />
-                          <YAxis 
-                            stroke={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.35)'} 
-                            fontSize={9} 
-                            tickLine={false} 
-                            axisLine={false}
-                          />
-                          <Tooltip 
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <div className={`p-2.5 rounded-xl border backdrop-blur-xl text-xs font-semibold shadow-xl z-[90] ${isDark ? 'bg-[#0d1017]/95 border-white/10 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
-                                    <p className="opacity-60">{payload[0].payload.day}</p>
-                                    <p className="text-indigo-400 mt-0.5">{payload[0].value} XP</p>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="xp" 
-                            stroke={isDark ? '#6366f1' : '#4f46e5'} 
-                            strokeWidth={2}
-                            fillOpacity={1} 
-                            fill="url(#xpGrad)" 
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="animate-pulse bg-white/5 rounded-xl w-full h-full" />
-                    )}
+                  {/* Overlapping avatars stack */}
+                  <div className="mt-4 flex items-center justify-between gap-1">
+                    <div className="flex -space-x-1.5 overflow-hidden">
+                      <img aria-hidden="true" className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                      <img aria-hidden="true" className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                      <img aria-hidden="true" className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-emerald-400">{isDark ? '124 faol' : '124 active'}</span>
                   </div>
+
+                  {/* Dropdown Expansion */}
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                      height: hoveredCard === 'b1' ? 'auto' : 0, 
+                      opacity: hoveredCard === 'b1' ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 border-t border-zinc-800/80 mt-3 text-[10px] font-mono text-zinc-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Haftalik o'sish:</span>
+                        <span className="text-emerald-400 font-bold">+24%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>O'rtacha faollik:</span>
+                        <span className="text-white">3.2s/kun</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tamomlaganlar:</span>
+                        <span className="text-platinum-400 font-semibold">412+</span>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
 
-                {/* 4. Live Activity Telemetry (Contribution Map style) */}
-                <div className="mt-2 border-t pt-4 border-white/5 dark:border-white/5 border-slate-200">
-                  <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-semibold opacity-65 mb-2">
-                    <span>{isDark ? 'Dars topshirish tahlili (oxirgi 24 soat)' : 'Lesson telemetry (last 24 hours)'}</span>
-                    <span className="text-emerald-400">{isDark ? 'Yuqori faollik' : 'High activity'}</span>
+                {/* Component B2 - Floating Video Lesson Card */}
+                <div 
+                  className="col-span-1 md:absolute md:bottom-[15%] md:-right-10 md:z-20 md:w-52 p-4 border border-zinc-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(111,127,144,0.12)] transition-all duration-500 cursor-pointer"
+                  onMouseEnter={() => setHoveredCard('b2')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    transform: isDesktop 
+                      ? (hoveredCard === 'b2' ? 'translateZ(100px) scale(1.05)' : 'translateZ(55px) scale(1)') 
+                      : undefined,
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  <div>
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.videos')}</span>
+                    <div className="mt-1 flex items-baseline gap-0.5 text-xl font-bold tracking-tight">
+                      <span className="font-mono font-bold bg-gradient-to-r from-white via-platinum-200 to-platinum-400 bg-clip-text text-transparent stat-value" data-value={String(homeStats.videos || 113)} data-decimals="0">{homeStats.videos || 113}</span>
+                      <span className="font-mono font-bold bg-gradient-to-r from-white via-platinum-200 to-platinum-400 bg-clip-text text-transparent">+</span>
+                    </div>
                   </div>
-                  <div className="flex gap-1 justify-between">
-                    {activityTelemetryData.map((val: number, idx: number) => {
-                      let bgClass = isDark ? 'bg-slate-800/40' : 'bg-slate-200';
-                      if (val > 0) {
-                        if (val <= 1) bgClass = isDark ? 'bg-emerald-500/25' : 'bg-emerald-500/20';
-                        else if (val <= 3) bgClass = isDark ? 'bg-emerald-500/50' : 'bg-emerald-500/45';
-                        else if (val <= 6) bgClass = isDark ? 'bg-emerald-500/75' : 'bg-emerald-500/70';
-                        else bgClass = 'bg-emerald-500';
-                      }
-                      
-                      return (
-                        <div 
-                          key={idx} 
-                          className={`flex-1 h-2.5 rounded-[2px] transition-all duration-300 hover:scale-125 hover:shadow-lg ${bgClass} cursor-pointer`}
-                          title={isDark ? `${val} ta faollik` : `${val} activities`}
-                        />
-                      );
-                    })}
+                  <div className="mt-4 flex items-center justify-between text-[9px] font-mono text-slate-400 leading-none">
+                    <span>{isDark ? "Video darslar" : 'Video lessons'}</span>
+                    <span className="px-1.5 py-0.5 bg-platinum-500/10 border border-platinum-500/20 text-platinum-300 text-[8px]">MP4</span>
                   </div>
+
+                  {/* Dropdown Expansion */}
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                      height: hoveredCard === 'b2' ? 'auto' : 0, 
+                      opacity: hoveredCard === 'b2' ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 border-t border-zinc-800/80 mt-3 text-[10px] font-mono text-zinc-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Yangi darslar:</span>
+                        <span className="text-platinum-400 font-bold">+4 dars</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Umumiy vaqt:</span>
+                        <span className="text-white">42 soat</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Format:</span>
+                        <span className="text-zinc-300">UltraHD</span>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
+
+                {/* Component C - Top Accent Overlay Widget */}
+                <div 
+                  className="col-span-1 sm:col-span-2 md:absolute md:-top-5 md:right-10 md:z-30 md:w-48 p-3 border border-zinc-800 bg-slate-950/95 backdrop-blur-xl rounded-none shadow-[0_0_25px_rgba(111,127,144,0.2)] transition-all duration-500 cursor-pointer"
+                  onMouseEnter={() => setHoveredCard('c')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    transform: isDesktop 
+                      ? (hoveredCard === 'c' ? 'translateZ(110px) scale(1.05)' : 'translateZ(65px) scale(1)') 
+                      : undefined,
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-9 h-9 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,0.05)" strokeWidth="3" fill="transparent" />
+                        <circle cx="18" cy="18" r="14" stroke="#a9b3bc" strokeWidth="3" fill="transparent" strokeDasharray={88} strokeDashoffset={15} strokeLinecap="square" className="shadow-lg" />
+                      </svg>
+                      <span className="absolute text-[9px] font-mono font-bold text-white">96%</span>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 uppercase">ATS SCORE</div>
+                      <div className="text-[8px] font-mono text-emerald-400 uppercase tracking-tight flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse inline-block" /> Live Sync
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dropdown Expansion */}
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ 
+                      height: hoveredCard === 'c' ? 'auto' : 0, 
+                      opacity: hoveredCard === 'c' ? 1 : 0 
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2.5 border-t border-zinc-800/80 mt-2.5 text-[9px] font-mono text-zinc-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Tizim yuklamasi:</span>
+                        <span className="text-white">12%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Kechikish (Latency):</span>
+                        <span className="text-emerald-400 font-bold">14ms</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Server status:</span>
+                        <span className="text-emerald-400">ONLINE</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
               </div>
             </div>
           </motion.aside>
         </div>
       </section>
+
+      <AiNewsTabs
+        isDark={isDark}
+        mutedText={mutedText}
+        t={t}
+      />
 
       {/* Continue Learning Widget — faqat login qilgan foydalanuvchilar uchun */}
       {isLoggedIn && continueLearning && (
@@ -947,18 +1021,18 @@ export default function HomeClient({
           transition={{ delay: 0.3 }}
           className="relative z-20 mx-auto mt-4 max-w-7xl px-3 sm:px-4"
         >
-          <div className={`flex flex-col gap-4 rounded-2xl border p-4 sm:flex-row sm:items-center sm:gap-5 sm:rounded-[2rem] sm:p-6 md:p-8 ${isDark ? 'border-amber-earth-500/20 bg-amber-earth-500/5' : 'border-amber-earth-200 bg-amber-earth-50'}`}>
-            <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl ${isDark ? 'bg-amber-earth-500/20' : 'bg-amber-earth-100'}`}>
-              <IoSchool className="text-2xl text-amber-earth-400" />
+          <div className={`flex flex-col gap-4 rounded-none border p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-6 md:p-8 ${isDark ? 'border-platinum-800 bg-platinum-900/30' : 'border-platinum-300 bg-platinum-50'}`}>
+            <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-none ${isDark ? 'bg-platinum-800/60' : 'bg-platinum-100'}`}>
+              <IoSchool className="text-2xl text-platinum-300" />
             </div>
             <div className="flex-1 min-w-0">
               <div className={`text-xs uppercase tracking-widest mb-1 ${mutedText}`}>{t('home.continueTitle')}</div>
-              <h3 className="font-semibold text-lg truncate">{continueLearning.course?.title}</h3>
+              <h3 className="font-title font-semibold text-lg truncate">{continueLearning.course?.title}</h3>
               <p className={`text-sm mt-1 ${mutedText}`}>{continueLearning.nextVideo?.title}</p>
               <div className="mt-3 flex items-center gap-3">
-                <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden max-w-xs">
+                <div className="flex-1 h-1.5 rounded-none bg-white/10 overflow-hidden max-w-xs">
                   <div
-                    className="h-full bg-amber-earth-500 rounded-full"
+                    className="h-full bg-platinum-500 rounded-none"
                     style={{ width: `${continueLearning.progressPercent || 0}%` }}
                   />
                 </div>
@@ -967,7 +1041,7 @@ export default function HomeClient({
             </div>
             <Link
               href={`/videos/${continueLearning.nextVideo?._id}`}
-              className="flex h-12 w-full flex-shrink-0 items-center justify-center gap-2 rounded-full bg-amber-earth-500 px-5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-amber-earth-400 sm:w-auto sm:px-6"
+              className="flex h-12 w-full flex-shrink-0 items-center justify-center gap-2 rounded-none bg-platinum-600 px-5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-platinum-500 sm:w-auto sm:px-6"
             >
               <IoPlay className="text-base" /> {t('home.continueAction')}
             </Link>
@@ -983,7 +1057,7 @@ export default function HomeClient({
         <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.8fr_1.2fr] xl:gap-20">
           <div className="xl:sticky xl:top-28 xl:h-fit">
             <div className={`section-kicker ${mutedText}`}>{t('home.paths')}</div>
-            <h2 className="mt-4 max-w-lg text-balance font-display text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100 sm:mt-5 sm:text-4xl sm:tracking-[-0.05em] md:text-6xl">
+            <h2 className="mt-4 max-w-lg text-balance font-title text-2xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-100 sm:mt-5 sm:text-4xl sm:tracking-[-0.05em] md:text-6xl">
               {t('cat.title')}
             </h2>
             <p className={`mt-6 max-w-md text-base leading-8 ${mutedText}`}>
@@ -996,21 +1070,21 @@ export default function HomeClient({
                 key={idx}
                 href={`/courses?category=${category.path}`}
                 onMouseEnter={playHoverSound}
-                className={`group category-item grid gap-3 border-b px-0 py-5 transition-all duration-300 sm:gap-4 sm:py-7 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center md:hover:px-4 md:hover:pl-6 ${hairline} hover:bg-gradient-to-r hover:from-amber-earth-500/[0.04] hover:to-transparent hover:border-amber-earth-500/30`}
+                className={`group category-item grid gap-3 border-b px-0 py-5 transition-all duration-300 sm:gap-4 sm:py-7 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center md:hover:px-4 md:hover:pl-6 ${hairline} hover:bg-gradient-to-r hover:from-platinum-500/[0.04] hover:to-transparent hover:border-platinum-500/30`}
               >
                 <div className={`text-xs font-semibold tracking-[0.16em] sm:text-sm sm:tracking-[0.28em] ${mutedText}`}>0{idx + 1}</div>
                 <div className="min-w-0">
-                  <h3 className="text-xl font-semibold tracking-[-0.03em] transition-colors duration-300 text-slate-800 dark:text-slate-100 group-hover:text-amber-earth-500 sm:text-2xl sm:tracking-[-0.04em] md:text-3xl">
+                  <h3 className="font-title text-xl font-semibold tracking-[-0.03em] transition-colors duration-300 text-slate-800 dark:text-slate-100 group-hover:text-platinum-400 dark:group-hover:text-platinum-300 sm:text-2xl sm:tracking-[-0.04em] md:text-3xl">
                     {category.name}
                   </h3>
                   <p className={`mt-2 max-w-xl text-sm leading-7 ${mutedText}`}>{category.subtitle}</p>
                 </div>
                 <div 
-                  className={`flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-300 ${
+                  className={`flex h-14 w-14 items-center justify-center rounded-none border transition-all duration-300 ${
                     isDark 
-                      ? 'border-amber-earth-500/15 bg-white/[0.02] text-slate-200' 
-                      : 'border-amber-earth-800/15 bg-slate-50 text-slate-700'
-                  } group-hover:border-amber-earth-500/50 group-hover:bg-amber-earth-500/10 group-hover:text-amber-earth-500 group-hover:shadow-[0_0_20px_rgba(235,138,20,0.35)]`}
+                      ? 'border-platinum-800 bg-white/[0.02] text-slate-200' 
+                      : 'border-platinum-300 bg-slate-50 text-slate-700'
+                  } group-hover:border-platinum-400 group-hover:bg-platinum-500/10 group-hover:text-platinum-300 group-hover:shadow-[0_0_20px_rgba(111,127,144,0.35)]`}
                 >
                   {category.icon}
                 </div>
@@ -1025,11 +1099,11 @@ export default function HomeClient({
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div className={`section-kicker ${mutedText}`}>{t('home.showcase')}</div>
-              <h2 className="mt-3 max-w-full text-balance font-display text-2xl font-semibold tracking-[-0.04em] sm:mt-4 sm:text-4xl sm:tracking-[-0.05em] md:text-6xl">
+              <h2 className="mt-3 max-w-full text-balance font-title text-2xl font-semibold tracking-[-0.04em] sm:mt-4 sm:text-4xl sm:tracking-[-0.05em] md:text-6xl">
                 {t('courses.title')}
               </h2>
             </div>
-            <Link href="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-amber-earth-500 transition-transform duration-300 hover:translate-x-1">
+            <Link href="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-platinum-600 hover:text-platinum-500 dark:text-platinum-400 dark:hover:text-platinum-300 transition-transform duration-300 hover:translate-x-1">
               {t('courses.viewAll')} <HiArrowRight />
             </Link>
           </div>
@@ -1040,9 +1114,9 @@ export default function HomeClient({
               ))}
             </div>
 
-            <div className={`rounded-[2rem] border p-6 md:p-8 ${hairline} ${railSurface}`}>
+            <div className={`rounded-none border p-6 md:p-8 ${hairline} ${railSurface}`}>
               <div className={`section-kicker ${mutedText}`}>{t('home.freshVideos')}</div>
-              <h3 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+              <h3 className="font-title mt-4 text-2xl font-semibold tracking-[-0.04em]">
                 {t('home.videoRailTitle')}
               </h3>
               <p className={`mt-4 text-sm leading-7 ${mutedText}`}>{t('home.videoRailSubtitle')}</p>
@@ -1062,15 +1136,15 @@ export default function HomeClient({
 
       <section data-direction="up" className="relative overflow-hidden border-t border-white/5 px-3 py-20 text-center reveal-section sm:px-4 sm:py-32 bg-transparent">
         {/* Glow lights */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(235,138,20,0.12),transparent_40%)] pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-[radial-gradient(circle_at_bottom,rgba(99,102,241,0.06),transparent_45%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(111,127,144,0.16),transparent_40%)] pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-[radial-gradient(circle_at_bottom,rgba(111,127,144,0.06),transparent_45%)] pointer-events-none" />
         
         <div className="relative z-10 mx-auto max-w-5xl">
           <div className="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-white/50">{t('home.startNow')}</div>
           
-          <h2 className="mt-5 max-w-full text-balance font-display text-4xl font-extrabold tracking-[-0.04em] sm:mt-6 sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-8xl text-white">
-            {t('cta.title1')}
-            <span className="bg-gradient-to-r from-[#efa243] to-[#eb8a14] bg-clip-text text-transparent">
+          <h2 className="mt-5 max-w-full text-balance font-title text-4xl font-extrabold tracking-[-0.04em] sm:mt-6 sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-8xl text-white">
+            {t('cta.title1')}{' '}
+            <span className="font-accent font-normal italic bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(99,102,241,0.25)]">
               {t('cta.titleHighlight')}
             </span>
           </h2>
@@ -1082,7 +1156,7 @@ export default function HomeClient({
           <Link
             href="/register"
             onMouseEnter={playHoverSound}
-            className="mt-10 inline-flex h-12 min-h-[3rem] w-full max-w-sm items-center justify-center rounded-full bg-gradient-to-r from-[#efa243] to-[#eb8a14] px-8 text-sm font-bold text-white shadow-[0_4px_20px_rgba(235,138,20,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(235,138,20,0.55)] sm:h-16 sm:w-auto sm:max-w-none sm:px-12 sm:text-base cursor-pointer"
+            className="mt-10 inline-flex h-12 min-h-[3rem] w-full max-w-sm items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-8 text-sm font-bold text-white shadow-[0_10px_25px_rgba(99,102,241,0.25)] hover:shadow-[0_15px_30px_rgba(99,102,241,0.45)] transition-all duration-300 hover:-translate-y-0.5 sm:h-16 sm:w-auto sm:max-w-none sm:px-12 sm:text-base cursor-pointer"
           >
             {t('cta.start')}
           </Link>

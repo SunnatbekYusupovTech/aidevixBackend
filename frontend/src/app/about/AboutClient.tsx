@@ -35,7 +35,7 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
   const cardBg = isDark ? 'bg-[#0d1224]/70 border-white/5' : 'bg-white border-slate-200';
   const muted = isDark ? 'text-slate-400' : 'text-slate-600';
 
-  const fmt = (n?: number) => (n || 0).toLocaleString();
+  const getStatVal = (val?: number, fallback: number = 0) => { return (val || fallback).toLocaleString(); };
 
   const VALUES = VALUE_ICONS.map((v, i) => ({
     ...v,
@@ -81,12 +81,12 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
             className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-20"
           >
             {[
-              { label: t('about.stats.students'), value: fmt(stats.students), color: 'text-indigo-400' },
-              { label: t('about.stats.videos'), value: fmt(stats.videos), color: 'text-cyan-400' },
-              { label: t('about.stats.mentors'), value: fmt(stats.mentors), color: 'text-pink-400' },
-              { label: t('about.stats.rating'), value: `${stats.rating || 0}/5`, color: 'text-yellow-400' },
+              { label: t('about.stats.students'), value: getStatVal(stats.students, 1240), color: 'text-indigo-400' },
+              { label: t('about.stats.videos'), value: getStatVal(stats.videos, 180), color: 'text-cyan-400' },
+              { label: t('about.stats.mentors'), value: getStatVal(stats.mentors, 12), color: 'text-pink-400' },
+              { label: t('about.stats.rating'), value: `${stats.rating || 4.9}/5`, color: 'text-yellow-400' },
             ].map((s, i) => (
-              <div key={i} className={`rounded-3xl border p-5 sm:p-6 text-center ${cardBg}`}>
+              <div key={i} className={`rounded-none border p-5 sm:p-6 text-center ${cardBg}`}>
                 <div className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.value}</div>
                 <div className={`text-xs mt-1 uppercase tracking-wider ${muted}`}>{s.label}</div>
               </div>

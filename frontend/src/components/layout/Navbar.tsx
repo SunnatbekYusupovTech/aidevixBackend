@@ -135,12 +135,10 @@ export default function Navbar() {
   const showSolidNavbar = scrolled || !isHome
 
   const navBg = isDark
-    ? showSolidNavbar ? 'bg-[#090b10]/85 shadow-[0_12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl' : 'bg-transparent'
-    : showSolidNavbar ? 'bg-white/80 shadow-[0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl' : 'bg-transparent'
+    ? 'bg-[#0d0d0f]/80 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-md'
+    : 'bg-white/80 shadow-[0_8px_32px_rgba(15,23,42,0.04)] backdrop-blur-md'
 
-  const borderColor = showSolidNavbar
-    ? isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'
-    : 'transparent'
+  const borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'
   
   const logoTextColor = isDark
     ? 'bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent font-extrabold tracking-[-0.03em]'
@@ -159,11 +157,7 @@ export default function Navbar() {
       <nav
         className={`fixed inset-x-0 top-0 z-50 w-full min-w-0 max-w-full border-b transition-all duration-300 ${navBg}`}
         style={{
-          borderBottomColor: borderColor,
-          backgroundColor: showSolidNavbar ? undefined : 'transparent',
-          backdropFilter: showSolidNavbar ? undefined : 'none',
-          WebkitBackdropFilter: showSolidNavbar ? undefined : 'none',
-          boxShadow: showSolidNavbar ? undefined : 'none'
+          borderBottomColor: borderColor
         }}
       >
         <div className="mx-auto w-full min-w-0 max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
@@ -172,7 +166,7 @@ export default function Navbar() {
               <SiteLogoMark
                 size={36}
                 priority
-                className="shadow-[0_12px_30px_rgba(86,98,246,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 ring-indigo-500/25"
+                className="shadow-[0_12px_30px_rgba(99,102,241,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 ring-indigo-500/25"
               />
               <div className="hidden min-[340px]:block leading-none">
                 <span className={`font-display text-lg inline-block ${logoTextColor}`}>Aidevix</span>
@@ -194,7 +188,12 @@ export default function Navbar() {
                     </Link>
                   </li>
                 ))}
-                <li className="relative" ref={moreRef}>
+                <li 
+                  className="relative" 
+                  ref={moreRef}
+                  onMouseEnter={() => setMoreOpen(true)}
+                  onMouseLeave={() => setMoreOpen(false)}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -437,8 +436,8 @@ export default function Navbar() {
                     onMouseEnter={playHoverSound}
                     className={`rounded-full px-4 py-2 text-xs font-semibold transition-all duration-300 hover:scale-105 active:scale-95 sm:text-sm ${
                       isDark
-                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06] border border-white/10'
-                        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05] border border-slate-900/10'
+                        ? 'text-indigo-400 hover:text-white hover:bg-indigo-500/20 border border-indigo-500/30 shadow-[0_2px_12px_rgba(99,102,241,0.1)]'
+                        : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-indigo-200'
                     }`}
                   >
                     {t('nav.login')}

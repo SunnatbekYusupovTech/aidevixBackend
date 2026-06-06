@@ -2,13 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Host Grotesk';
+  src: url('/fonts/Host_Grotesk/HostGrotesk-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Host Grotesk';
+  src: url('/fonts/Host_Grotesk/HostGrotesk-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/Playfair_Display/PlayfairDisplay-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/Plus_Jakarta_Sans/PlusJakartaSans-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/Plus_Jakarta_Sans/PlusJakartaSans-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrains_Mono/JetBrainsMono-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vollkorn';
+  src: url('/fonts/Vollkorn/Vollkorn-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vollkorn';
+  src: url('/fonts/Vollkorn/Vollkorn-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   --color-primary: #5662f6;
   --color-accent: #f59e0b;
   --color-dark: #08090d;
-  --font-sans: var(--app-font-sans), system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', var(--app-font-sans), system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-display: var(--app-font-display), system-ui, sans-serif;
+  --font-display: 'Host Grotesk', var(--app-font-display), system-ui, sans-serif;
   --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --border-radius: 18px;
 

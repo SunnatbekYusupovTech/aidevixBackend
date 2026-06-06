@@ -12,6 +12,7 @@ import {
   IoCodeSlash, IoRocket, IoFlash,
 } from 'react-icons/io5'
 import dynamic from 'next/dynamic'
+import DynamicSVG from '@components/courses/DynamicSVG'
 
 const RecommendedCarousel = dynamic(
   () => import('@components/courses/RecommendedCarousel'),
@@ -45,21 +46,21 @@ function VideoRow({ video, index }) {
   return (
     <Link
       href={`/videos/${video._id}`}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-base-300/40 transition-colors group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-none hover:bg-zinc-800/40 transition-colors group"
     >
-      <div className="w-7 h-7 rounded-lg bg-base-300 flex items-center justify-center flex-shrink-0 text-xs font-bold text-base-content/40 group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+      <div className="w-7 h-7 rounded-none bg-zinc-800 flex items-center justify-center flex-shrink-0 text-xs font-mono font-bold text-zinc-500 group-hover:bg-platinum-800 group-hover:text-white transition-colors">
         {String(index + 1).padStart(2, '0')}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs sm:text-sm text-base-content line-clamp-1 group-hover:text-primary transition-colors">{video.title}</p>
+        <p className="text-xs sm:text-sm text-white line-clamp-1 group-hover:text-platinum-300 transition-colors">{video.title}</p>
         {video.duration > 0 && (
-          <p className="text-xs text-base-content/30 mt-0.5 flex items-center gap-1">
+          <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
             <IoTime className="text-xs" />{formatDuration(video.duration)}
           </p>
         )}
       </div>
       <div className="flex-shrink-0">
-        <IoPlay className="text-base-content/20 group-hover:text-primary text-sm transition-colors" />
+        <IoPlay className="text-zinc-600 group-hover:text-platinum-300 text-sm transition-colors" />
       </div>
     </Link>
   )
@@ -69,19 +70,19 @@ function VideoRow({ video, index }) {
 function Accordion({ title, subtitle, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-base-content/8 rounded-2xl overflow-hidden">
+    <div className="border border-zinc-800 rounded-none overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 bg-base-200 hover:bg-base-300/60 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 bg-zinc-900/60 hover:bg-zinc-900/80 transition-colors text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-sm truncate">{title}</span>
-          {subtitle && <span className="text-xs text-base-content/35 flex-shrink-0">{subtitle}</span>}
+          <span className="font-semibold text-sm truncate text-white">{title}</span>
+          {subtitle && <span className="text-xs text-zinc-500 flex-shrink-0">{subtitle}</span>}
         </div>
-        {open ? <IoChevronUp className="text-base-content/35 flex-shrink-0 ml-2" />
-               : <IoChevronDown className="text-base-content/35 flex-shrink-0 ml-2" />}
+        {open ? <IoChevronUp className="text-zinc-500 flex-shrink-0 ml-2" />
+               : <IoChevronDown className="text-zinc-500 flex-shrink-0 ml-2" />}
       </button>
-      {open && <div className="bg-base-100 p-2">{children}</div>}
+      {open && <div className="bg-slate-950/20 p-2">{children}</div>}
     </div>
   )
 }
@@ -89,9 +90,9 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
 // ── Stat row ──────────────────────────────────────────────────
 function StatRow({ icon, label, value }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="flex items-center gap-2 text-base-content/40">{icon}{label}</span>
-      <span className="font-semibold text-base-content/75 text-right">{value}</span>
+    <div className="flex items-center justify-between text-sm py-1">
+      <span className="flex items-center gap-2 text-zinc-400 font-mono">{icon}{label}</span>
+      <span className="font-semibold text-white text-right font-mono">{value}</span>
     </div>
   )
 }
@@ -100,16 +101,16 @@ function StatRow({ icon, label, value }) {
 function Skeleton() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 animate-pulse">
-      <div className="h-3 bg-base-200 rounded w-48 mb-6" />
+      <div className="h-3 bg-zinc-900 rounded-none w-48 mb-6" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex gap-2"><div className="h-5 bg-base-200 rounded-full w-16" /><div className="h-5 bg-base-200 rounded-full w-20" /></div>
-          <div className="h-8 bg-base-200 rounded-xl w-3/4" />
-          <div className="h-4 bg-base-200 rounded w-full" />
-          <div className="h-4 bg-base-200 rounded w-4/5" />
-          <div className="h-14 bg-base-200 rounded-2xl mt-2" />
+          <div className="flex gap-2"><div className="h-5 bg-zinc-900 rounded-none w-16" /><div className="h-5 bg-zinc-900 rounded-none w-20" /></div>
+          <div className="h-8 bg-zinc-900 rounded-none w-3/4" />
+          <div className="h-4 bg-zinc-900 rounded-none w-full" />
+          <div className="h-4 bg-zinc-900 rounded-none w-4/5" />
+          <div className="h-14 bg-zinc-900 rounded-none mt-2" />
         </div>
-        <div className="h-80 bg-base-200 rounded-2xl" />
+        <div className="h-80 bg-zinc-900 rounded-none" />
       </div>
     </div>
   )
@@ -210,16 +211,22 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
+    <div className="min-h-screen bg-[#101214] relative overflow-hidden text-[#e2e6e9] selection:bg-platinum-500/30">
+      {/* Background ambient glows */}
+      <div className="absolute inset-x-0 top-0 h-[40rem] pointer-events-none z-0">
+        <div className="absolute left-[5%] top-[-10%] w-[45%] h-[30rem] rounded-full blur-[140px] opacity-[0.08] bg-platinum-600 pointer-events-none" />
+        <div className="absolute right-[5%] top-[-5%] w-[45%] h-[30rem] rounded-full blur-[140px] opacity-[0.06] bg-platinum-500 pointer-events-none" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 relative z-10">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1 text-xs text-base-content/30 mb-6 flex-wrap">
-          <Link href={ROUTES.HOME} className="hover:text-primary transition-colors">{localText.home}</Link>
-          <IoChevronForward className="text-xs opacity-50" />
-          <Link href={ROUTES.COURSES} className="hover:text-primary transition-colors">{localText.courses}</Link>
-          <IoChevronForward className="text-xs opacity-50" />
-          <span className="text-base-content/55 line-clamp-1 max-w-[160px] sm:max-w-xs">{localizedCourse.title}</span>
+        <nav className="flex items-center gap-1 text-xs text-zinc-500 mb-6 flex-wrap font-mono">
+          <Link href={ROUTES.HOME} className="hover:text-white transition-colors">{localText.home}</Link>
+          <IoChevronForward className="text-xs opacity-50 text-zinc-600" />
+          <Link href={ROUTES.COURSES} className="hover:text-white transition-colors">{localText.courses}</Link>
+          <IoChevronForward className="text-xs opacity-50 text-zinc-600" />
+          <span className="text-zinc-400 line-clamp-1 max-w-[160px] sm:max-w-xs">{localizedCourse.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
@@ -233,45 +240,45 @@ export default function CourseDetailPage() {
             {/* Badges */}
             <div className="flex flex-wrap gap-2">
               {course.category && (
-                <span className={'badge badge-outline text-xs font-bold capitalize ' + catColor}>
+                <span className={'badge badge-outline text-xs font-bold capitalize rounded-none border-zinc-800 px-3 ' + catColor}>
                   {t(`cat.${course.category}`)}
                 </span>
               )}
-              <span className={'badge text-xs font-semibold ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
+              <span className={'badge text-xs font-semibold rounded-none border-zinc-850 px-3 ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
                 {levelLabels[level] || level}
               </span>
             </div>
 
             {/* Title */}
             <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-base-content leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-title font-extrabold text-white leading-tight">
                 {localizedCourse.title}
               </h1>
               {localizedCourse.description && (
-                <p className="text-base-content/55 leading-relaxed text-sm sm:text-base">
+                <p className="text-zinc-400 leading-relaxed text-sm sm:text-base font-light">
                   {localizedCourse.description}
                 </p>
               )}
             </div>
 
             {/* Meta */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 font-mono text-zinc-500">
               <StarRating value={rating} count={ratingCount} size="sm" />
               {course.studentsCount > 0 && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-base-content/40">
-                  <IoPeople className="text-primary text-sm" />
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                  <IoPeople className="text-platinum-400 text-sm" />
                   {course.studentsCount.toLocaleString()} {localText.students}
                 </span>
               )}
               {course.updatedAt && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-base-content/40">
-                  <IoCalendar className="text-primary text-sm" />
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                  <IoCalendar className="text-platinum-400 text-sm" />
                   {new Date(course.updatedAt).toLocaleDateString(localText.dateLocale)}
                 </span>
               )}
               {course.language && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-base-content/40">
-                  <IoLanguage className="text-primary text-sm" />
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                  <IoLanguage className="text-platinum-400 text-sm" />
                   {course.language}
                 </span>
               )}
@@ -279,13 +286,13 @@ export default function CourseDetailPage() {
 
             {/* Instructor */}
             {instructorName && (
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-2xl bg-base-200 border border-base-content/5">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/15 border border-primary/20 flex items-center justify-center text-primary font-black text-base sm:text-lg flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-none bg-[#16191d]/50 border border-zinc-800 backdrop-blur-md">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none bg-platinum-900/60 border border-platinum-800 flex items-center justify-center text-white font-black text-base sm:text-lg flex-shrink-0">
                   {instructorName[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-bold text-sm">{instructorName}</p>
-                  <p className="text-xs text-base-content/35 mt-0.5">{instructorTitle || t('courses.instructorFallback')}</p>
+                  <p className="font-bold text-sm text-white">{instructorName}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{instructorTitle || t('courses.instructorFallback')}</p>
                 </div>
               </div>
             )}
@@ -313,14 +320,14 @@ export default function CourseDetailPage() {
             {/* What you'll learn */}
             {course.requirements?.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
                   <IoCheckmarkCircle className="text-emerald-400" />
                   {localText.whatYouLearn}
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 sm:p-4 rounded-2xl bg-base-200/50 border border-base-content/5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-none bg-[#16191d]/20 border border-zinc-850">
                   {course.requirements.map((req, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs sm:text-sm text-base-content/60">
-                      <IoCheckmarkCircle className="text-emerald-400 text-sm flex-shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-400">
+                      <IoCheckmarkCircle className="text-emerald-500 text-sm flex-shrink-0 mt-0.5" />
                       {req}
                     </div>
                   ))}
@@ -331,12 +338,12 @@ export default function CourseDetailPage() {
             {/* Videos */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                  <IoPlay className="text-primary" />
+                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
+                  <IoPlay className="text-platinum-400" />
                   {localText.courseProgram}
                 </h2>
                 {courseVideos.length > 0 && (
-                  <span className="text-xs text-base-content/30">
+                  <span className="text-xs text-zinc-500 font-mono">
                     {courseVideos.length} {localText.lessonsSuffix}{totalSecs > 0 && ' · ' + formatDurationText(totalSecs)}
                   </span>
                 )}
@@ -345,7 +352,7 @@ export default function CourseDetailPage() {
               {vLoad ? (
                 <div className="space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-12 bg-base-200 rounded-xl animate-pulse" />
+                    <div key={i} className="h-12 bg-zinc-900 rounded-none animate-pulse" />
                   ))}
                 </div>
               ) : courseVideos.length > 0 ? (
@@ -359,7 +366,7 @@ export default function CourseDetailPage() {
                   </div>
                 </Accordion>
               ) : (
-                <div className="py-8 text-center text-sm text-base-content/30 rounded-2xl bg-base-200/40 border border-base-content/5">
+                <div className="py-8 text-center text-sm text-zinc-500 rounded-none bg-[#16191d]/20 border border-zinc-850">
                   {localText.lessonsNotAdded}
                 </div>
               )}
@@ -368,31 +375,31 @@ export default function CourseDetailPage() {
             {/* Projects */}
             {projects.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                  <IoCodeSlash className="text-primary" />
+                <h2 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
+                  <IoCodeSlash className="text-platinum-400" />
                   {localText.practicalProjects}
                 </h2>
                 <div className="space-y-3">
                   {projects.map((p) => (
-                    <div key={p._id} className="p-3 sm:p-4 rounded-2xl bg-base-200 border border-base-content/5 space-y-2">
+                    <div key={p._id} className="p-4 rounded-none bg-[#16191d]/40 border border-zinc-800 space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-sm">{p.title}</p>
+                        <p className="font-semibold text-sm text-white">{p.title}</p>
                         <div className="flex gap-1 flex-shrink-0">
-                          <span className={'badge badge-sm ' + (LEVEL_COLORS[p.level] || 'badge-ghost')}>
+                          <span className={'badge badge-sm rounded-none border-zinc-850 ' + (LEVEL_COLORS[p.level] || 'badge-ghost')}>
                             {levelLabels[p.level] || p.level}
                           </span>
                           {p.xpReward > 0 && (
-                            <span className="badge badge-sm bg-yellow-500/15 text-yellow-400 border-yellow-500/20">
+                            <span className="badge badge-sm rounded-none bg-yellow-500/10 text-yellow-500 border-yellow-500/20 font-mono">
                               +{p.xpReward} XP
                             </span>
                           )}
                         </div>
                       </div>
-                      {p.description && <p className="text-xs text-base-content/40 line-clamp-2">{p.description}</p>}
+                      {p.description && <p className="text-xs text-zinc-400 line-clamp-2">{p.description}</p>}
                       {p.technologies?.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1 pt-1">
                           {p.technologies.map((tech, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg text-xs bg-base-300 text-base-content/45">{tech}</span>
+                            <span key={i} className="px-2 py-0.5 rounded-none text-xs bg-[#16191d]/60 border border-zinc-850 text-zinc-400">{tech}</span>
                           ))}
                         </div>
                       )}
@@ -404,29 +411,30 @@ export default function CourseDetailPage() {
           </motion.div>
 
           {/* ══ RIGHT STICKY — desktop only ═════════════════════ */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="hidden lg:block lg:sticky lg:top-24 self-start"
-          >
-            <DesktopPriceCard
-              course={course}
-              courseVideos={courseVideos}
-              totalSecs={totalSecs}
-              level={level}
-              levelDisplay={levelLabels[level] || level}
-              levelFieldLabel={t('filter.level').replace(/:\s*$/, '')}
-              rating={rating}
-              projects={projects}
-              catColor={catColor}
-              isSubscribed={isSubscribed}
-              onWatch={handleWatch}
-              isPaid={isPaid}
-              onBuy={handleBuy}
-              uiText={localText}
-            />
-          </motion.div>
+          <div className="hidden lg:block lg:sticky lg:top-24 self-start z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+            >
+              <DesktopPriceCard
+                course={course}
+                courseVideos={courseVideos}
+                totalSecs={totalSecs}
+                level={level}
+                levelDisplay={levelLabels[level] || level}
+                levelFieldLabel={t('filter.level').replace(/:\s*$/, '')}
+                rating={rating}
+                projects={projects}
+                catColor={catColor}
+                isSubscribed={isSubscribed}
+                onWatch={handleWatch}
+                isPaid={isPaid}
+                onBuy={handleBuy}
+                uiText={localText}
+              />
+            </motion.div>
+          </div>
         </div>
 
         {/* Recommended */}
@@ -437,8 +445,8 @@ export default function CourseDetailPage() {
             transition={{ duration: 0.4, delay: 0.2 }}
             className="mt-12 sm:mt-16"
           >
-            <h2 className="text-base sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
-              <IoFlash className="text-primary" />
+            <h2 className="text-base sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 text-white">
+              <IoFlash className="text-platinum-400" />
               {localText.recommendedCourses}
             </h2>
             <RecommendedCarousel courses={recommended} />
@@ -527,27 +535,31 @@ function PriceCardContent({
     <div className="p-4 sm:p-5 space-y-4">
       <div className="space-y-2">
         {isPaid && (
-          <button onClick={onBuy} className="btn btn-primary btn-block rounded-xl font-bold gap-2">
+          <button onClick={onBuy} className="btn bg-gradient-to-r from-platinum-700 to-platinum-600 hover:from-platinum-600 hover:to-platinum-500 border-none text-white btn-block rounded-none font-bold gap-2 shadow-md">
             <IoFlash className="text-base" />
             {uiText.buyCourse} · {priceLabel}
           </button>
         )}
         <button
           onClick={onWatch}
-          className={`btn btn-block rounded-xl font-bold gap-2 ${isPaid ? 'btn-outline btn-neutral' : 'btn-primary'}`}
+          className={`btn btn-block rounded-none font-bold gap-2 ${
+            isPaid 
+              ? 'bg-transparent hover:bg-zinc-900 border border-zinc-800 text-zinc-300' 
+              : 'bg-platinum-600 hover:bg-platinum-500 border-none text-white'
+          }`}
         >
           {isSubscribed ? <IoPlay className="text-base" /> : <IoLockClosed className="text-base" />}
           {isSubscribed ? uiText.watchVideo : uiText.watchOrSubscribe}
         </button>
       </div>
-      <div className="divider my-0 opacity-20" />
+      <div className="divider my-0 opacity-10" />
       <div className="space-y-2.5">
-        <StatRow icon={<IoBookOutline className="text-primary text-sm" />} label={uiText.lessonsLabel} value={courseVideos.length} />
-        {totalSecs > 0 && <StatRow icon={<IoTime className="text-primary text-sm" />} label={uiText.totalTime} value={formatDurationText(totalSecs)} />}
-        <StatRow icon={<IoBarChart className="text-primary text-sm" />} label={levelFieldLabel} value={levelDisplay} />
-        {rating > 0 && <StatRow icon={<IoStar className="text-yellow-400 text-sm" />} label={uiText.rating} value={Number(rating).toFixed(1)} />}
-        {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-primary text-sm" />} label={uiText.learners} value={course.studentsCount.toLocaleString()} />}
-        {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-primary text-sm" />} label={uiText.projects} value={projects.length} />}
+        <StatRow icon={<IoBookOutline className="text-platinum-400 text-sm" />} label={uiText.lessonsLabel} value={courseVideos.length} />
+        {totalSecs > 0 && <StatRow icon={<IoTime className="text-platinum-400 text-sm" />} label={uiText.totalTime} value={formatDurationText(totalSecs)} />}
+        <StatRow icon={<IoBarChart className="text-platinum-400 text-sm" />} label={levelFieldLabel} value={levelDisplay} />
+        {rating > 0 && <StatRow icon={<IoStar className="text-yellow-500 text-sm" />} label={uiText.rating} value={Number(rating).toFixed(1)} />}
+        {course.studentsCount > 0 && <StatRow icon={<IoPeople className="text-platinum-400 text-sm" />} label={uiText.learners} value={course.studentsCount.toLocaleString()} />}
+        {projects.length > 0 && <StatRow icon={<IoCodeSlash className="text-platinum-400 text-sm" />} label={uiText.projects} value={projects.length} />}
       </div>
     </div>
   )
@@ -555,20 +567,30 @@ function PriceCardContent({
 
 function DesktopPriceCard(props) {
   const { course, catColor } = props
+  const currentLang = props.uiText.dateLocale === 'ru-RU' ? 'ru' : props.uiText.dateLocale === 'en-US' ? 'en' : 'uz'
+  const localizedTitle = localizeCourseText(currentLang, course.title).title
+
   return (
-    <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-2xl shadow-base-content/5">
-      <div className="relative h-44 bg-base-300 overflow-hidden">
-        {course.thumbnail
-          ? <Image
-              src={course.thumbnail}
-              alt={localizeCourseText(props.uiText.dateLocale === 'ru-RU' ? 'ru' : props.uiText.dateLocale === 'en-US' ? 'en' : 'uz', course.title).title}
-              fill
-              sizes="(max-width: 768px) 100vw, 400px"
-              className="object-cover"
-            />
-          : <div className={'w-full h-full flex items-center justify-center text-5xl font-black opacity-10 ' + catColor}>{course.category?.toUpperCase().slice(0, 2)}</div>
-        }
-        <div className="absolute inset-0 bg-gradient-to-t from-base-200/90 to-transparent" />
+    <div className="rounded-none border border-zinc-800 bg-[#16191d]/90 backdrop-blur-xl overflow-hidden shadow-2xl">
+      <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
+        {course.thumbnail ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#16191d]">
+              <div className="relative w-full h-full">
+                <DynamicSVG
+                  src={course.thumbnail}
+                  alt={localizedTitle}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={'w-full h-full flex items-center justify-center text-5xl font-black opacity-10 ' + catColor}>
+            {course.category?.toUpperCase().slice(0, 2)}
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#16191d] via-[#16191d]/50 to-transparent pointer-events-none" />
       </div>
       <PriceCardContent {...props} />
     </div>
@@ -578,9 +600,9 @@ function DesktopPriceCard(props) {
 function MobilePriceCard(props) {
   const { isSubscribed, onWatch, uiText } = props
   return (
-    <div className="rounded-2xl border border-base-content/8 bg-base-200 overflow-hidden shadow-lg">
+    <div className="rounded-none border border-zinc-800 bg-[#16191d]/90 backdrop-blur-xl overflow-hidden shadow-lg">
       <div className="flex items-center justify-center px-4 py-3">
-        <button onClick={onWatch} className="btn btn-primary btn-sm rounded-xl gap-1">
+        <button onClick={onWatch} className="btn bg-platinum-600 hover:bg-platinum-500 border-none text-white btn-sm rounded-none gap-1">
           {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}
           {isSubscribed ? uiText.watchVideo : uiText.watchOrSubscribe}
         </button>

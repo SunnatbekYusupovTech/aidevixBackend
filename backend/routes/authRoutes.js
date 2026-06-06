@@ -60,8 +60,8 @@ router.get('/csrf', getCsrfToken);
 router.post('/forgot-password', otpLimiter, captchaCheck, forgotPassword);
 router.post('/verify-code', otpLimiter, verifyCode);
 router.post('/reset-password', otpLimiter, resetPassword);
-router.post('/resend-verification-public', otpLimiter, resendVerificationPublic);
-router.post('/verify-email-public', otpLimiter, verifyEmailPublic);
+router.post('/resend-verification-public', otpLimiter, captchaCheck, resendVerificationPublic);
+router.post('/verify-email-public', otpLimiter, captchaCheck, verifyEmailPublic);
 
 // Private
 router.post('/logout', authenticate, logout);

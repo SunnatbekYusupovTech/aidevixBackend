@@ -43,7 +43,8 @@ const getMyEnrollments = async (req, res) => {
   try {
     const enrollments = await Enrollment.find({ userId: req.user._id })
       .populate({ path: 'courseId', select: 'title thumbnail category level rating price instructor', populate: { path: 'instructor', select: 'username jobTitle' } })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({ success: true, data: { enrollments } });
   } catch (err) {
@@ -165,21 +166,26 @@ const continueLearning = async (req, res) => {
 
     const Video = require('../models/Video');
 
-    for (const enrollment of enrollments) {
-      if (!enrollment.courseId) continue;
-      const courseId = enrollment.courseId._id;
-      const watchedIds = enrollment.watchedVideos.map(w => w.videoId.toString());
-
-      const nextVideo = await Video.findOne({
-        course: courseId,
-        isActive: true,
-        _id: { $nin: watchedIds },
+    const validEnrollments = enrollments.filter(e => e.courseId);
+    const nextVideos = await Promise.all(
+      validEnrollments.map(enrollment => {
+        const watchedIds = enrollment.watchedVideos.map(w => w.videoId.toString());
+        return Video.findOne({
+          course: enrollment.courseId._id,
+          isActive: true,
+          _id: { $nin: watchedIds },
+        })
+          .sort({ order: 1 })
+          .select('_id title duration thumbnail order')
+          .lean();
       })
-        .sort({ order: 1 })
-        .select('_id title duration thumbnail order')
-        .lean();
+    );
 
+    for (let i = 0; i < validEnrollments.length; i++) {
+      const nextVideo = nextVideos[i];
       if (nextVideo) {
+        const enrollment = validEnrollments[i];
+        const watchedIds = enrollment.watchedVideos.map(w => w.videoId.toString());
         return res.json({
           success: true,
           data: {

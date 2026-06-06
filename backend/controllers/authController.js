@@ -48,6 +48,7 @@ const { issueReauthToken } = require('../middleware/stepUp');
 const { softDeleteUser } = require('../utils/accountDeletion');
 
 const authDebug = (...args) => {
+  if (process.env.NODE_ENV === 'production') return;
   if (process.env.AUTH_DEBUG === 'true') {
     console.log('[AUTH_DEBUG]', ...args);
   }
@@ -605,7 +606,7 @@ const verifyEmailPublic = asyncHandler(async (req, res, next) => {
     );
     if (updated) {
       User.findByIdAndUpdate(user.referredBy, { $inc: { xp: 1000, referralsCount: 1 } })
-        .exec().catch(() => {});
+        .exec().catch((err) => console.error('[Referral] XP update failed:', err.message));
       UserStats.findOneAndUpdate(
         { userId: user.referredBy },
         { $inc: { xp: 1000, weeklyXp: 1000 } }
@@ -1273,6 +1274,18 @@ const googleAuth = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse('Google access token yaroqsiz', 400));
     }
     try {
+      // Audience tekshiruvi: token AYNAN shu ilova (GOOGLE_CLIENT_ID) uchun berilganligini tasdiqlaymiz.
+      // Aks holda boshqa ilovaning valid access token'i bilan account hijack mumkin.
+      const expectedAud = process.env.GOOGLE_CLIENT_ID;
+      const { data: tokenInfo } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+        params: { access_token: googleAccessToken },
+        timeout: 8000,
+      });
+      if (!expectedAud || (tokenInfo.aud !== expectedAud && tokenInfo.azp !== expectedAud)) {
+        securityLogger.suspicious(req, 'google_access_token_aud_mismatch', { aud: tokenInfo.aud, azp: tokenInfo.azp });
+        return next(new ErrorResponse('Google token audience mos emas', 401));
+      }
+
       const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${googleAccessToken}` },
         timeout: 8000,
@@ -1420,34 +1433,52 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
     const referralCode =
       username.substring(0, 4).toUpperCase() + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    user = await User.create({
-      username,
-      email: placeholderEmail,
-      firstName: tgUser.first_name || '',
-      lastName: tgUser.last_name || '',
-      emailVerified: false, // user keyin haqiqiy email qo'shishi mumkin
-      telegramUserId,
-      telegramChatId: telegramUserId,
-      avatar: tgUser.photo_url || null,
-      'socialSubscriptions.telegram.username': tgUser.username || null,
-      'socialSubscriptions.telegram.telegramUserId': telegramUserId,
-      'socialSubscriptions.telegram.verifiedAt': new Date(),
-      referralCode,
-      xp: 0,
-      rankTitle: 'AMATEUR',
-    });
-
-    UserStats.create({ userId: user._id, xp: 0 }).catch(() => {});
-    securityLogger.registerSuccess(req, user);
-
-    // Bot orqali admin'ga yangi user xabarini berish
     try {
-      const { getBot } = require('../utils/telegramBot');
-      const bot = getBot();
-      if (bot && typeof bot.notifyNewRegistration === 'function') {
-        bot.notifyNewRegistration(user);
+      user = await User.create({
+        username,
+        email: placeholderEmail,
+        firstName: tgUser.first_name || '',
+        lastName: tgUser.last_name || '',
+        emailVerified: false, // user keyin haqiqiy email qo'shishi mumkin
+        telegramUserId,
+        telegramChatId: telegramUserId,
+        avatar: tgUser.photo_url || null,
+        'socialSubscriptions.telegram.username': tgUser.username || null,
+        'socialSubscriptions.telegram.telegramUserId': telegramUserId,
+        'socialSubscriptions.telegram.verifiedAt': new Date(),
+        referralCode,
+        xp: 0,
+        rankTitle: 'AMATEUR',
+      });
+    } catch (e) {
+      // Race: parallel TMA auth bir vaqtda user yaratdi (placeholder email unique 11000) — mavjudini olamiz
+      if (e && e.code === 11000) {
+        isNew = false;
+        user = await User.findOne({
+          $or: [
+            { telegramUserId },
+            { 'socialSubscriptions.telegram.telegramUserId': telegramUserId },
+          ],
+        }).select('+tokenVersion +totpEnabled');
+        if (!user) throw e;
+      } else {
+        throw e;
       }
-    } catch (_) {}
+    }
+
+    if (isNew) {
+      UserStats.create({ userId: user._id, xp: 0 }).catch(() => {});
+      securityLogger.registerSuccess(req, user);
+
+      // Bot orqali admin'ga yangi user xabarini berish
+      try {
+        const { getBot } = require('../utils/telegramBot');
+        const bot = getBot();
+        if (bot && typeof bot.notifyNewRegistration === 'function') {
+          bot.notifyNewRegistration(user);
+        }
+      } catch (_) {}
+    }
   } else {
     if (!user.isActive) return next(new ErrorResponse('Account deactivated', 403));
     // Telegram ID ulash (eski user'da bo'lmasa)

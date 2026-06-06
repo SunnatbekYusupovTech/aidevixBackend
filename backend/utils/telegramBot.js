@@ -1,6 +1,9 @@
 const axios = require('axios');
 const schedulerState = require('./schedulerState');
 
+// Telegram HTML parse_mode uchun user-controlled stringlarni xavfsizlash
+const escapeHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 /**
  * ═══════════════════════════════════════════════════════════════════
  * AIDEVIX TELEGRAM BOT — Senior Professional Implementation
@@ -40,7 +43,11 @@ class AidevixBot {
         const updates = response.data.result;
         for (const update of updates) {
           this.offset = update.update_id + 1;
-          await this._handleUpdate(update);
+          try {
+            await this._handleUpdate(update);
+          } catch (e) {
+            console.error('[Bot] handleUpdate crash:', e.message);
+          }
         }
       } catch (error) {
         console.error('Polling error:', error.message);
@@ -182,7 +189,7 @@ class AidevixBot {
     const { tgChannelLink, igLink } = this._getLinks();
 
     const msg =
-      `👋 Salom, <b>${firstName}</b>!\n\n` +
+      `👋 Salom, <b>${escapeHtml(firstName)}</b>!\n\n` +
       `<b>Aidevix Akademiyasi</b> — AI va dasturlash bo'yicha o'zbek tilidagi eng to'liq o'quv platforma 🇺🇿\n\n` +
       `🎯 <b>Nima qila olasiz:</b>\n` +
       `   📚 Kurslar va amaliy loyihalar\n` +
@@ -1393,7 +1400,7 @@ class AidevixBot {
     try {
       await this.sendMessage(
         adminId,
-        `✅ <b>Yangi obuna tasdiqlandi</b>\n\n${platformLabel}\nFoydalanuvchi: <b>${username}</b>`,
+        `✅ <b>Yangi obuna tasdiqlandi</b>\n\n${platformLabel}\nFoydalanuvchi: <b>${escapeHtml(username)}</b>`,
         { parse_mode: 'HTML' }
       );
     } catch (_) {}
@@ -1432,8 +1439,8 @@ class AidevixBot {
       const { igLink } = this._getLinks();
       const cMsg =
         `🎉 <b>Yangi bitiruvchi!</b>\n\n` +
-        `O'quvchimiz <b>${cert.recipientName}</b>\n` +
-        `"${cert.courseName}" kursini muvaffaqiyatli tamomladi! 🏆\n\n` +
+        `O'quvchimiz <b>${escapeHtml(cert.recipientName)}</b>\n` +
+        `"${escapeHtml(cert.courseName)}" kursini muvaffaqiyatli tamomladi! 🏆\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<b>Aidevix</b> — AI & Dasturlash O'quv Platformasi 🇺🇿\n\n` +
         `📢 Kanal: <a href="${tgChannelLink}">@${tgChannel}</a>\n` +

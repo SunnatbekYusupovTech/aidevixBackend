@@ -131,12 +131,6 @@ const getCategories = async (req, res) => {
  */
 const getCourse = async (req, res) => {
   try {
-    // Avval mavjudligini tekshirish (populate dan oldin)
-    const exists = await Course.findOne({ _id: req.params.id, isActive: true }).select('_id').lean();
-    if (!exists) {
-      return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
-    }
-
     const course = await Course.findById(req.params.id)
       .populate('instructor', 'username email jobTitle position')
       .populate({
@@ -147,7 +141,7 @@ const getCourse = async (req, res) => {
       })
       .lean();
 
-    if (!course) {
+    if (!course || !course.isActive) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 
@@ -302,16 +296,14 @@ const rateCourse = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 
-    // Upsert rating — har bir foydalanuvchi faqat bir marta baholay oladi
-    const existing = await CourseRating.findOne({ userId: req.user._id, courseId: course._id });
-
-    if (existing) {
-      existing.rating = rating;
-      if (review !== undefined) existing.review = review;
-      await existing.save();
-    } else {
-      await CourseRating.create({ userId: req.user._id, courseId: course._id, rating, review });
-    }
+    // Upsert rating — atomic (concurrent first-time rating race oldini olish)
+    const ratingUpdate = { $set: { rating } };
+    if (review !== undefined) ratingUpdate.$set.review = review;
+    await CourseRating.findOneAndUpdate(
+      { userId: req.user._id, courseId: course._id },
+      ratingUpdate,
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
 
     // Kurs o'rtacha reytingini qayta hisoblash
     const agg = await CourseRating.aggregate([
@@ -331,7 +323,7 @@ const rateCourse = async (req, res) => {
       data: { rating: course.rating, ratingCount: course.ratingCount },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : error.message });
   }
 };
 

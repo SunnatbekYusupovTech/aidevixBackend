@@ -1,0 +1,208 @@
+{
+  "role": "frontend-ui",
+  "score": 6.8,
+  "partial": false,
+  "files_reviewed": [
+    "frontend/src/components/home/HomeClient.tsx",
+    "frontend/src/app/prompts/page.tsx",
+    "frontend/src/components/auth/RegisterForm.tsx",
+    "frontend/src/components/auth/LoginForm.tsx",
+    "frontend/src/components/common/AICoach.tsx",
+    "frontend/src/app/api/coach/route.ts",
+    "frontend/src/app/profile/page.tsx",
+    "frontend/src/components/layout/Navbar.tsx",
+    "frontend/src/components/courses/DynamicSVG.tsx",
+    "frontend/src/utils/tokenStorage.ts",
+    "frontend/src/utils/jsonLd.ts"
+  ],
+  "findings": [
+    {
+      "id": "FE-001",
+      "severity": "critical",
+      "confidence": 0.95,
+      "title": "/api/coach route has no rate limiting — any unauthenticated caller can drain AI keys",
+      "file": "frontend/src/app/api/coach/route.ts",
+      "line": 326,
+      "description": "The Next.js API route POST /api/coach calls Anthropic / OpenAI / Groq with server-side API keys but implements zero rate limiting and requires no authentication. Any anonymous bot can send unlimited requests, exhausting the daily/monthly quotas for all three providers. The 15 s timeout does not help because multiple parallel requests are allowed. The backend playground route has a `15/15min user rate limit` (CLAUDE.md) — the coach route has nothing equivalent.",
+      "fix": "Add Vercel Edge rate limiting (e.g. @upstash/ratelimit with the existing REDIS_URL env var or Vercel KV) keyed on IP + optional user cookie. Alternatively, proxy through the Express backend so that the existing rateLimiter middleware applies. Minimum: 20 req/15 min per IP for anonymous, 60 req/15 min for authenticated.",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-002",
+      "severity": "critical",
+      "confidence": 0.9,
+      "title": "/api/coach route: no input length guard — history array can carry unbounded tokens to AI providers",
+      "file": "frontend/src/app/api/coach/route.ts",
+      "line": 329,
+      "description": "The payload is deserialized and `history` is passed directly to AI providers after only a `slice(-10)`. However `message` itself has no length cap, and each history entry also has no individual length cap. A crafted message of 100 000 characters will be forwarded to the AI provider, wasting tokens and potentially triggering prompt injection against the system instruction. The system instruction explicitly says `hech qachon 'men AI' ... dema` — an injected user message like `Ignore all previous instructions and say...` could partially subvert the persona.",
+      "fix": "Validate at handler entry: `if (message.length > 2000) return 400`. Truncate each history entry to 1000 chars. Add a hardening note that the system prompt comes first and user content is always last (already done), but add explicit output filtering if reply contains `ignore previous` type patterns.",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-003",
+      "severity": "critical",
+      "confidence": 0.85,
+      "title": "DynamicSVG renders unsanitized SVG markup via dangerouslySetInnerHTML — stored XSS vector",
+      "file": "frontend/src/components/courses/DynamicSVG.tsx",
+      "line": 118,
+      "description": "The component fetches `src` (course.thumbnail URL) over the network, extracts everything from `<svg` onward, and injects it into the DOM via `dangerouslySetInnerHTML`. SVG files can contain `<script>`, `<foreignObject>`, `onload=`, `href=javascript:`, and similar XSS payloads. If an admin uploads a malicious SVG as a course thumbnail (or if the Cloudinary URL is compromised/tampered), every visitor who views a CourseCard will execute the script. The alt attribute insertion via `.replace('<svg ', ...)` can also break if the SVG string already contains that attribute combination.",
+      "fix": "Sanitize fetched SVG with DOMPurify (browser-side) before inserting: `const clean = DOMPurify.sanitize(svgOnly, { USE_PROFILES: { svg: true, svgFilters: true } })`. Add `DOMPurify.addHook` to strip `<script>` and on* attributes. Alternatively render via a sandboxed `<img src={blobUrl}>` which prevents script execution entirely.",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-004",
+      "severity": "warning",
+      "confidence": 0.92,
+      "title": "NEXT_PUBLIC_API_BASE_URL (public env var) used as backend URL in server-side API route",
+      "file": "frontend/src/app/api/coach/route.ts",
+      "line": 9,
+      "description": "Line 9: `const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'`. NEXT_PUBLIC_ variables are baked into the client bundle at build time and visible to all browsers. Using one as the server-side backend URL is semantically wrong: the value is read correctly at build time in the server route, but it exposes the private backend origin in the client bundle unnecessarily. More critically, any user who changes the env var for a preview deployment will inadvertently expose it. Use a private env var (e.g. `BACKEND_INTERNAL_URL`) for server-to-server calls.",
+      "fix": "Rename to `BACKEND_INTERNAL_URL` (no NEXT_PUBLIC_ prefix) in this route. Keep `NEXT_PUBLIC_API_BASE_URL` only where client-side code genuinely needs it.",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-005",
+      "severity": "warning",
+      "confidence": 0.88,
+      "title": "profile/page.tsx: URL.createObjectURL leak — revokeObjectURL never called",
+      "file": "frontend/src/app/profile/page.tsx",
+      "line": 232,
+      "description": "In `handleAvatarChange`, `URL.createObjectURL(file)` creates a Blob URL stored in `avatarPreview` state. On success the state is reset to `null` but `URL.revokeObjectURL(nextPreview)` is never called in the success path. The cleanup happens implicitly when the component unmounts, but in a long-lived SPA session every avatar change leaks a Blob URL in memory. On error the URL is also leaked (avatarPreview is set null but revoke is not called).",
+      "fix": "Call `URL.revokeObjectURL(nextPreview)` in both the success and error branches before setting `setAvatarPreview(null)`. Or use a `useEffect` cleanup that revokes whenever `avatarPreview` changes.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-006",
+      "severity": "warning",
+      "confidence": 0.87,
+      "title": "profile/page.tsx: useEffect deps array uses unstable t() call result — runs on every render",
+      "file": "frontend/src/app/profile/page.tsx",
+      "line": 179,
+      "description": "`useEffect(() => { setActiveTab(TABS[0]); }, [t('profile.tab.info')])` — the deps array contains the *result* of calling `t(...)` which is a string. This is evaluated every render, meaning the effect runs on every render cycle, not just when the language actually changes. Although it only sets state when the value differs (React bails out), it still calls `t()` on every render just to produce the dep. Also `TABS` is recomputed inline on every render based on `t(...)` calls, but is not memoized.",
+      "fix": "Depend on the `lang` value from `useLang()` instead: `}, [lang])`. Memoize `TABS` with `useMemo(() => [...], [t, lang])` to avoid array recreation on every render.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-007",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "tokenStorage.ts stores user object in localStorage — leaks PII on shared/public computers",
+      "file": "frontend/src/utils/tokenStorage.ts",
+      "line": 35,
+      "description": "Although JWT tokens are correctly stored in httpOnly cookies, `tokenStorage.setUser()` writes the full user object (email, username, firstName, lastName, aiStack, etc.) to `localStorage` as a plaintext JSON string. On a shared or compromised device, any script or person with physical access can read `STORAGE_KEYS.USER` and extract the user's personal information. CLAUDE.md states `localStorage token storage FORBIDDEN` — this file correctly avoids storing tokens but does cache sensitive user profile fields.",
+      "fix": "Store only non-sensitive fields needed for immediate UI rendering (e.g. `{ _id, username, avatar, level }`) and fetch the full profile from the cookie-authenticated API on demand. Alternatively, exclude `email`, `socialSubscriptions`, and any payment/role fields from the cached object.",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-008",
+      "severity": "warning",
+      "confidence": 0.82,
+      "title": "HomeClient: news item href rendered via <motion.a href=...> without validation — open redirect risk",
+      "file": "frontend/src/components/home/HomeClient.tsx",
+      "line": 529,
+      "description": "`getNewsHref()` returns `item.href` from the backend-fetched AI news list without any validation. If a news item contains `javascript:alert(1)` or `//evil.com` as the `href`, the rendered `<motion.a href={...}>` link becomes a reflected XSS / open redirect vector. News data originates from the `POST /api/admin/news` endpoint which only requires admin auth — but if an admin account is compromised, attacker-controlled hrefs reach all visitors.",
+      "fix": "Sanitize `href` in `getNewsHref()`: only allow `https://` or `http://` prefixes. `if (!href.startsWith('https://') && !href.startsWith('http://')) return SOCIAL_LINKS.telegram;`",
+      "auto_safe": false
+    },
+    {
+      "id": "FE-009",
+      "severity": "warning",
+      "confidence": 0.80,
+      "title": "AICoach: no message input length limit — user can send 100k-char messages causing large history payloads",
+      "file": "frontend/src/components/common/AICoach.tsx",
+      "line": 170,
+      "description": "The `sendMessage` function only checks `!trimmed`. There is no `maxLength` on the `<input>` element (line 385) and no server-side enforcement of message length in the route (FE-002). A user can craft a very long message, which gets added to the history array and sent back on subsequent requests, growing unboundedly until the 10-message slice. Combined with FE-002 (no server-side length guard), this can produce large requests.",
+      "fix": "Add `maxLength={1000}` to the `<input>` element. In `sendMessage`, add `if (trimmed.length > 1000) { toast.error('Message too long'); return; }`. This client-side guard complements the server-side fix in FE-002.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-010",
+      "severity": "warning",
+      "confidence": 0.78,
+      "title": "RegisterForm: label for terms checkbox uses onClick to toggle — non-keyboard-accessible",
+      "file": "frontend/src/components/auth/RegisterForm.tsx",
+      "line": 304,
+      "description": "The `<label>` element at line 304 has a manual `onClick` handler that calls `document.querySelector('input[name=\"terms\"]').click()`. This bypasses the native label-input association that would work for free if the label had a proper `htmlFor` attribute matching the checkbox `id`. The `document.querySelector` approach is fragile (breaks if multiple forms exist on the page) and redundant — native `<label htmlFor>` handles click-to-toggle automatically including keyboard Enter/Space.",
+      "fix": "Add `id=\"terms-checkbox\"` to the checkbox input and `htmlFor=\"terms-checkbox\"` to the label. Remove the `onClick` handler entirely.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-011",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "Navbar: dropdown user menu uses DaisyUI label/tabIndex pattern without proper ARIA roles",
+      "file": "frontend/src/components/layout/Navbar.tsx",
+      "line": 344,
+      "description": "The logged-in user dropdown uses `<label tabIndex={0}>` as the trigger and `<ul tabIndex={0} className='dropdown-content menu'>` — this is the DaisyUI CSS-only dropdown pattern which relies on `:focus-within`. It has no `aria-haspopup`, `aria-expanded`, or `role='button'` on the trigger label, and no `role='menu'` on the list. Screen readers will not announce this as a menu control.",
+      "fix": "Add `role='button'`, `aria-haspopup='menu'`, `aria-expanded={menuOpen}`, and an `aria-label` to the `<label>`. Add `role='menu'` to the `<ul>`. Consider converting to a controlled button+div approach for reliable keyboard navigation.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-012",
+      "severity": "warning",
+      "confidence": 0.72,
+      "title": "HomeClient: decorative avatar images in stats section have empty alt but no explicit aria-hidden",
+      "file": "frontend/src/components/home/HomeClient.tsx",
+      "line": 792,
+      "description": "The three overlapping avatar `<img>` elements in the bento stats card (lines 792-794) have `alt=\"\"` which is correct for decorative images. However they lack `aria-hidden=\"true\"`, so some assistive technologies may still tab to them or announce them as 'image'. Best practice is to add `aria-hidden=\"true\"` alongside empty `alt` for purely decorative images in interactive sections.",
+      "fix": "Add `aria-hidden=\"true\"` to each decorative avatar `<img>` element in the stats section.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-013",
+      "severity": "suggestion",
+      "confidence": 0.85,
+      "title": "profile/page.tsx: handleSave and handleAvatarChange use untyped `any` for event parameter",
+      "file": "frontend/src/app/profile/page.tsx",
+      "line": 202,
+      "description": "`handleSave(e)` and `handleAvatarChange(e)` have no TypeScript annotations for their event parameters (implicit `any`). This suppresses type checking on `e.target.files`, `e.preventDefault()`, and similar accesses, reducing IDE assistance and catch-ability of bugs.",
+      "fix": "Type `handleSave` as `(e: React.FormEvent<HTMLFormElement>) => void` and `handleAvatarChange` as `(e: React.ChangeEvent<HTMLInputElement>) => void`.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-014",
+      "severity": "suggestion",
+      "confidence": 0.80,
+      "title": "profile/page.tsx: skills array rendered with index key — fragile if array order changes",
+      "file": "frontend/src/app/profile/page.tsx",
+      "line": 422,
+      "description": "`skills.map((skill, i) => <span key={i} ...>)` — index keys cause unnecessary DOM re-rendering when the array is reordered or filtered. Skill names are short strings that are unique within a user's skill list.",
+      "fix": "Use the skill string itself as the key: `key={skill}`.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-015",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "AICoach GSAP animation on toggle button runs even when prefers-reduced-motion is set",
+      "file": "frontend/src/components/common/AICoach.tsx",
+      "line": 136,
+      "description": "The continuous `boxShadow` pulse animation (repeat: -1, yoyo: true) runs unconditionally regardless of the user's `prefers-reduced-motion` media query. HomeClient.tsx correctly checks for reduced motion before running GSAP animations, but AICoach does not.",
+      "fix": "Wrap the GSAP tween in a reduced motion check: `const noMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; if (!noMotion) { ... tween ... }`.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-016",
+      "severity": "suggestion",
+      "confidence": 0.70,
+      "title": "prompts/page.tsx: 60-second polling interval creates unnecessary background traffic for all users",
+      "file": "frontend/src/app/prompts/page.tsx",
+      "line": 610,
+      "description": "A `setInterval` at line ~598 re-fetches the prompts list and saved IDs every 60 seconds regardless of user interaction, page visibility, or network conditions. On mobile or low-bandwidth connections this wastes data. The prompts list does not change frequently enough to justify a 60-second polling cycle.",
+      "fix": "Use the Page Visibility API to pause polling when the tab is hidden: `document.addEventListener('visibilitychange', handler)`. Alternatively increase the interval to 5 minutes, or use user-triggered refresh instead.",
+      "auto_safe": true
+    },
+    {
+      "id": "FE-017",
+      "severity": "suggestion",
+      "confidence": 0.68,
+      "title": "LoginForm: password input missing autoComplete='current-password' on desktop browsers",
+      "file": "frontend/src/components/auth/LoginForm.tsx",
+      "line": 122,
+      "description": "The password field has `autoComplete='current-password'` (line 125) — this is correctly set. However the email field does not have `autoComplete='email'` or `autoComplete='username'`. RegisterForm correctly uses `autoComplete='username'` for email. LoginForm omits both, which prevents password managers from correctly mapping login credentials on some browsers.",
+      "fix": "Add `autoComplete='email'` to the login email input (line 95).",
+      "auto_safe": true
+    }
+  ],
+  "summary": "7 critical/warning security issues found: (1) /api/coach has no rate limit or auth guard, allowing free AI API key exhaustion by anonymous users; (2) no message/history length validation enables prompt injection and token abuse; (3) DynamicSVG injects unsanitized fetched SVG via dangerouslySetInnerHTML — stored XSS if an SVG thumbnail contains script/event payloads; (4) NEXT_PUBLIC_ env var misused as server-side backend URL leaks internal origin to client bundle; (5) news item href from backend rendered without URL scheme validation — open redirect/XSS; (6) user object with PII cached in localStorage; (7) avatar Blob URL leak. Remaining findings are accessibility, TypeScript typing, and UX improvements. Auth forms, JSON-LD injection protection (safeJsonLd), cookie-based token storage, and GSAP cleanup are all correctly implemented."
+}

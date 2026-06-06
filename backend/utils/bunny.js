@@ -69,6 +69,9 @@ const getBunnyVideoInfo = async (bunnyVideoId) => {
  * @returns {{ embedUrl: string, expiresAt: Date }}
  */
 const generateSignedEmbedUrl = (bunnyVideoId, expiresInSeconds = 7200) => {
+  if (!process.env.BUNNY_TOKEN_KEY) {
+    throw new Error('BUNNY_TOKEN_KEY not configured');
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
 
   const token = crypto

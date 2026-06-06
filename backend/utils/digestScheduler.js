@@ -202,7 +202,7 @@ function startDigestScheduler() {
 
     if (dayInTashkent === 0 && hour === 9 && lastDigestDate !== todayStr) {
       lastDigestDate = todayStr;
-      runWeeklyDigest();
+      runWeeklyDigest().catch((err) => console.error('[Digest] unhandled error:', err.message));
     }
   }, 15 * 60 * 1000);
 

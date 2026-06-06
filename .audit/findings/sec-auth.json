@@ -1,0 +1,134 @@
+{
+  "role": "sec-auth",
+  "score": 8,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/authController.js",
+    "backend/controllers/twoFactorController.js",
+    "backend/controllers/sessionController.js",
+    "backend/middleware/auth.js",
+    "backend/middleware/csrfProtection.js",
+    "backend/middleware/stepUp.js",
+    "backend/utils/jwt.js",
+    "backend/utils/authSecurity.js",
+    "backend/config/jwt.js",
+    "backend/utils/telegramWebAppAuth.js",
+    "backend/middleware/rateLimiter.js",
+    "backend/routes/authRoutes.js",
+    "backend/middleware/captchaCheck.js",
+    "backend/index.js"
+  ],
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "RESET_TOKEN_SECRET uchta maqsadda umumiy ishlatiladi (reset + 2FA challenge + reauth token)",
+      "file": "backend/utils/jwt.js",
+      "line": 82,
+      "description": "generate2FAChallenge(), generateResetToken() va issueReauthToken() (stepUp.js) hammasi RESET_TOKEN_SECRET dan foydalanadi. Audience separation mavjud (aidevix-reset / aidevix-2fa / aidevix-reauth) va verify faqat o'z audience ni qabul qiladi — shuning uchun cross-token forgery to'siq. Ammo agar RESET_TOKEN_SECRET biror yerda leak bo'lsa, attacker uchta token turini ham forge qila oladi. Bundan tashqari, bu dizayn hozir to'g'ri ishlasa ham, kelajakda yangi token turi qo'shilsa audience kontrolini unutish riskini oshiradi.",
+      "fix": "Reauth uchun alohida REAUTH_TOKEN_SECRET env var kiriting. backend/config/jwt.js da loadSecret('REAUTH_TOKEN_SECRET', ...) qo'shib, stepUp.js da RESET_TOKEN_SECRET o'rniga REAUTH_TOKEN_SECRET ishlating. Bu blast radiusni qisqartiradi.",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-002",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "Bearer token qabul qilinishi CSRF muhofazasini bypass qilishga yo'l ochishi mumkin",
+      "file": "backend/middleware/auth.js",
+      "line": 23,
+      "description": "authenticate() cookie-based tokenni Bearer token bilan bir xil darajada qabul qiladi: `const token = cookies[ACCESS_COOKIE_NAME] || bearerToken`. CSRF middleware esa faqat cookie mavjud bo'lganda (`if (!cookies[ACCESS_COOKIE_NAME]) return next()`) CSRF tekshiruvi o'tkazadi. Agar biror frontend (yoki Swagger UI) cookie yo'q holda Bearer token jo'natsa, CSRF tekshiruvi umuman o'tkazilmaydi. Agar access token biron yo'l bilan XSS orqali localStorage'ga tushib qolgan bo'lsa (yoki Swagger UI orqali), CSRF himoyasi yon yo'llanadi.",
+      "fix": "Bearer token yo'lini faqat Swagger/admin debug uchun chegarang yoki Bearer yo'li bo'lganda ham CSRF ni tekshiring. Yoki Bearer tokenni butunlay olib tashlab, faqat cookie-based auth saqlang (production-da bu yetarli). Swagger auth uchun alohida swaggerAuth.js middleware allaqachon bor — Bearer yo'li zarur bo'lsa, faqat u middleware da saqlash mumkin.",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-003",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "safeEqual() buffer uzunligi teng bo'lmasa darhol false qaytaradi — vaqt farqi ma'lumot oqishi",
+      "file": "backend/utils/authSecurity.js",
+      "line": 15,
+      "description": "safeEqual() ning `if (bufA.length !== bufB.length) return false` sharti vaqt farqini yaratadi — uzunliklari bir xil bo'lmagan tokenlar (masalan, qisqaroq verifikatsiya kodi) ancha tezroq rad etiladi. SHA-256 hash solishtiruvlar uchun hash uzunligi har doim 64 hex char bo'lganligi sababli bu amalda minimal risk, lekin verifikatsiya kodi to'g'ridan solishtiriladigan joylar uchun (masalan, emailVerificationCode) hash qilib solishtirish allaqachon to'g'ri amalga oshirilgan. Biroq qandaydir ko'rsatkich o'zgarsa xavfli bo'lishi mumkin.",
+      "fix": "Har doim hash'langan qiymatni solishtiring (hozirda aksariyat joylarda to'g'ri). Alternativ sifatida, har ikki bufferni 32 baytga qadar padding qilib keyin solishtirish mumkin, lekin hozirgi yondashuv yetarli — bu muammo faqat sha256 chiqish uzunligi bir xil bo'lgan joylarda ishlatilgani uchun past xavf.",
+      "auto_safe": true
+    },
+    {
+      "id": "SEC-004",
+      "severity": "suggestion",
+      "confidence": 0.8,
+      "title": "AUTH_DEBUG=true bo'lganda issueTokens() funksiyasi session ID ni console'ga chiqaradi",
+      "file": "backend/controllers/authController.js",
+      "line": 186,
+      "description": "authDebug() da `sessionId: String(session._id)` loglanadi. AUTH_DEBUG production muhitida tasodifan yoqilgan bo'lsa (AUTH_DEBUG=true), Railway loglarida session ID ko'rinadi. Session ID JWT payload'ga ham kiradi — shuning uchun refresh token bilan birga session'ni o'g'irlash uchun alohida foydasi yo'q, ammo bu log orqali monitoring tizimiga session ID ni tarqatish maqsadga muvofiq emas.",
+      "fix": "authDebug() da tokenVersion va sessionId'ni loglashdan oldin NODE_ENV=production tekshiruvini qo'shing: `if (process.env.NODE_ENV !== 'production') authDebug(...)` yoki authDebug ni faqat dev'da ishlashini ta'minlang.",
+      "auto_safe": true
+    },
+    {
+      "id": "SEC-005",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "verifyEmailPublic endpoint'da captchaCheck yo'q — email enumeration/spam vektori",
+      "file": "backend/routes/authRoutes.js",
+      "line": 64,
+      "description": "POST /api/auth/verify-email-public va /resend-verification-public endpoint'lari faqat otpLimiter (5/15min per IP+email) bilan himoyalangan, captchaCheck yo'q. Boshqa muhim endpoint'lar (register, login, forgot-password) captchaCheck oladi. Resend endpoint generic response qaytarsa ham, otpLimiter IP+email kombinatsiyasi asosida ishlaydi — email enumeration uchun to'siq yetarli. Lekin captcha yo'qligi botlar uchun OTP flood imkonini beradi.",
+      "fix": "captchaCheck middleware'ni /resend-verification-public va /verify-email-public route'lariga ham qo'shing: `router.post('/resend-verification-public', otpLimiter, captchaCheck, resendVerificationPublic)`.",
+      "auto_safe": true
+    },
+    {
+      "id": "SEC-006",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Google OAuth access_token yo'li — audience/client_id tekshiruvi yo'q",
+      "file": "backend/controllers/authController.js",
+      "line": 1276,
+      "description": "googleAuth() da `credential` yo'li Google ID tokenni verifyIdToken() bilan AUDIENCE tekshiruvi qilib tekshiradi. Lekin `accessToken` (useGoogleLogin hook) yo'lida Google userinfo API'ga to'g'ridan so'rov yuboriladi. Bu yo'lda hech qanday audience/client_id tekshiruvi yo'q — boshqa ilovadan olingan valid Google access token ham muvaffaqiyatli bo'lishi mumkin (agar email to'g'ri bo'lsa). Attacker o'z ilovasidagi Google access token ni Aidevix login uchun ishlatishi va email match bo'lsa hisobga kira olishi mumkin.",
+      "fix": "Access token yo'lida Google userinfo dan olingan `aud` yoki `azp` ni GOOGLE_CLIENT_ID bilan solishtiring. Alternativ: faqat ID token yo'lini qoldiring (credential field) va access_token yo'lini olib tashlang — ID token audience tekshiruvi xavfsizroq.",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-007",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "Telegram Mini App auth'da isActive tekshiruvi faqat existing user uchun, new user uchun yo'q",
+      "file": "backend/controllers/authController.js",
+      "line": 1452,
+      "description": "telegramMiniAppAuth() da existing user bo'lsa `if (!user.isActive) return next(...)` tekshiruvi mavjud. Lekin yangi user yaratilganda (isNew=true blok) bu tekshiruv yo'q — bu newuser uchun muammo emas (yangi user har doim active). Biroq, User.create() muammosi bo'lsa (masalan, duplicate email collision) unhandled error bo'lishi mumkin — asyncHandler bu holatni ushlaydi, lekin placeholder email `tg_${telegramUserId}@tg.aidevix.local` unique bo'lmasa race condition bor. Bir telegram ID bir vaqtda ikki marta auth so'rovida duplicate user'lar paydo bo'lishi mumkin.",
+      "fix": "User.create() ni upsert pattern ga ko'chiring yoki findOne check va create orasida `{ $set: { telegramUserId } }` atomic operatsiya ishlatilsin. Yoki unique index on telegramUserId va DuplicateKeyError'ni ushlab tegishli user'ni qayta topib davom etilsin.",
+      "auto_safe": false
+    },
+    {
+      "id": "SEC-008",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "disable2FA admin check role'dan oldin password/TOTP tekshiradi — minor logic ordering",
+      "file": "backend/controllers/twoFactorController.js",
+      "line": 146,
+      "description": "disable2FA() avval password to'g'riligini, keyin TOTP/backup kodini tekshiradi, undan keyin `if (user.role === 'admin') return 403` qaytaradi. Bu mantiqan to'g'ri (admin 2FA o'chira olmaydi) lekin admin TOTP kodi bilan brute-force qilish orqali TOTP kodi to'g'riligini timing signal sifatida ishlatishi mumkin. Admin check'ni dastlabki tekshiruv sifatida (password before TOTP) qo'yish yaxshiroq.",
+      "fix": "Admin role tekshiruvini password tekshiruvidan oldin bajaring:\n```js\nif (user.role === 'admin') {\n  return next(new ErrorResponse('Admin hisoblar uchun 2FA majburiy.', 403));\n}\n// keyin password va TOTP tekshiruvi\n```",
+      "auto_safe": true
+    },
+    {
+      "id": "SEC-009",
+      "severity": "suggestion",
+      "confidence": 0.6,
+      "title": "changePassword endpointida reauthLimiter bor lekin requireRecentReauth yo'q",
+      "file": "backend/routes/authRoutes.js",
+      "line": 70,
+      "description": "PUT /api/auth/change-password faqat reauthLimiter bilan himoyalangan, requireRecentReauth middleware yo'q. Biroq changePassword() o'zi `currentPassword` ni tekshiradi — bu aslida equivalentdir. Faqat `deleteMyAccount` va `2fa/disable` requireRecentReauth ishlatadi. Izchillik uchun va cookie-stealing scenariyida xavfsizlik chuqurligi uchun changePassword ham requireRecentReauth ishlatishi maqsadga muvofiq.",
+      "fix": "Agar step-up reauth arxitekturasi saqlanmoqchi bo'lsa, changePassword ni ham requireRecentReauth qo'shib, currentPassword field'ni olib tashlash yoki boshqa reauth method bilan to'ldirish mumkin. Ammo hozirgi `currentPassword` tekshiruvi acceptable — bu faqat dizayn izchilligi masalasi.",
+      "auto_safe": true
+    },
+    {
+      "id": "SEC-010",
+      "severity": "suggestion",
+      "confidence": 0.55,
+      "title": "verifyEmailPublic da referral bonus payout atomic bo'lsa ham User.findByIdAndUpdate unhandled race mavjud",
+      "file": "backend/controllers/authController.js",
+      "line": 607,
+      "description": "verifyEmailPublic() referral payout: `User.findByIdAndUpdate(user.referredBy, { $inc: { xp: 1000... } }).exec().catch(() => {})`. Bu fire-and-forget — agar DB error bo'lsa silent fail. Referrer +1000 XP olmaydi ammo log yozilmaydi. UserStats update ham fire-and-forget. Security nuqtai nazaridan bu muammo emas, lekin auditability uchun yaxshi emas.",
+      "fix": "catch() blokida securityLogger.suspicious() chaqiring: `.catch((err) => securityLogger.suspicious(req, 'referral_xp_update_failed', { referredBy: String(user.referredBy), error: err.message }))`",
+      "auto_safe": true
+    }
+  ],
+  "summary": "Auth stack arxitekturasida jiddiy (critical) muammo topilmadi — NoSQL injection himoyasi (express-mongo-sanitize), JWT algorithm pinning (algorithms array), cookie flags (httpOnly/secure/sameSite), tokenVersion invalidation, timing-safe comparison, DUMMY_HASH, HIBP, rate limiting va CSRF double-submit pattern barchasi to'g'ri amalga oshirilgan. Asosiy e'tibor talab qiladigan muammolar: (1) RESET_TOKEN_SECRET uchta token turi orasida umumiy ishlatilishi — blast radius keng (SEC-001, warning); (2) Bearer token qabul qilinishi CSRF himoyasini bypass qilish vektori yaratadi (SEC-002, warning); (3) Google OAuth access_token yo'lida audience tekshiruvi yo'qligi — account hijack vektori (SEC-006, suggestion lekin diqqatga sazovor)."
+}

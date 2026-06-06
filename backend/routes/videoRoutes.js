@@ -61,8 +61,8 @@ router.patch('/:id/link-bunny', validateObjectId(), authenticate, requireAdmin, 
 router.get('/:id/questions', validateObjectId(), getVideoQuestions);
 router.post('/:id/questions', validateObjectId(), authenticate, askQuestion);
 
-router.post('/:id/questions/:questionId/answer', authenticate, requireAdmin, answerQuestion);
-router.post('/:id/questions/:questionId/upvote', authenticate, upvoteQuestion);
-router.post('/:id/questions/:questionId/best', authenticate, requireAdmin, markBestAnswer);
+router.post('/:id/questions/:questionId/answer', validateObjectId('questionId'), authenticate, requireAdmin, answerQuestion);
+router.post('/:id/questions/:questionId/upvote', validateObjectId('questionId'), authenticate, upvoteQuestion);
+router.post('/:id/questions/:questionId/best', validateObjectId('questionId'), authenticate, requireAdmin, markBestAnswer);
 
 module.exports = router;

@@ -97,11 +97,12 @@ function isRelevantItem(item) {
 // ─── Yordamchi funksiyalar ────────────────────────────────────────────────
 
 function extractImage(item) {
-  if (item.enclosure?.url) return item.enclosure.url;
+  const isHttps = (u) => typeof u === 'string' && u.startsWith('https://');
+  if (isHttps(item.enclosure?.url)) return item.enclosure.url;
   const content = item.content || item.contentSnippet || '';
   const match = content.match(/<img[^>]+src="([^">]+)"/);
-  if (match?.[1]) return match[1];
-  if (item['media:content']?.$) return item['media:content'].$.url;
+  if (isHttps(match?.[1])) return match[1];
+  if (isHttps(item['media:content']?.$?.url)) return item['media:content'].$.url;
   return null;
 }
 
@@ -431,6 +432,19 @@ async function postNewsToChannel() {
 
 // ─── Scheduler ───────────────────────────────────────────────────────────
 
+let _tickRunning = false;
+async function runSchedulerTickGuarded() {
+  if (_tickRunning) return; // overlap oldini olish (sekin Groq javoblari tick'larni ustma-ust qo'ymasin)
+  _tickRunning = true;
+  try {
+    await runSchedulerTick();
+  } catch (err) {
+    console.error('[News] tick error:', err.message);
+  } finally {
+    _tickRunning = false;
+  }
+}
+
 function startNewsScheduler() {
   // State env dan boshlanib, runtime da /toggle bilan o'zgartiriladi
   if (!schedulerState.isNewsEnabled()) {
@@ -440,10 +454,10 @@ function startNewsScheduler() {
   console.log('[News] Kunlik AI News ishga tushdi (har kanal o\'z jadvaliga ko\'ra, har 10 daqiqada tekshiriladi)');
 
   // Ishga tushganda 15 soniya kutib tekshiramiz
-  setTimeout(runSchedulerTick, 15000);
+  setTimeout(runSchedulerTickGuarded, 15000);
 
   // Har 10 daqiqada tick
-  setInterval(runSchedulerTick, 10 * 60 * 1000);
+  setInterval(runSchedulerTickGuarded, 10 * 60 * 1000);
 }
 
 module.exports = { startNewsScheduler, postNewsToChannel };

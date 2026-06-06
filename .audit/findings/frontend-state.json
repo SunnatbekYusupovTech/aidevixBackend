@@ -1,0 +1,150 @@
+{
+  "role": "frontend-state",
+  "score": 7,
+  "partial": false,
+  "files_reviewed": [
+    "frontend/src/api/axiosInstance.ts",
+    "frontend/src/store/slices/authSlice.ts",
+    "frontend/src/api/authApi.ts",
+    "frontend/src/api/adminApi.ts",
+    "frontend/src/store/slices/subscriptionSlice.ts",
+    "frontend/src/api/courseApi.ts",
+    "frontend/src/store/slices/userStatsSlice.ts",
+    "frontend/src/api/playgroundApi.ts"
+  ],
+  "findings": [
+    {
+      "id": "FS-001",
+      "severity": "warning",
+      "confidence": 0.92,
+      "title": "registerFulfilled handler marks user logged-in without a valid session",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 146,
+      "description": "The `registerFulfilled` handler (lines 146-150) sets `isLoggedIn = true` and writes `state.user = action.payload.user`. However, the register thunk (line 14-17) returns `{ requiresEmailVerification: true, email }` when the server returns that flag — at which point `action.payload.user` is `undefined`. The fulfilled branch for normal registration (no verify gate) is never reached in the current flow because the server does NOT auto-login after register. If the server ever returns a user object in `data.data`, the `registerFulfilled` path would set `isLoggedIn=true` without a verified email, bypassing the email gate. The `fulfilled` handler already handles `requiresEmailVerification` correctly; `registerFulfilled` is a dead/divergent code path that is inconsistent with the `fulfilled` handler used for login.",
+      "fix": "Remove the dedicated `registerFulfilled` helper and reuse the shared `fulfilled` handler for `register.fulfilled` as well (same as `login.fulfilled`). This ensures consistent handling: if the server ever returns a user on register, the email-verify gate is still checked before setting `isLoggedIn=true`.",
+      "auto_safe": false
+    },
+    {
+      "id": "FS-002",
+      "severity": "warning",
+      "confidence": 0.88,
+      "title": "fetchUserStats.fulfilled uses Object.assign on Immer draft — may spread unknown server fields into state",
+      "file": "frontend/src/store/slices/userStatsSlice.ts",
+      "line": 90,
+      "description": "`Object.assign(state, action.payload)` (line 90) copies every field from the server response directly onto the Immer state draft. Any unexpected field returned by the backend (e.g., `_id`, `__v`, `password` hash if an API bug leaks it, or future fields) will silently pollute the Redux store. Immer allows this inside a reducer, but it breaks the closed-world assumption of the slice's `initialState` schema and makes the store non-deterministic with respect to server changes.",
+      "fix": "Destructure only the known fields: `const { xp, level, levelProgress, xpToNextLevel, streak, lastActivityDate, badges, videosWatched, quizzesCompleted, bio, skills, avatar } = action.payload; Object.assign(state, { xp, level, ... })`. Or define an explicit mapping.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-003",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "subscriptionSlice setStatus: dual-path data extraction may silently ignore partial updates",
+      "file": "frontend/src/store/slices/subscriptionSlice.ts",
+      "line": 70,
+      "description": "The `setStatus` reducer (lines 70-79) has an ambiguous extraction path: `action.payload?.telegram || source.telegram` — where `source = action.payload?.subscriptions || action.payload`. If the backend returns `{ subscriptions: { telegram: {...}, instagram: {...} } }` AND `{ telegram: {...} }` at the same time (inconsistent response shapes), the outer `telegram` wins. If the server returns `{ telegram: { subscribed: false } }`, `action.payload?.telegram` is falsy (`subscribed: false`) and the `||` short-circuits to `source.telegram` which is the same object — but if `source.telegram` is also falsy this silently keeps stale state. Using `??` (nullish coalescing) instead of `||` would correctly handle `{ subscribed: false }` objects.",
+      "fix": "Replace `||` with `??` for the telegram/instagram assignments: `const telegram = action.payload?.telegram ?? source.telegram`. This ensures a `{ subscribed: false }` object is not skipped.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-004",
+      "severity": "warning",
+      "confidence": 0.80,
+      "title": "axiosInstance: dynamic import inside response interceptor — subscription reset may silently fail",
+      "file": "frontend/src/api/axiosInstance.ts",
+      "line": 192,
+      "description": "Lines 192-198 use dynamic `import()` inside the response error interceptor to dispatch `resetSubscription`. The promise is not awaited and no `.catch()` is attached. If the dynamic import fails (bundle error, network in dev), the dispatch never happens and the subscription state stays stale — the user stays on a gated page without any UI feedback. Also, every 403+isSubscriptionError response triggers a new dynamic import call, creating repeated module loading overhead.",
+      "fix": "Import `resetSubscription` and `dispatch` statically at the top of the file. The store reference can be obtained via a lazy singleton or passed at initialization. If dynamic import must be kept, add `.catch(console.error)` and consider caching the resolved modules.",
+      "auto_safe": false
+    },
+    {
+      "id": "FS-005",
+      "severity": "warning",
+      "confidence": 0.78,
+      "title": "refreshQueue race: queued requests resolve before the replayed original request completes",
+      "file": "frontend/src/api/axiosInstance.ts",
+      "line": 174,
+      "description": "After a successful token refresh (line 174), `refreshQueue` callbacks are resolved with `cb.resolve(true)` and then the original request is replayed with `return api(original)`. Queued requests resolve their `.then(() => api(original))` (line 151) independently and correctly. However, if `api(original)` itself fails (e.g., server returns 500), the `refreshQueue` items have already been released — they will each attempt their own retries with the new cookie, which is correct. The actual risk: if refresh succeeds but `isRefreshing = false` is set in `finally` before all queued requests have finished, a new 401 from a queued request could trigger another refresh cycle. This is a low-probability race but can cause double-refresh under high concurrency.",
+      "fix": "Consider draining the queue AFTER `api(original)` resolves, or use a `Promise` that all queued requests share. Alternatively, document the accepted race condition.",
+      "auto_safe": false
+    },
+    {
+      "id": "FS-006",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "authSlice thunks lack TypeScript parameter types — `credentials` is untyped `any`",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 8,
+      "description": "The `register` and `login` thunks (lines 8, 26) take `credentials` with no type annotation. The selector functions (lines 209-215) also have untyped `state` parameters. Combined with the `err.response?.data` unsafe access pattern without type guards, the auth slice has no compile-time safety. A renamed field in the API response (e.g., `message` → `error`) would silently produce `undefined` error strings shown to users.",
+      "fix": "Define `LoginCredentials`, `RegisterCredentials` interfaces and annotate thunk payloads. Type the `state` parameter in selectors using the store's `RootState` type. Use `createAsyncThunk<ReturnType, ArgType, { rejectValue: string }>` for typed thunks.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-007",
+      "severity": "warning",
+      "confidence": 0.73,
+      "title": "adminApi: `uploadThumbnail` sets `Content-Type: multipart/form-data` manually — missing boundary",
+      "file": "frontend/src/api/adminApi.ts",
+      "line": 65,
+      "description": "Line 65 passes `headers: { 'Content-Type': 'multipart/form-data' }` explicitly when uploading a thumbnail. Setting `Content-Type` manually for FormData is incorrect — it omits the `boundary` parameter that the browser/XHR auto-generates. The axiosInstance request interceptor (axiosInstance.ts line 68-72) already handles this case by deleting `Content-Type` when `data instanceof FormData`, but only for requests that go through the interceptor. Since `adminApi.uploadThumbnail` passes the header at the call site (in `config` not `instance.defaults`), the interceptor's delete of `config.headers['Content-Type']` applies to the same config object — so the interceptor will correctly strip it. However, the explicit header is misleading and may confuse future maintainers or break if call-site headers are moved to defaults.",
+      "fix": "Remove `headers: { 'Content-Type': 'multipart/form-data' }` from the `uploadThumbnail` call. The axiosInstance interceptor already handles FormData boundary correctly.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-008",
+      "severity": "suggestion",
+      "confidence": 0.90,
+      "title": "courseApi and subscriptionSlice thunks use untyped `err` in catch blocks",
+      "file": "frontend/src/api/courseApi.ts",
+      "line": 1,
+      "description": "All API files (courseApi, playgroundApi, subscriptionSlice, userStatsSlice) access `err.response?.data?.message` without typing `err` as `unknown`. In strict TypeScript mode this is a compile error; in loose mode it's an `any` cast that masks potential runtime errors. playgroundApi.ts has proper TypeScript types for its return shapes but the same issue appears in the consuming slice.",
+      "fix": "Cast error in catch blocks: `catch (err: unknown)` and use a type guard: `const msg = err instanceof AxiosError ? err.response?.data?.message : 'Unknown error'`. Or create a shared `extractApiError(err: unknown): string` utility.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-009",
+      "severity": "suggestion",
+      "confidence": 0.85,
+      "title": "axiosInstance body variable typed as `any` — captchaToken extraction bypasses type safety",
+      "file": "frontend/src/api/axiosInstance.ts",
+      "line": 81,
+      "description": "Line 81: `const body: any = config.data`. Using `any` to extract `captchaToken` from the request body suppresses all TypeScript checks. If `config.data` is a string (e.g., JSON-serialized), `'captchaToken' in body` will be false (working correctly), but the `any` cast means other mistaken accesses wouldn't be caught.",
+      "fix": "Use `const body: Record<string, unknown> = typeof config.data === 'object' && config.data !== null ? config.data as Record<string, unknown> : {}` to safely access fields without `any`.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-010",
+      "severity": "suggestion",
+      "confidence": 0.80,
+      "title": "userStatsSlice: updateProfileThunk.fulfilled only updates bio/skills/avatar — ignores aiStack response",
+      "file": "frontend/src/store/slices/userStatsSlice.ts",
+      "line": 112,
+      "description": "The `updateProfileThunk.fulfilled` handler (lines 112-116) updates `bio`, `skills`, and `avatar` but not `aiStack`. According to CLAUDE.md, `PUT /api/xp/profile` accepts `{ aiStack: string[] }` and the profile page has an AI Stack tab. If `aiStack` is returned in `data.data`, it is silently dropped. The `dispatch(updateUser(data.data.user))` call (line 39) in the thunk does propagate `aiStack` to the auth slice, but the userStats slice remains out of sync if other components read `aiStack` from userStats.",
+      "fix": "Add `if (action.payload.aiStack !== undefined) state.aiStack = action.payload.aiStack` (and add `aiStack: []` to `initialState`) in the fulfilled handler, or verify no component reads aiStack from userStatsSlice.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-011",
+      "severity": "suggestion",
+      "confidence": 0.70,
+      "title": "csrfRetry path does not update the config headers from the original AxiosRequestConfig — headers may be an AxiosHeaders proxy",
+      "file": "frontend/src/api/axiosInstance.ts",
+      "line": 131,
+      "description": "Line 131-133: after fetching a fresh CSRF token, `original.headers['X-CSRF-Token'] = fresh` is assigned directly to `original.headers`. In Axios v1+, `config.headers` is an `AxiosHeaders` instance, not a plain object. Direct property assignment `headers['X-CSRF-Token']` works but may not invoke the `AxiosHeaders.set()` normalization. The request interceptor on line 77 uses `(config.headers as Record<string, string>)['X-CSRF-Token'] = csrf` which has the same pattern. Under current Axios versions this works, but is fragile against Axios upgrades.",
+      "fix": "Use `original.headers = { ...original.headers, 'X-CSRF-Token': fresh }` or cast via `AxiosHeaders`: `(original.headers as AxiosHeaders).set('X-CSRF-Token', fresh)`.",
+      "auto_safe": true
+    },
+    {
+      "id": "FS-012",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "checkAuthStatus thunk: cachedUser check as gate before /auth/me may create UX gap",
+      "file": "frontend/src/store/slices/authSlice.ts",
+      "line": 100,
+      "description": "Lines 100-102: `checkAuthStatus` returns early with `rejectWithValue('No cached user')` if there is no localStorage user cache, without calling `/auth/me`. If a user has a valid httpOnly session cookie but cleared localStorage (incognito carryover, storage quota eviction, manual clear), they will be incorrectly treated as unauthenticated — bounced to `/login` even though their session is valid. The cookie-based session is the source of truth, not localStorage.",
+      "fix": "Remove the early-return guard on `cachedUser` or make it a performance hint only. Always call `/auth/me` and only use `cachedUser` as optimistic initial state while the request is in-flight.",
+      "auto_safe": false
+    }
+  ],
+  "summary": "The frontend API and state layer is well-structured overall: withCredentials is correctly set, tokens are NOT stored in localStorage (only a non-sensitive user cache), CSRF token handling is sophisticated with in-memory storage + auto-retry, and no hardcoded secrets were found. The main issues are: (1) a divergent `registerFulfilled` handler in authSlice that could incorrectly set isLoggedIn=true under certain conditions; (2) `Object.assign(state, payload)` in userStatsSlice that blindly copies all server fields; (3) `||` vs `??` in subscriptionSlice that can mishandle `{ subscribed: false }` objects; (4) unawaited dynamic import in the 403 subscription interceptor path; and (5) the checkAuthStatus early-return on missing localStorage cache bypasses the actual session cookie check. TypeScript type safety is inconsistent across slices — most thunks lack typed parameters and catch blocks use implicit `any`."
+}

@@ -1,0 +1,227 @@
+{
+  "role": "backend-data",
+  "score": 6,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/xpController.js",
+    "backend/controllers/courseController.js",
+    "backend/controllers/videoController.js",
+    "backend/controllers/enrollmentController.js",
+    "backend/controllers/userController.js",
+    "backend/models/User.js",
+    "backend/middleware/errorMiddleware.js",
+    "backend/middleware/validateObjectId.js"
+  ],
+  "findings": [
+    {
+      "id": "BD-001",
+      "severity": "critical",
+      "confidence": 0.95,
+      "title": "submitQuiz: Race condition — findOne+save pattern allows double XP on concurrent requests",
+      "file": "backend/controllers/xpController.js",
+      "line": 215,
+      "description": "submitQuiz does findOne({userId, quizId}) then QuizResult.create() — two concurrent requests can both see no existing record and both create a QuizResult, awarding double XP. There is no unique index on {userId, quizId} in the QuizResult model to enforce idempotency at the DB level.",
+      "fix": "Add a unique compound index on QuizResult: `quizResultSchema.index({ userId: 1, quizId: 1 }, { unique: true })` and catch err.code===11000 to return 400 'already solved'. Alternatively wrap in a transaction or use findOneAndUpdate upsert with setOnInsert.",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-002",
+      "severity": "critical",
+      "confidence": 0.9,
+      "title": "submitQuiz: UserStats XP updated with findOne+save, not atomic — double XP possible under load",
+      "file": "backend/controllers/xpController.js",
+      "line": 262,
+      "description": "After creating QuizResult, the code does `UserStats.findOne` then mutates `stats.xp += totalXP` and `await stats.save()`. Two concurrent quiz submits for different quizzes by the same user can both read the same xp value, add their XP, and the second save will overwrite the first increment. Fix applied to video XP (BD-003) but not quiz XP.",
+      "fix": "Replace findOne+save with atomic: `await UserStats.findOneAndUpdate({ userId }, { $inc: { xp: totalXP, weeklyXp: totalXP, quizzesCompleted: 1 }, $set: { lastActivityDate: new Date() } }, { new: true, upsert: true, setDefaultsOnInsert: true })`",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-003",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "submitQuiz: User model XP sync via findById+save is non-atomic and leaks email/internal fields",
+      "file": "backend/controllers/xpController.js",
+      "line": 275,
+      "description": "User.findById then user.xp=stats.xp; user.save() — full User document save triggers all pre-save hooks (bcrypt rehash guard, tokenVersion check) unnecessarily and is non-atomic. Also loads the full User document unnecessarily when only xp/rankTitle need updating.",
+      "fix": "Replace with: `await User.findByIdAndUpdate(req.user.id, { $inc: { xp: totalXP }, $set: { rankTitle: calculateRank(stats.xp) } })`",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-004",
+      "severity": "critical",
+      "confidence": 0.85,
+      "title": "getUserStats: XP mirror sync via non-atomic findOne+save is a race condition vector",
+      "file": "backend/controllers/xpController.js",
+      "line": 42,
+      "description": "getUserStats reads both UserStats and User, computes maxXP, then saves both documents one-by-one. Under concurrent requests (e.g. multiple browser tabs calling /api/xp/stats) this can cause incorrect XP values by losing intermediate increments. The 'max of two' heuristic also silently inflates weeklyXp on every call where a discrepancy exists.",
+      "fix": "The sync heuristic is inherently fragile. Prefer a single source of truth (UserStats) and update User via $inc in the XP-award path only. Remove the bidirectional sync from getUserStats read path, or at minimum use findOneAndUpdate with $max operator atomically.",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-005",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "addStreakFreeze: IDOR — any authenticated user can add streakFreeze to any userId",
+      "file": "backend/controllers/xpController.js",
+      "line": 436,
+      "description": "`const targetId = userId || req.user.id` — a normal user can POST {userId: '<victim_id>'} to give streak freezes to themselves or remove from others (or to any userId). There is no admin role check.",
+      "fix": "Either restrict this endpoint to admin-only (`requireAdmin` middleware), or remove the `userId` from req.body option and always use `req.user.id`. If admin gifting is needed, require the admin role: `if (userId && req.user.role !== 'admin') return res.status(403)...`",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-006",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "updateProfile: Mass assignment on aiStack — no enum validation before writing to User",
+      "file": "backend/controllers/xpController.js",
+      "line": 368,
+      "description": "`user.aiStack = req.body.aiStack` assigns the array directly. While the User schema has an enum on individual items, Mongoose does NOT reject invalid enum values on mixed array assignment unless `runValidators:true` is used with findOneAndUpdate. Using `user.aiStack = ...` followed by `user.save()` does trigger schema validation — but the schema enum is only on the subdocument type, so array-level validation depends on Mongoose version behavior. Explicit whitelist filtering is safer.",
+      "fix": "Filter input: `const VALID_TOOLS = ['Claude Code','Cursor','GitHub Copilot','ChatGPT','Gemini','Windsurf','Devin','Replit AI','Codeium','Other']; user.aiStack = req.body.aiStack.filter(t => VALID_TOOLS.includes(t));`",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-007",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "continueLearning: N+1 query — Video.findOne called in a loop (up to 5 queries)",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 173,
+      "description": "The function fetches up to 5 enrollments, then calls `await Video.findOne(...)` inside a for loop for each enrollment, producing up to 5 sequential DB queries. This is a classic N+1 pattern and blocks the event loop waiting for each query.",
+      "fix": "Use Promise.all to parallelize: `const nextVideos = await Promise.all(enrollments.map(e => Video.findOne({course: e.courseId._id, isActive: true, _id: {$nin: e.watchedVideos.map(w=>w.videoId.toString())}}).sort({order:1}).select('_id title duration thumbnail order').lean()))` then iterate results.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-008",
+      "severity": "warning",
+      "confidence": 0.95,
+      "title": "markVideoWatched: videoId param has no ObjectId validation — CastError → 500",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 55,
+      "description": "Route `POST /:courseId/watch/:videoId` has `validateObjectId('courseId')` but NOT `validateObjectId('videoId')`. An invalid videoId string in the `watchedVideos.find()` comparison or `$nin` array causes a silent cast issue; more critically `_issueCertificate` uses the videoId downstream.",
+      "fix": "Add `validateObjectId('videoId')` to the route: `router.post('/:courseId/watch/:videoId', authenticate, validateObjectId('courseId'), validateObjectId('videoId'), markVideoWatched)`",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-009",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "getVideo: Missing .lean() on primary video fetch — Mongoose document overhead on read-only path",
+      "file": "backend/controllers/videoController.js",
+      "line": 46,
+      "description": "`Video.findById(id).populate('course')` returns a full Mongoose document but the response only serializes plain data. Since the video object is never mutated (only read for embedUrl logic and response), .lean() would reduce memory and improve performance significantly for a high-traffic endpoint.",
+      "fix": "Add `.lean()`: `const video = await Video.findById(id).populate('course').lean()` — adjust method calls to work on plain objects (e.g., `video.isActive` still works on lean doc).",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-010",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "getMyEnrollments: Missing .lean() on read-only population query",
+      "file": "backend/controllers/enrollmentController.js",
+      "line": 44,
+      "description": "`Enrollment.find({userId}).populate({...}).sort({...})` returns full Mongoose documents but only sends plain JSON. This is a read-only endpoint — .lean() would cut memory allocation and serialization overhead for users with many enrollments.",
+      "fix": "Add `.lean()` at the end of the query chain.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-011",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "searchVideos: No pagination clamp on limit — DoS risk via large limit param",
+      "file": "backend/controllers/videoController.js",
+      "line": 645,
+      "description": "`limit: parseInt(limit)` is passed directly into `.limit(parseInt(limit))` without a max clamp. An attacker can send `?limit=100000` to force a full collection scan into memory.",
+      "fix": "Add clamp: `const lim = Math.min(Math.max(1, parseInt(limit) || 20), 100);` and use `lim` in both the query and pagination response.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-012",
+      "severity": "warning",
+      "confidence": 0.9,
+      "title": "videoRoutes: questionId params have no validateObjectId — CastError → 500 on answer/upvote/best endpoints",
+      "file": "backend/routes/videoRoutes.js",
+      "line": 64,
+      "description": "Routes `/:id/questions/:questionId/answer`, `/:id/questions/:questionId/upvote`, and `/:id/questions/:questionId/best` use `:questionId` but have no `validateObjectId('questionId')` middleware. An invalid questionId triggers a Mongoose CastError which reaches the error handler as a 404 (caught by errorMiddleware), but only if the global error handler is reached — if the controller catches it first it returns a raw 500 with `err.message` exposed.",
+      "fix": "Add `validateObjectId('questionId')` to those three routes. Example: `router.post('/:id/questions/:questionId/answer', validateObjectId('questionId'), authenticate, requireAdmin, answerQuestion);`",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-013",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "getCourse: Double-query pattern (findOne for existence + findById for data) is wasteful",
+      "file": "backend/controllers/courseController.js",
+      "line": 135,
+      "description": "getCourse first does `Course.findOne({_id, isActive:true}).select('_id').lean()` then immediately does `Course.findById(id).populate(...)`. This is two DB round-trips when one would suffice with `.populate(...).lean()` followed by a null check.",
+      "fix": "Remove the first query. Use the populated query result for null/isActive check: `if (!course || !course.isActive) return 404`.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-014",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "rateCourse: Non-atomic read-modify-write on CourseRating — race condition on concurrent first-time ratings",
+      "file": "backend/controllers/courseController.js",
+      "line": 306,
+      "description": "findOne to check existing, then either save or create — two concurrent first-time ratings from the same user can both pass the findOne check and both call create, potentially creating duplicate ratings (though CourseRating may have a unique index). Even with a unique index, the aggregate recalculation after create is not atomic.",
+      "fix": "Use `CourseRating.findOneAndUpdate({userId, courseId}, {$set:{rating, review}}, {upsert:true, new:true, runValidators:true})` instead of the findOne+save/create pattern.",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-015",
+      "severity": "warning",
+      "confidence": 0.8,
+      "title": "UserStats model: Missing index on userId for leaderboard/weekly queries",
+      "file": "backend/models/UserStats.js",
+      "line": 130,
+      "description": "UserStats has `userId` as unique (creates an index), and indexes on `{xp:-1}` and `{weeklyXp:-1}`, but there is no compound index for queries that filter `weeklyXp > 0` and sort by `weeklyXp: -1` efficiently. The `getWeeklyLeaderboard` query `find({weeklyXp:{$gt:0}}).sort({weeklyXp:-1}).limit(N)` is covered by the `{weeklyXp:-1}` index, so this is fine. However `userId` index is implicit from `unique:true` — verify it is sparse if not all stats have a userId (it is required, so fine). No issue with current indexes.",
+      "fix": "No action required — existing indexes are sufficient for current query patterns.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-016",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "errorMiddleware: controllers catch errors and return res.status(500).json({message: err.message}) directly — bypassing errorMiddleware security sanitization",
+      "file": "backend/controllers/xpController.js",
+      "line": 85,
+      "description": "All controllers in these files use manual try/catch with `res.status(500).json({ success: false, message: err.message })` instead of calling `next(err)`. This bypasses errorMiddleware's production-mode message sanitization (`isInternal && process.env.NODE_ENV==='production' → 'Internal Server Error'`), potentially leaking internal error messages (e.g., Mongoose connection errors, stack details in err.message) to clients in production.",
+      "fix": "Use asyncHandler wrapper or call `next(err)` in catch blocks so errorMiddleware handles sanitization. Short-term: replace `res.status(500).json({ message: err.message })` with `res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message })`.",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-017",
+      "severity": "suggestion",
+      "confidence": 0.8,
+      "title": "updateProfile: bio/skills have no length/type validation before saving to UserStats",
+      "file": "backend/controllers/xpController.js",
+      "line": 351,
+      "description": "req.body.bio and req.body.skills are assigned directly to stats without server-side length checks. The UserStats schema has `maxlength:300` for bio and `trim:true` for skills items, but there is no check on the skills array length (a user could submit 10,000 skill strings).",
+      "fix": "Add: `if (skills !== undefined && (!Array.isArray(skills) || skills.length > 50)) return res.status(400).json({message:'skills must be array of max 50'})`. Sanitize bio length server-side as well.",
+      "auto_safe": true
+    },
+    {
+      "id": "BD-018",
+      "severity": "suggestion",
+      "confidence": 0.75,
+      "title": "getVideo: pro subscription check loads User document separately from subscription check middleware",
+      "file": "backend/controllers/videoController.js",
+      "line": 58,
+      "description": "`User.findById(req.user._id).select('proSubscription')` is called after the `checkSubscriptions` middleware has already loaded the user. This is a redundant DB query. The `req.user` object populated by auth middleware may already have proSubscription if selected during JWT verification.",
+      "fix": "Pass proSubscription in auth middleware user select, or use `req.user.proSubscription` directly if already populated. If req.user is lean, add proSubscription to the auth middleware's select clause.",
+      "auto_safe": false
+    },
+    {
+      "id": "BD-019",
+      "severity": "suggestion",
+      "confidence": 0.7,
+      "title": "Enrollment.watchedVideos: no index on videoId subdocument — find() within array is O(n) scan",
+      "file": "backend/models/Enrollment.js",
+      "line": 39,
+      "description": "The watchedVideos array uses `.find(w => w.videoId.toString() === videoId)` in JavaScript (markVideoWatched). As watchedVideos grows (large courses), this becomes a full array scan in Node.js memory. MongoDB also cannot index into arrays of subdocuments efficiently for this access pattern.",
+      "fix": "Consider using a Map/Set pattern or a separate WatchedVideo collection for users with large course completions. Short-term, add a cap: if watchedVideos.length > 500 log a warning.",
+      "auto_safe": false
+    }
+  ],
+  "summary": "6 critical/warning issues found. Two critical race conditions in submitQuiz (double XP via concurrent requests due to missing unique index on QuizResult{userId,quizId} and non-atomic UserStats.xp increment). One IDOR: addStreakFreeze accepts arbitrary userId without admin check. Key warnings: N+1 query in continueLearning (up to 5 serial Video queries), missing validateObjectId('videoId') on markVideoWatched route, missing validateObjectId('questionId') on 3 question action routes, no pagination clamp on searchVideos limit, and all controllers bypass errorMiddleware by catching errors locally and leaking err.message in production. Quick wins (auto_safe): add .lean() to getVideo/getMyEnrollments, clamp searchVideos limit, fix continueLearning N+1, add missing validateObjectId middleware, remove double-query in getCourse, validate aiStack enum client-input."
+}

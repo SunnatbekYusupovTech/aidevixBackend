@@ -38,28 +38,23 @@ const getUserStats = async (req, res) => {
       await stats.save();
     }
 
-    // Mirroring check: User modeldagi XP ni Stats bilan bir xil qilamiz
-    const user = await User.findById(req.user.id);
+    // Mirroring check: User va UserStats XP'ni atomic $max bilan moslaymiz
+    // (read-modify-write save race va weeklyXp inflatsiyasi olib tashlandi)
+    const user = await User.findById(req.user.id).select('xp streak').lean();
     if (user && (user.xp !== stats.xp || user.streak !== stats.streak)) {
-      // Eng yuqori qiymatni asosiq qilib olamiz (yo'qolmasligi uchun)
       const maxXP = Math.max(user.xp || 0, stats.xp || 0);
       const maxStreak = Math.max(user.streak || 0, stats.streak || 0);
-      
-      let changed = false;
-      if (stats.xp < maxXP) { 
-        const diff = maxXP - stats.xp;
-        stats.xp = maxXP; 
-        stats.weeklyXp = (stats.weeklyXp || 0) + diff; 
-        changed = true; 
-      }
-      if (stats.streak < maxStreak) { stats.streak = maxStreak; changed = true; }
-      if (changed) await stats.save();
 
-      if (user.xp < maxXP || user.streak < maxStreak) {
-        user.xp = maxXP;
-        user.streak = maxStreak;
-        user.rankTitle = calculateRank(user.xp);
-        await user.save();
+      if ((stats.xp || 0) !== maxXP || (stats.streak || 0) !== maxStreak) {
+        await UserStats.updateOne({ userId: req.user.id }, { $max: { xp: maxXP, streak: maxStreak } });
+        stats.xp = maxXP;
+        stats.streak = maxStreak;
+      }
+      if ((user.xp || 0) !== maxXP || (user.streak || 0) !== maxStreak) {
+        await User.updateOne(
+          { _id: req.user.id },
+          { $max: { xp: maxXP, streak: maxStreak }, $set: { rankTitle: calculateRank(maxXP) } }
+        );
       }
     }
 
@@ -83,7 +78,7 @@ const getUserStats = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -188,7 +183,7 @@ const addVideoWatchXP = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -246,39 +241,46 @@ const submitQuiz = async (req, res) => {
     // Bonus XP: o'tsa qo'shimcha 100 XP
     if (passed) totalXP += 100;
 
-    // QuizResult saqlash
-    const result = await QuizResult.create({
-      userId: req.user.id,
-      quizId,
-      videoId: quiz.videoId,
-      courseId: quiz.courseId,
-      score,
-      xpEarned: totalXP,
-      passed,
-      answers: resultAnswers,
+    // QuizResult saqlash — unique index {userId,quizId} concurrent double-submit'ni bloklaydi
+    try {
+      await QuizResult.create({
+        userId: req.user.id,
+        quizId,
+        videoId: quiz.videoId,
+        courseId: quiz.courseId,
+        score,
+        xpEarned: totalXP,
+        passed,
+        answers: resultAnswers,
+      });
+    } catch (e) {
+      if (e && e.code === 11000) {
+        return res.status(400).json({ success: false, message: 'Bu quizni allaqachon yechgansiz' });
+      }
+      throw e;
+    }
+
+    // UserStats yangilash — atomic $inc (race condition oldini olish)
+    const stats = await UserStats.findOneAndUpdate(
+      { userId: req.user.id },
+      {
+        $inc: { xp: totalXP, weeklyXp: totalXP, quizzesCompleted: 1 },
+        $set: { lastActivityDate: new Date() },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    // Level'ni yangi XP asosida qayta hisoblash (faqat o'zgargan bo'lsa yozamiz)
+    const newLevel = stats.calculateLevel();
+    if (newLevel !== stats.level) {
+      stats.level = newLevel;
+      await stats.save();
+    }
+
+    // User modelini atomic sinxronlash
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: { xp: stats.xp, streak: stats.streak, rankTitle: calculateRank(stats.xp) },
     });
-
-    // UserStats yangilash
-    let stats = await UserStats.findOne({ userId: req.user.id });
-    if (!stats) {
-      stats = await UserStats.create({ userId: req.user.id });
-    }
-
-    stats.xp += totalXP;
-    stats.weeklyXp = (stats.weeklyXp || 0) + totalXP;
-    stats.quizzesCompleted += 1;
-    stats.level = stats.calculateLevel();
-    stats.lastActivityDate = new Date();
-    await stats.save();
-
-    // 2. User modelini sinxronlash
-    const user = await User.findById(req.user.id);
-    if (user) {
-      user.xp = stats.xp;
-      user.streak = stats.streak;
-      user.rankTitle = calculateRank(user.xp);
-      await user.save();
-    }
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
@@ -298,7 +300,7 @@ const submitQuiz = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -328,7 +330,7 @@ const getQuizByVideo = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -348,6 +350,10 @@ const updateProfile = async (req, res) => {
       stats = await UserStats.create({ userId });
     }
 
+    if (skills !== undefined && (!Array.isArray(skills) || skills.length > 50)) {
+      return res.status(400).json({ success: false, message: 'skills must be array of max 50' });
+    }
+
     if (bio !== undefined) stats.bio = bio;
     if (skills !== undefined) stats.skills = skills;
     if (avatar !== undefined) stats.avatar = avatar;
@@ -365,7 +371,10 @@ const updateProfile = async (req, res) => {
     if (ism !== undefined) { user.firstName = ism; userUpdated = true; }
     if (familiya !== undefined) { user.lastName = familiya; userUpdated = true; }
     if (kasb !== undefined) { user.jobTitle = kasb; userUpdated = true; }
-    if (req.body.aiStack !== undefined) { user.aiStack = req.body.aiStack; userUpdated = true; }
+    if (req.body.aiStack !== undefined) {
+      const VALID_TOOLS = ['Claude Code','Cursor','GitHub Copilot','ChatGPT','Gemini','Windsurf','Devin','Replit AI','Codeium','Other'];
+      if (Array.isArray(req.body.aiStack)) { user.aiStack = req.body.aiStack.filter(t => VALID_TOOLS.includes(t)); userUpdated = true; }
+    }
 
     if (userUpdated) {
       await user.save();
@@ -422,7 +431,7 @@ const useStreakFreeze = async (req, res) => {
       data: { streakFreezes: stats.streakFreezes, streak: stats.streak },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -434,6 +443,10 @@ const useStreakFreeze = async (req, res) => {
 const addStreakFreeze = async (req, res) => {
   try {
     const { userId } = req.body;
+    // IDOR himoyasi: boshqa userga freeze qo'shish faqat admin uchun
+    if (userId && String(userId) !== String(req.user.id) && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Ruxsat yo\'q' });
+    }
     const targetId = userId || req.user.id;
 
     let stats = await UserStats.findOne({ userId: targetId });
@@ -455,7 +468,7 @@ const addStreakFreeze = async (req, res) => {
       data: { streakFreezes: stats.streakFreezes },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -486,7 +499,7 @@ const getWeeklyLeaderboard = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -501,7 +514,7 @@ const getXPHistory = async (req, res) => {
     const history = [];
     res.json({ success: true, data: { history } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 
@@ -528,7 +541,7 @@ const getStreakStatus = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 

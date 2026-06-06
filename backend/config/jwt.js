@@ -34,6 +34,11 @@ const ACCESS_TOKEN_SECRET = loadSecret('ACCESS_TOKEN_SECRET', DEV_FALLBACK.ACCES
 const REFRESH_TOKEN_SECRET = loadSecret('REFRESH_TOKEN_SECRET', DEV_FALLBACK.REFRESH);
 const RESET_TOKEN_SECRET = loadSecret('RESET_TOKEN_SECRET', DEV_FALLBACK.RESET);
 const CSRF_SECRET = loadSecret('CSRF_SECRET', DEV_FALLBACK.CSRF);
+// Reauth (step-up) tokeni uchun alohida secret — blast radiusni qisqartiradi.
+// Env qo'yilmagan bo'lsa RESET_TOKEN_SECRET'ga fallback (mavjud deploylar buzilmaydi).
+const REAUTH_TOKEN_SECRET = process.env.REAUTH_TOKEN_SECRET
+  ? loadSecret('REAUTH_TOKEN_SECRET', RESET_TOKEN_SECRET)
+  : RESET_TOKEN_SECRET;
 
 if (process.env.NODE_ENV === 'production') {
   const secrets = [ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET];
@@ -47,6 +52,7 @@ module.exports = {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
   RESET_TOKEN_SECRET,
+  REAUTH_TOKEN_SECRET,
   CSRF_SECRET,
   ACCESS_TOKEN_EXPIRE: process.env.ACCESS_TOKEN_EXPIRE || '15m',
   REFRESH_TOKEN_EXPIRE: process.env.REFRESH_TOKEN_EXPIRE || '7d',

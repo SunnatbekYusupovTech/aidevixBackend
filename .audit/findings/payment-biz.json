@@ -1,0 +1,150 @@
+{
+  "role": "payment-biz",
+  "score": 7,
+  "partial": false,
+  "files_reviewed": [
+    "backend/controllers/paymentController.js",
+    "backend/controllers/promoController.js",
+    "backend/controllers/subscriptionController.js",
+    "backend/middleware/subscriptionCheck.js",
+    "backend/models/Payment.js",
+    "backend/models/PromoCode.js",
+    "backend/utils/checkSubscriptions.js",
+    "backend/utils/socialVerification.js"
+  ],
+  "findings": [
+    {
+      "id": "PAY-001",
+      "severity": "critical",
+      "confidence": 0.95,
+      "title": "Promo `usedCount` leak on Payment.create failure — rollback yo'q",
+      "file": "backend/controllers/paymentController.js",
+      "line": 177,
+      "description": "Atomic `findOneAndUpdate` bilan `usedCount++` bajariladi (line 177), keyin `Payment.create()` (line 193) chaqiriladi. Agar `Payment.create` xato qilsa (DB write fail, validation error, unique conflict), promo `usedCount` allaqachon oshirilgan bo'ladi, ammo to'lov Payment hujjati yaratilmagan. Natijada `maxUses` limitiga yetiladi lekin hech kim bu kod bilan to'lovni yakunlamagan. Bu `maxUses`-limited promolar uchun actual capacity kamayadi.",
+      "fix": "Promo consume'ni `Payment.create()` muvaffaqiyatidan KEYIN amalga oshiring — ya'ni payment avval yarating, keyin atomic promo'ni consume qiling. Yoki `Payment.create` xato qilsa `PromoCode.findByIdAndUpdate(promo._id, { $inc: { usedCount: -1 } })` bilan kompensatsiya bajaring.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-002",
+      "severity": "critical",
+      "confidence": 0.92,
+      "title": "Click `clickPrepare`: amount strict equality (`!==`) — float yumaloq xatosi",
+      "file": "backend/controllers/paymentController.js",
+      "line": 454,
+      "description": "`if (payment.amount !== Number(amount))` — `payment.amount` float bo'lishi mumkin (masalan `49999.99`), `Number(amount)` esa Click'dan kelgan string-to-float. IEEE-754 float roundtrip'da `49999.999... !== 50000.0` kabi holat yuzaga kelishi mumkin. Payme `checkPerformTransaction` va `createPaymeTransaction` da `Math.round(...*100) !== Number(amount)` ishlatiladi (to'g'ri), lekin Click prepare da `amount*100` ishlatilmagan — ikki xil standart.",
+      "fix": "`if (Math.round(payment.amount * 100) !== Math.round(Number(amount) * 100))` deb o'zgartiring (Payme bilan mos). Yoki `payment.amount` modelda `Integer` (tiyn) sifatida saqlang.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-003",
+      "severity": "critical",
+      "confidence": 0.88,
+      "title": "Subscription gate: Instagram soft-check har doim `true` qaytaradi — real verification yo'q",
+      "file": "backend/utils/socialVerification.js",
+      "line": 60,
+      "description": "`verifyInstagramSubscription` va `checkInstagramSubscriptionRealTime` ikkisi ham faqat username mavjudligini tekshiradi va `true` qaytaradi. `checkSubscriptions` middleware Instagram'ni gate shart sifatida tekshiradi (`!instagramSubscribed || !telegramSubscribed` → 403), lekin Instagram tekshiruvi har doim pass bo'ladi. Bu business requirement (`CLAUDE.md: subscription gate hech qachon bypass qilinmaydi`) bilan ziddiyatli emas (CLAUDE.md Instagram'ni soft-check deb belgilagan), lekin bu faqat Telegram subscription real gate sifatida ishlashini anglatadi — agar Telegram bot/API o'chsa fallback DB qiymatiga qaytadi va hatto subscribed=false bo'lgan foydalanuvchi ham kirishi mumkin.",
+      "fix": "CLAUDE.md `Instagram: soft-check (always true if username provided)` deb yozilgan — shu intentional. Ammo `checkSubscriptions.js` line 55: Telegram API fail bo'lganda `telegramSubscribed = user.socialSubscriptions.telegram.subscribed` (DB fallback). Agar DB da `subscribed: false` bo'lsa, user bloklanaadi — bu to'g'ri. Lekin agar DB da `subscribed: true` bo'lib, user Telegram'dan chiqib ketgan bo'lsa, 5-daqiqali cache TTL davomida kirish imkoni qoladi. Bu acceptable trade-off, lekin RATE LIMIT bilan birga monitoring qo'shish kerak.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-004",
+      "severity": "warning",
+      "confidence": 0.90,
+      "title": "Payme `cancelTransaction`: `payment.save()` atomic emas — concurrent cancel race",
+      "file": "backend/controllers/paymentController.js",
+      "line": 350,
+      "description": "`cancelTransaction` `findOne` + `payment.save()` pattern ishlatadi (lines 353-367). Agar Payme bir to'lovni parallel 2 ta cancel request bilan ursa, ikkala request ham `findOne` da `status !== 'completed'` ko'radi, ikkalasi ham `payment.status = 'cancelled'` deydi va ikkalasi ham `save()` qiladi. Natija deterministik (har ikkisi ham cancel qiladi), lekin `paymeCancelTime` va `reason` oxirgi write'dan qoladi va log'larda ikkita cancel ko'rinadi. Kichik, ammo audit trail uchun muammo.",
+      "fix": "`findOneAndUpdate({ providerTransactionId, status: { $in: ['pending'] } }, { $set: { status: 'cancelled', ... } })` atomic pattern'ga o'tkazing, `performTransaction` kabi.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-005",
+      "severity": "warning",
+      "confidence": 0.85,
+      "title": "Promo `createPromoCode`: `findOne + create` race — duplicate key exception handling yo'q",
+      "file": "backend/controllers/promoController.js",
+      "line": 43,
+      "description": "`PromoCode.findOne({ code })` → agar mavjud emas → `PromoCode.create(...)`. Ikki parallel request bir xil code bilan kelsa, ikkisi ham `findOne` null ko'radi va `create` urinadi. MongoDB `unique: true` index bitta xato qiladi, lekin catch blokida `err.code === 11000` tekshirilmaydi — `res.status(500)` qaytariladi.",
+      "fix": "catch blokida `if (err.code === 11000) return res.status(409).json(...)` qo'shing.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-006",
+      "severity": "warning",
+      "confidence": 0.87,
+      "title": "`getPaymentStatus`: `payment.save()` — versioning yo'q, concurrent status update xavfi",
+      "file": "backend/controllers/paymentController.js",
+      "line": 262,
+      "description": "30-daqiqa timeout tekshiruvi `payment.status = 'expired'; await payment.save()` ishlatadi. Agar ayni paytda Payme `PerformTransaction` webhook kelsa, u `findOneAndUpdate({ status: 'pending' })` atomic qiladi. Race: PerformTransaction `pending` topadi va `completed` qiladi, keyin getPaymentStatus `payment` hujjatini (`pending` holida fetch qilingan) `expired` holatda save qiladi — bu completed to'lovni `expired` ga qaytarishi mumkin (Mongoose `.save()` oldini olmaydi, `__v` conflict yo'q).",
+      "fix": "`Payment.findOneAndUpdate({ _id, status: 'pending', createdAt: { $lt: expiredThreshold } }, { $set: { status: 'expired' } })` atomic versiyasiga o'tkazing.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-007",
+      "severity": "warning",
+      "confidence": 0.80,
+      "title": "`setTelegramId`: Telegram ID ownership check yo'q — boshqa user'ning TG ID'sini o'g'irlash",
+      "file": "backend/controllers/subscriptionController.js",
+      "line": 187,
+      "description": "`setTelegramId` endpoint autentifikatsiyalangan foydalanuvchining `telegramUserId`'sini to'g'ridan-to'g'ri saqlaydi, ammo bu Telegram ID allaqachon boshqa userga bog'liqmi tekshirmaydi. `linkTelegramByToken` bu tekshiruvni bajaradi (lines 262-270), lekin `setTelegramId` qilmaydi. Natijada user B user A'ning telegram ID'sini `setTelegramId` orqali o'z hisobiga bog'lashi mumkin, keyin `checkTelegramSubscription` user B'ni subscribed ko'rsatadi.",
+      "fix": "`setTelegramId`da ham `User.findOne({ _id: { $ne: userId }, telegramUserId: ... })` tekshiruvini qo'shing, xuddi `linkTelegramByToken` (lines 262-270) kabi.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-008",
+      "severity": "warning",
+      "confidence": 0.82,
+      "title": "Promo `fixed` type: manfiy discount tekshirilmaydi (value > course.price bo'lsa)",
+      "file": "backend/controllers/paymentController.js",
+      "line": 183,
+      "description": "`Math.max(1, Math.round(discounted))` manfiy finalAmount'ni `1`ga kliplaydi (to'g'ri). Lekin admin `fixed` chegirma yaratishda `value > course.price` bo'lishi mumkin — masalan 200000 so'm chegirma, 99000 so'mlik kurs. Kurs narxi `1` so'm bo'lib to'lanadi. Bu intentional bo'lishi mumkin, lekin admin UI'da hech qanday ogohlantirish yo'q.",
+      "fix": "`createPromoCode`da `type === 'fixed'` uchun kurs scope'i tekshirilmasa, qo'shimcha server-side validatsiya: agar courseIds scope'i bo'lsa, `value <= max_course_price` tekshiruvi yoki warning qo'shing. Yoki admin UI'da kurs narxidan yuqori chegirma uchun confirm dialog.",
+      "auto_safe": false
+    },
+    {
+      "id": "PAY-009",
+      "severity": "warning",
+      "confidence": 0.75,
+      "title": "Payme `GetStatement`: `from/to` validatsiya yo'q — uzoq vaqt oralig'i DB ni to'sadi",
+      "file": "backend/controllers/paymentController.js",
+      "line": 393,
+      "description": "`getStatement` `params.from` va `params.to` qiymatlarini tekshirmaydi. Noto'g'ri katta vaqt oralig'i (0 → Number.MAX_SAFE_INTEGER) yoki null/NaN qiymatlar bilan butun payments kolleksiyasi qaytarilishi mumkin. `.lean()` ishlatilgan, index bor, lekin limit yo'q.",
+      "fix": "`if (!from || !to || (to - from) > 86400000 * 31) return error` kabi validatsiya qo'shing. Payme GetStatement spetsifikatsiyasi: `from` va `to` timestamp (ms), max 1 oy interval.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-010",
+      "severity": "suggestion",
+      "confidence": 0.72,
+      "title": "`maybeGrantProSubscription`: `findOne` + `findByIdAndUpdate` — ikkita DB round-trip",
+      "file": "backend/controllers/paymentController.js",
+      "line": 72,
+      "description": "`findOne` bilan existing pro subscription tekshiriladi, keyin `findByIdAndUpdate` bilan yangilanadi. Bu ikkita round-trip. `sourcePaymentId` unique index bo'lmasa, race condition (upsert problem) mumkin.",
+      "fix": "`User.findOneAndUpdate({ _id: payment.userId, 'proSubscription.sourcePaymentId': { $ne: payment._id } }, { $set: {...} })` bilan birlashtiring. Yoki `sourcePaymentId`da sparse unique index qo'shing.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-011",
+      "severity": "suggestion",
+      "confidence": 0.70,
+      "title": "Promo scope check: `candidate` alohida query, keyin `filter` bilan yana query — ikkita round-trip",
+      "file": "backend/controllers/paymentController.js",
+      "line": 170,
+      "description": "Lines 170-176: `PromoCode.findOne({ code }).select('courseIds').lean()` bilan scope tekshiriladi, keyin `PromoCode.findOneAndUpdate(filter, ...)` bilan consume. Ikkita DB query ishlatiladi — bitta query ham yetarli.",
+      "fix": "`filter`ga `courseIds` scope shartini qo'shing: `$or: [{ courseIds: { $size: 0 } }, { courseIds: [] }, { courseIds: courseId }]` yoki Mongoose aggregate. Bitta atomic query bilan hal qilinadi.",
+      "auto_safe": true
+    },
+    {
+      "id": "PAY-012",
+      "severity": "suggestion",
+      "confidence": 0.65,
+      "title": "Click `clickComplete`: `merchant_trans_id` ObjectId validatsiyasi yo'q",
+      "file": "backend/controllers/paymentController.js",
+      "line": 478,
+      "description": "`Payment.findOneAndUpdate({ _id: merchant_trans_id, ... })` — agar `merchant_trans_id` noto'g'ri ObjectId format bo'lsa, Mongoose `CastError` throw qiladi. `catch` da `err.message` ga `res.json({ error: -8 })` qaytariladi, lekin 500-darajali xato log'da chiqadi.",
+      "fix": "`validateObjectId` middleware'ni Click route'larga ham qo'shing yoki `try/catch` ichida `mongoose.isValidObjectId(merchant_trans_id)` tekshiruvi qo'shing.",
+      "auto_safe": true
+    }
+  ],
+  "summary": "Payment va subscription tizimi umumiy yaxshi arxitekturada qurilgan: Payme timing-safe auth, atomic performTransaction/clickComplete, idempotent ensurePaidSideEffects, server-side promo narx hisoblash. Asosiy critical muammolar: (1) promo usedCount Payment.create xato qilsa rollback yo'q — limited promolar noto'g'ri kamayadi; (2) Click amount float equality xatosi — Payme bilan standart farqi; (3) setTelegramId ownership check yo'q — Telegram ID o'g'irlash vektori. Subscription gate fail-closed ishlaydi (503 qaytaradi), Telegram DB fallback to'g'ri. Score: 7/10."
+}

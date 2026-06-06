@@ -16,8 +16,11 @@ const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const cookies = parseCookies(req.headers.cookie);
+    // Bearer token faqat dev/Swagger uchun. Production'da cookie-only (CLAUDE.md siyosati) —
+    // bu CSRF-bypass vektorini yopadi (csrfProtection cookie yo'q so'rovni o'tkazib yuboradi).
+    const bearerAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_BEARER_AUTH === 'true';
     const bearerToken =
-      authHeader && authHeader.startsWith('Bearer ')
+      bearerAllowed && authHeader && authHeader.startsWith('Bearer ')
         ? authHeader.substring(7)
         : null;
     const token = cookies[ACCESS_COOKIE_NAME] || bearerToken;

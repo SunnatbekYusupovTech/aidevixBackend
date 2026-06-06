@@ -121,6 +121,7 @@ const getRoadmap = async (_req, res) => {
 const submitContact = async (req, res) => {
   try {
     const { name, email, subject, message, _honeypot } = req.body || {};
+    const safe = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 4000);
 
     // Honeypot — bot to'ldirgan bo'lsa, soxta success qaytaramiz (bot bilmaydi)
     if (_honeypot && String(_honeypot).trim().length > 0) {
@@ -152,7 +153,6 @@ const submitContact = async (req, res) => {
       const bot = getBot();
       const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').trim();
       if (bot && adminId) {
-        const safe = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 4000);
         const text =
           `📩 <b>Yangi contact xabari</b>\n` +
           `━━━━━━━━━━━━━━━━━━━━━━\n` +

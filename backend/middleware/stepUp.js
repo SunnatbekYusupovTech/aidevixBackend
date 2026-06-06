@@ -7,14 +7,14 @@
  * Token audience: `aidevix-reauth`. Lifetime: 5 minutes. Bound to `userId`.
  */
 const jwt = require('jsonwebtoken');
-const { RESET_TOKEN_SECRET } = require('../config/jwt');
+const { REAUTH_TOKEN_SECRET } = require('../config/jwt');
 const securityLogger = require('../utils/securityLogger');
 
 const REAUTH_AUD = 'aidevix-reauth';
 const REAUTH_TTL = '5m';
 
 const issueReauthToken = (userId) =>
-  jwt.sign({ uid: String(userId) }, RESET_TOKEN_SECRET, {
+  jwt.sign({ uid: String(userId) }, REAUTH_TOKEN_SECRET, {
     algorithm: 'HS256',
     issuer: 'aidevix',
     audience: REAUTH_AUD,
@@ -23,7 +23,7 @@ const issueReauthToken = (userId) =>
 
 const verifyReauthToken = (token) => {
   try {
-    return jwt.verify(token, RESET_TOKEN_SECRET, {
+    return jwt.verify(token, REAUTH_TOKEN_SECRET, {
       algorithms: ['HS256'],
       issuer: 'aidevix',
       audience: REAUTH_AUD,

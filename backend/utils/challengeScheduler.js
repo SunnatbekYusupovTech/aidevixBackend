@@ -335,27 +335,31 @@ function startChallengeScheduler() {
   let lastReminderDate = '';
 
   setInterval(async () => {
-    if (!schedulerState.isChallengeEnabled()) return;
-    const hour = getTashkentHour();
-    const todayStr = getTodayStr();
-    const dayOfWeek = new Date().getDay(); // 0 = Yakshanba
+    try {
+      if (!schedulerState.isChallengeEnabled()) return;
+      const hour = getTashkentHour();
+      const todayStr = getTodayStr();
+      const dayOfWeek = new Date().getDay(); // 0 = Yakshanba
 
-    // Kunlik challenge — 00:00 Toshkent
-    if (hour === 0 && lastCreatedDate !== todayStr) {
-      lastCreatedDate = todayStr;
-      await createDailyChallenge();
-    }
+      // Kunlik challenge — 00:00 Toshkent
+      if (hour === 0 && lastCreatedDate !== todayStr) {
+        lastCreatedDate = todayStr;
+        await createDailyChallenge();
+      }
 
-    // Haftalik reset — Yakshanba 00:00 Toshkent
-    if (hour === 0 && dayOfWeek === 0 && lastWeeklyReset !== todayStr) {
-      lastWeeklyReset = todayStr;
-      await weeklyReset();
-    }
+      // Haftalik reset — Yakshanba 00:00 Toshkent
+      if (hour === 0 && dayOfWeek === 0 && lastWeeklyReset !== todayStr) {
+        lastWeeklyReset = todayStr;
+        await weeklyReset();
+      }
 
-    // Streak reminder — 23:00 Toshkent
-    if (hour === 23 && lastReminderDate !== todayStr) {
-      lastReminderDate = todayStr;
-      await sendStreakReminders();
+      // Streak reminder — 23:00 Toshkent
+      if (hour === 23 && lastReminderDate !== todayStr) {
+        lastReminderDate = todayStr;
+        await sendStreakReminders();
+      }
+    } catch (err) {
+      console.error('[ChallengeScheduler] tick error:', err.message);
     }
   }, 10 * 60 * 1000);
 }

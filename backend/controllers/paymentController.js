@@ -155,6 +155,7 @@ const initiatePayment = async (req, res) => {
     // Narx HAR DOIM serverda hisoblanadi; client amount ishlatilmaydi.
     let finalAmount = course.price;
     let appliedPromo = null;
+    let consumedPromoId = null; // Payment.create xato qilsa usedCount'ni qaytarish uchun
     const rawPromo = (req.body.promoCode || '').toString().toUpperCase().trim();
     if (rawPromo) {
       const now = new Date();
@@ -176,6 +177,7 @@ const initiatePayment = async (req, res) => {
         // Atomik: usedCount++ faqat barcha shartlar bajarilsa (race-safe)
         const promo = await PromoCode.findOneAndUpdate(filter, { $inc: { usedCount: 1 } }, { new: true });
         if (promo) {
+          consumedPromoId = promo._id;
           let discounted = course.price;
           if (promo.type === 'percent') {
             discounted = course.price - (course.price * promo.value) / 100;
@@ -190,13 +192,23 @@ const initiatePayment = async (req, res) => {
       // scopedToOther bo'lsa — consume QILMA, original narxda davom et
     }
 
-    const payment = await Payment.create({
-      userId: req.user._id,
-      courseId,
-      amount: finalAmount,
-      provider,
-      status: 'pending',
-    });
+    let payment;
+    try {
+      payment = await Payment.create({
+        userId: req.user._id,
+        courseId,
+        amount: finalAmount,
+        provider,
+        status: 'pending',
+      });
+    } catch (e) {
+      // Payment yaratilmadi — consume qilingan promo'ni qaytaramiz (limitli promo behuda kamaymasin)
+      if (consumedPromoId) {
+        await PromoCode.findByIdAndUpdate(consumedPromoId, { $inc: { usedCount: -1 } })
+          .catch((err) => console.error('[Payment] promo usedCount rollback failed:', err.message));
+      }
+      throw e;
+    }
 
     let paymentUrl = null;
     if (provider === 'payme') {
@@ -253,13 +265,17 @@ const getPaymentStatus = async (req, res) => {
       .populate('courseId', 'title price');
     if (!payment) return res.status(404).json({ success: false, message: 'To\'lov topilmadi' });
 
-    // 30 daqiqadan oshgan pending to'lovni expired qilish
+    // 30 daqiqadan oshgan pending to'lovni expired qilish — atomic (status:'pending' guard)
     if (payment.status === 'pending') {
       const ageMinutes = (Date.now() - payment.createdAt.getTime()) / (1000 * 60);
       if (ageMinutes > 30) {
-        payment.status = 'expired';
-        payment.expiredAt = new Date();
-        await payment.save();
+        const updated = await Payment.findOneAndUpdate(
+          { _id: payment._id, status: 'pending' },
+          { $set: { status: 'expired', expiredAt: new Date() } },
+          { new: true }
+        );
+        // updated null bo'lsa — boshqa jarayon (webhook) statusni o'zgartirdi, uni saqlaymiz
+        if (updated) { payment.status = updated.status; payment.expiredAt = updated.expiredAt; }
       }
     }
 
@@ -349,22 +365,26 @@ const performTransaction = async (params, id) => {
 
 const cancelTransaction = async (params, id) => {
   const { id: providerTxId, reason } = params;
-  const payment = await Payment.findOne({ providerTransactionId: providerTxId });
-  if (!payment) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
+  const existing = await Payment.findOne({ providerTransactionId: providerTxId }).select('status').lean();
+  if (!existing) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
 
   // Completed to'lovni bekor qilib bo'lmaydi
-  if (payment.status === 'completed') {
+  if (existing.status === 'completed') {
     return { error: { code: -31007, message: 'Tranzaksiyani bekor qilib bo\'lmaydi' }, id };
   }
 
   const cancelTime = Date.now();
-  payment.status = 'cancelled';
-  payment.paymeCancelTime = cancelTime;
-  payment.paymeCancelReason = reason;
-  payment.cancelledAt = new Date();
-  await payment.save();
+  // Atomic: faqat completed bo'lmagan holatda bekor qilamiz (concurrent cancel race-safe)
+  const payment = await Payment.findOneAndUpdate(
+    { providerTransactionId: providerTxId, status: { $ne: 'completed' } },
+    { $set: { status: 'cancelled', paymeCancelTime: cancelTime, paymeCancelReason: reason, cancelledAt: new Date() } },
+    { new: true }
+  );
+  if (!payment) {
+    return { error: { code: -31007, message: 'Tranzaksiyani bekor qilib bo\'lmaydi' }, id };
+  }
 
-  return { result: { transaction: payment._id.toString(), cancel_time: cancelTime, state: -1 }, id };
+  return { result: { transaction: payment._id.toString(), cancel_time: payment.paymeCancelTime, state: -1 }, id };
 };
 
 // Payme CheckTransaction (Payme reconciliation uchun majburiy)
@@ -392,6 +412,10 @@ const checkTransaction = async (params, id) => {
 // Payme GetStatement (hisobot uchun majburiy)
 const getStatement = async (params, id) => {
   const { from, to } = params;
+  // Validatsiya: from/to musbat son, oraliq max ~62 kun (Payme spec: ms timestamp)
+  if (!Number.isFinite(from) || !Number.isFinite(to) || from < 0 || to <= from || (to - from) > 62 * 24 * 60 * 60 * 1000) {
+    return { error: { code: -31050, message: 'Yaroqsiz vaqt oralig\'i' }, id };
+  }
   const payments = await Payment.find({
     provider: 'payme',
     providerTransactionId: { $ne: null },
@@ -448,15 +472,17 @@ const clickPrepare = async (req, res) => {
 
     const { merchant_trans_id, amount, action } = req.body;
     if (Number(action) !== 0) return res.json({ error: -3, error_note: 'Noto\'g\'ri action' });
+    if (!/^[0-9a-fA-F]{24}$/.test(String(merchant_trans_id || ''))) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
 
     const payment = await Payment.findById(merchant_trans_id).lean();
     if (!payment) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
-    if (payment.amount !== Number(amount)) return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
+    // Summani tiyn (×100) butun sonda solishtiramiz — float yumaloq xatosini oldini olish (Payme bilan mos)
+    if (Math.round(payment.amount * 100) !== Math.round(Number(amount) * 100)) return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
     if (payment.status === 'completed') return res.json({ error: -4, error_note: 'To\'lov allaqachon yakunlangan' });
 
     res.json({ click_trans_id: req.body.click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
   } catch (err) {
-    res.json({ error: -8, error_note: err.message });
+    res.json({ error: -8, error_note: 'Server xatosi' });
   }
 };
 
@@ -468,6 +494,7 @@ const clickComplete = async (req, res) => {
     }
 
     const { merchant_trans_id, click_trans_id, click_paydoc_id, error: clickError } = req.body;
+    if (!/^[0-9a-fA-F]{24}$/.test(String(merchant_trans_id || ''))) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
 
     if (Number(clickError) < 0) {
       await Payment.findByIdAndUpdate(merchant_trans_id, { $set: { status: 'failed' } });
@@ -509,7 +536,7 @@ const clickComplete = async (req, res) => {
 
     res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
   } catch (err) {
-    res.json({ error: -8, error_note: err.message });
+    res.json({ error: -8, error_note: 'Server xatosi' });
   }
 };
 

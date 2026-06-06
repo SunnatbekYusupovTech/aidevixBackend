@@ -39,6 +39,9 @@ const createPromoCode = async (req, res) => {
     if (type === 'percent' && (value < 1 || value > 100)) {
       return res.status(400).json({ success: false, message: 'Foiz chegirmasi 1-100 orasida bo\'lishi kerak' });
     }
+    if (!(Number(value) > 0)) {
+      return res.status(400).json({ success: false, message: 'Chegirma qiymati musbat son bo\'lishi kerak' });
+    }
 
     const existing = await PromoCode.findOne({ code: code.toUpperCase().trim() });
     if (existing) return res.status(409).json({ success: false, message: 'Bu kod allaqachon mavjud' });
@@ -56,7 +59,10 @@ const createPromoCode = async (req, res) => {
 
     res.status(201).json({ success: true, data: { promo } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    if (err && err.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Bu kod allaqachon mavjud' });
+    }
+    res.status(500).json({ success: false, message: process.env.NODE_ENV === 'production' ? 'Server xatosi' : err.message });
   }
 };
 

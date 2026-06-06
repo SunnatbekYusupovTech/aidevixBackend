@@ -188,7 +188,13 @@ const setTelegramId = async (req, res) => {
   try {
     const { telegramUserId } = req.body;
     if (!telegramUserId) return res.status(400).json({ success: false, message: 'Telegram ID kiritilmadi' });
-    await User.findByIdAndUpdate(req.user._id, { telegramUserId: String(telegramUserId) });
+    const tgId = String(telegramUserId);
+    // IDOR himoyasi: bu Telegram ID allaqachon boshqa userga bog'langan bo'lsa rad etamiz
+    const taken = await User.findOne({ _id: { $ne: req.user._id }, telegramUserId: tgId }).select('_id').lean();
+    if (taken) {
+      return res.status(409).json({ success: false, message: 'Bu Telegram hisob allaqachon boshqa foydalanuvchiga bog\'langan' });
+    }
+    await User.findByIdAndUpdate(req.user._id, { telegramUserId: tgId });
     invalidateCache(req.user._id);
     res.json({ success: true, message: 'Telegram ID saqlandi' });
   } catch (err) {

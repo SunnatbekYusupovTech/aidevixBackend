@@ -278,7 +278,7 @@ const sendResetCodeEmail = async (email, username, code) => {
       ${greeting(username)}
       ${lede(`Hisobingiz parolini tiklash uchun quyidagi maxfiy kodni kiriting.`)}
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;"><tr><td align="center">
-        <div class="code-box code-xl" style="display:inline-block;background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:22px 36px;font-family:'SF Mono',Monaco,Menlo,'Courier New',monospace;font-size:38px;font-weight:700;letter-spacing:14px;color:#ea580c;text-align:center;min-width:240px;">${code}</div>
+        <div class="code-box code-xl" style="display:inline-block;background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:22px 36px;font-family:'SF Mono',Monaco,Menlo,'Courier New',monospace;font-size:38px;font-weight:700;letter-spacing:14px;color:#ea580c;text-align:center;min-width:240px;">${escapeHtml(code)}</div>
       </td></tr></table>
       <p style="margin:24px 0 0 0;color:${BRAND.textMuted};font-size:13px;text-align:center;" class="text-muted">Kod <strong style="color:${BRAND.textSecondary};" class="text-secondary">10 daqiqa</strong> davomida amal qiladi.</p>
       ${divider()}

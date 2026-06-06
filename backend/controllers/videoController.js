@@ -43,7 +43,7 @@ const getVideo = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const video = await Video.findById(id).populate('course');
+    const video = await Video.findById(id).populate('course').lean();
 
     if (!video || !video.isActive) {
       return res.status(404).json({
@@ -643,7 +643,9 @@ const linkToBunny = async (req, res) => {
 const searchVideos = async (req, res) => {
   try {
     const { q = '', courseId, page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const lim = Math.min(Math.max(1, parseInt(limit) || 20), 100);
+    const pg = Math.max(1, parseInt(page) || 1);
+    const skip = (pg - 1) * lim;
 
     const filter = { isActive: true };
     if (q.trim()) {
@@ -658,7 +660,7 @@ const searchVideos = async (req, res) => {
         .populate('course', 'title category')
         .sort({ course: 1, order: 1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(lim)
         .lean(),
       Video.countDocuments(filter),
     ]);
@@ -669,9 +671,9 @@ const searchVideos = async (req, res) => {
         videos,
         pagination: {
           total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit)),
+          page: pg,
+          limit: lim,
+          pages: Math.ceil(total / lim),
         },
       },
     });

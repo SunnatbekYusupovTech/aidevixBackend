@@ -72,3 +72,7 @@ NUL
 
 # Audit scratch artifacts (security findings — do not track)
 .audit/
+scratch/
+
+# Raw font archives — extracted .ttf files are committed, not the zips
+frontend/public/*.zip

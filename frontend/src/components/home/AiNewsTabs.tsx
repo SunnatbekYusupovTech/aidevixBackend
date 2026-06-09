@@ -127,7 +127,7 @@ export default function AiNewsTabs({
                   <h2 className="mt-6 font-title font-extrabold text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight max-w-4xl text-slate-900 dark:text-white">
                     AI Agentlar davri boshlandi: Cursor va Claude ish oqimlari real biznesga kirib keldi
                   </h2>
-                  <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed max-w-3xl ${isDark ? 'text-slate-355' : 'text-slate-600'}`}>
+                  <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Yangi trend: kichik jamoalar ham agentlar bilan katta product tezligiga chiqmoqda. Avtomatlashtirilgan kodlash va jarayonlar tezligi 10 barobargacha oshdi. Biznes jarayonlarini integratsiyalash orqali inson resurslarini yanada samarali yo'naltiring.
                   </p>
                 </div>
@@ -163,7 +163,7 @@ export default function AiNewsTabs({
                   <h2 className="mt-6 font-title font-extrabold text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight max-w-4xl text-slate-900 dark:text-white">
                     Prompt engineering endi alohida kasb: kompaniyalar aniq skill bilan mutaxassis qidirmoqda
                   </h2>
-                  <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed max-w-3xl ${isDark ? 'text-slate-355' : 'text-slate-600'}`}>
+                  <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed max-w-3xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Senior darajada prompt yozish orqali sifat, xavfsizlik va xarajat bir vaqtning o'zida optimallashtirilmoqda. AI bilan samarali muloqot tizimlarini yaratib, kelajak kasbini bugundan egallang.
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export default function AiNewsTabs({
                     <h2 className="mt-6 font-title font-extrabold text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight text-slate-900 dark:text-white">
                       Haftalik jamoaviy faollik ko'rsatkichi
                     </h2>
-                    <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed ${isDark ? 'text-slate-355' : 'text-slate-600'}`}>
+                    <p className={`mt-6 text-sm sm:text-base md:text-lg font-sans font-light leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                       Jamoa a'zolari o'rtasida real vaqt rejimida hamkorlik tizimi. Kodlarni birgalikda yozish, review jarayoni va integratsiyalarni muvofiqlashtirish.
                     </p>
                   </div>

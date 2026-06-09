@@ -1,1 +1,0 @@
-{"success":true,"data":{"user":{"_id":"69eb63c5ab15fbc488ff8f07","username":"debug_user","email":"pwdbg1777034132@example.com","role":"user","firstName":"Debug","lastName":"User","avatar":null,"xp":0,"streak":0,"rankTitle":"AMATEUR","referralCode":"DEBU33D4","referralsCount":0,"lastClaimedDaily":null,"emailVerified":false}}}

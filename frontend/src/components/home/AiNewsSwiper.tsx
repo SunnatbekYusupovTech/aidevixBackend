@@ -55,7 +55,7 @@ export default function AiNewsSwiper({
           swiperRef.current = swiper;
         }}
         onSlideChange={(swiper) => {
-          setActiveIndex(swiper.activeIndex);
+          setActiveIndex(swiper.activeIndex );
         }}
         modules={[Autoplay]}
         slidesPerView={1}

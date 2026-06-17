@@ -26,6 +26,7 @@ import { SiPython, SiFigma } from 'react-icons/si';
 import SiteLogoMark from '@components/common/SiteLogoMark';
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants';
 import { localizeNewsItem } from '@utils/newsTextFallback';
+import StartNow from './StartNow';
 
 const ThreeHero = dynamic(() => import('@/components/home/ThreeHero'), {
   ssr: false,
@@ -1134,34 +1135,15 @@ export default function HomeClient({
         <ProBanner />
       </section>
 
-      <section data-direction="up" className="relative overflow-hidden border-t border-white/5 px-3 py-20 text-center reveal-section sm:px-4 sm:py-32 bg-transparent">
-        {/* Glow lights */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(111,127,144,0.16),transparent_40%)] pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-[radial-gradient(circle_at_bottom,rgba(111,127,144,0.06),transparent_45%)] pointer-events-none" />
-        
-        <div className="relative z-10 mx-auto max-w-5xl">
-          <div className="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-white/50">{t('home.startNow')}</div>
-          
-          <h2 className="mt-5 max-w-full text-balance font-title text-4xl font-extrabold tracking-[-0.04em] sm:mt-6 sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-8xl text-white">
-            {t('cta.title1')}{' '}
-            <span className="font-accent font-normal italic bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(99,102,241,0.25)]">
-              {t('cta.titleHighlight')}
-            </span>
-          </h2>
-          
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-white/70 md:text-lg">
-            {t('home.ctaSubtitle')}
-          </p>
-          
-          <Link
-            href="/register"
-            onMouseEnter={playHoverSound}
-            className="mt-10 inline-flex h-12 min-h-[3rem] w-full max-w-sm items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-8 text-sm font-bold text-white shadow-[0_10px_25px_rgba(99,102,241,0.25)] hover:shadow-[0_15px_30px_rgba(99,102,241,0.45)] transition-all duration-300 hover:-translate-y-0.5 sm:h-16 sm:w-auto sm:max-w-none sm:px-12 sm:text-base cursor-pointer"
-          >
-            {t('cta.start')}
-          </Link>
-        </div>
+
+
+<section data-direction="up" className="py-20 reveal-section">
+        <StartNow />
       </section>
+
+
+
+
     </div>
   );
 }

@@ -161,11 +161,13 @@ export default function StartNow() {
           {t('home.startNow')}
         </div>
 
-        <h1 className="hero-title">
+        {/* SEO: sahifada bitta <h1> bo'lishi kerak — asosiy hero HomeClient'da.
+            Bu pastki CTA bo'limi, shuning uchun <h2>. CSS class-based, ko'rinish o'zgarmaydi. */}
+        <h2 className="hero-title">
           {t('cta.title1')}
           <br />
           <em>{t('cta.titleHighlight')}</em>
-        </h1>
+        </h2>
 
         <p className="hero-body">
           {t('home.ctaSubtitle')}

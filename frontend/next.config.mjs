@@ -62,6 +62,19 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // canonical `https://aidevix.uz` ga ishora qiladi, lekin sayt `www`'da ham
+      // ochiladi → SEO'da duplicate. www → non-www 301 (host=www bo'lgandagina,
+      // loop yo'q). Canonical bilan moslashtiradi.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.aidevix.uz' }],
+        destination: 'https://aidevix.uz/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

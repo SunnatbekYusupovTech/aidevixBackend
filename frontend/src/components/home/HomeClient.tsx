@@ -14,7 +14,11 @@ import ProBanner from '@/components/home/ProBanner';
 import ContinueWatching from '@/components/home/ContinueWatching';
 import RecommendedForYou from '@/components/home/RecommendedForYou';
 import AiNewsTabs from '@/components/home/AiNewsTabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+// Recharts alohida chunk'ga ajratildi — boshlang'ich home bundle'iga tushmaydi.
+const WeeklyXpChart = dynamic(() => import('@/components/home/WeeklyXpChart'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-white/5 rounded-none w-full h-full" />,
+});
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useSound } from '@/context/SoundContext';
@@ -733,51 +737,7 @@ export default function HomeClient({
                     {/* Weekly XP Area Chart */}
                     <div className="w-full h-32 relative">
                       {isMounted ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={skillGrowthData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="xpGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#6f7f90" stopOpacity={0.25}/>
-                                <stop offset="95%" stopColor="#6f7f90" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                            <XAxis 
-                              dataKey="day" 
-                              stroke="rgba(255,255,255,0.25)" 
-                              fontSize={9} 
-                              tickLine={false} 
-                              axisLine={false}
-                            />
-                            <YAxis 
-                              stroke="rgba(255,255,255,0.25)" 
-                              fontSize={9} 
-                              tickLine={false} 
-                              axisLine={false}
-                            />
-                            <Tooltip 
-                              content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                  return (
-                                    <div className="p-2.5 rounded-none border border-zinc-800 backdrop-blur-xl text-xs font-mono font-semibold shadow-xl z-[90] bg-slate-950/95 text-white">
-                                      <p className="opacity-60">{payload[0].payload.day}</p>
-                                      <p className="text-platinum-400 mt-0.5">{payload[0].value} XP</p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="xp" 
-                              stroke="#a9b3bc" 
-                              strokeWidth={2}
-                              fillOpacity={1} 
-                              fill="url(#xpGrad)" 
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
+                        <WeeklyXpChart data={skillGrowthData} />
                       ) : (
                         <div className="animate-pulse bg-white/5 rounded-none w-full h-full" />
                       )}

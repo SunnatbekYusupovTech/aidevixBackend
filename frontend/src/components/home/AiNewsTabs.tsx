@@ -104,7 +104,7 @@ export default function AiNewsTabs({
       <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col justify-between h-full">
         {/* Top Part: Animated content area (Hover-pause triggers ONLY when mouse is over the active card container) */}
         <div 
-          className="relative min-h-[18rem] w-full cursor-default"
+          className="relative h-[26rem] w-full cursor-default"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >

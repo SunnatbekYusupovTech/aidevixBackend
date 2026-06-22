@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { FaInstagram, FaTelegram } from 'react-icons/fa';
+import { FaInstagram, FaTelegram, FaLinkedin } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
 
 type TeamMember = {
@@ -19,6 +19,7 @@ type TeamMember = {
   textColor: string;
   telegram?: string;
   instagram?: string;
+  linkedin?: string;
   portfolio?: string;
 };
 
@@ -36,6 +37,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     textColor: 'text-yellow-400',
     telegram: 'https://t.me/SUNNATBEE',
     instagram: 'https://www.instagram.com/sunnatbee',
+    linkedin: 'https://www.linkedin.com/in/sunnatbee/',
   },
   {
     id: 'sardor',
@@ -469,16 +471,32 @@ export default function TeamPage() {
                         <span>JOIN_US_NODE // CONNECT</span>
                       </a>
                     </div>
-                  ) : (member.telegram || member.instagram) ? (
+                  ) : (member.telegram || member.instagram || member.linkedin) ? (
                     <div className="flex gap-2 pt-2 border-t border-zinc-900">
+                      {member.linkedin && (
+                        <a
+                          href={member.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${member.name} LinkedIn`}
+                          className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${
+                            isCEO
+                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
+                              : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
+                          }`}
+                        >
+                          <FaLinkedin size={13} />
+                        </a>
+                      )}
                       {member.telegram && (
                         <a
                           href={member.telegram}
                           target="_blank"
                           rel="noopener noreferrer"
+                          aria-label={`${member.name} Telegram`}
                           className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${
-                            isCEO 
-                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5' 
+                            isCEO
+                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
                               : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
                           }`}
                         >
@@ -490,9 +508,10 @@ export default function TeamPage() {
                           href={member.instagram}
                           target="_blank"
                           rel="noopener noreferrer"
+                          aria-label={`${member.name} Instagram`}
                           className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${
-                            isCEO 
-                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5' 
+                            isCEO
+                              ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
                               : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
                           }`}
                         >

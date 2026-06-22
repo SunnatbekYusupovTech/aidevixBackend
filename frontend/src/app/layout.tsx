@@ -96,19 +96,61 @@ export const viewport = {
 
 // Site-wide Organization schema — every page inherits this. Powers the Google
 // "knowledge panel" for "Aidevix" queries and validates publisher in nested
-// schemas (Course, VideoObject, Person).
+// schemas (Course, VideoObject, Person). Founder Person ties the brand to the
+// CEO's LinkedIn so "Aidevix CEO" / "Sunnatbek Yusupov" surface in search.
 const organizationSchema = {
   '@context': 'https://schema.org',
-  '@type': 'Organization',
+  '@type': 'EducationalOrganization',
+  '@id': 'https://aidevix.uz/#organization',
   name: 'Aidevix',
-  alternateName: ['Aidevix.uz', 'Aidevix Platform'],
+  legalName: 'Aidevix',
+  alternateName: ['Aidevix.uz', 'Aidevix Platform', 'AIDEVIX'],
   url: 'https://aidevix.uz',
-  logo: 'https://aidevix.uz/Logo.jpg',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://aidevix.uz/Logo.jpg',
+    width: 512,
+    height: 512,
+  },
+  image: 'https://aidevix.uz/Logo.jpg',
   description:
-    "O'zbek tilidagi eng yirik AI va dasturlash o'quv platformasi. Claude Code, Cursor, GitHub Copilot va boshqa AI vositalar.",
+    "O'zbek tilidagi eng yirik AI va dasturlash o'quv platformasi. Claude Code, Cursor, GitHub Copilot va boshqa AI vositalar bilan amaliy dasturlashni o'rganing.",
+  foundingDate: '2024',
+  slogan: "Kelajakni kodlashni boshlang",
+  knowsLanguage: ['uz', 'ru', 'en'],
+  areaServed: {
+    '@type': 'Country',
+    name: 'Uzbekistan',
+  },
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'UZ',
+    addressLocality: 'Tashkent',
+  },
+  founder: {
+    '@type': 'Person',
+    '@id': 'https://aidevix.uz/team#sunnatbek',
+    name: 'Sunnatbek Yusupov',
+    jobTitle: 'Founder & CEO',
+    worksFor: { '@id': 'https://aidevix.uz/#organization' },
+    url: 'https://aidevix.uz/team',
+    sameAs: [
+      'https://www.linkedin.com/in/sunnatbee/',
+      'https://t.me/SUNNATBEE',
+      'https://www.instagram.com/sunnatbee',
+    ],
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'support@aidevix.uz',
+    url: 'https://aidevix.uz/contact',
+    availableLanguage: ['uz', 'ru', 'en'],
+  },
   sameAs: [
     'https://t.me/aidevix',
     'https://instagram.com/aidevix',
+    'https://www.linkedin.com/company/aidevix',
   ],
 };
 

@@ -57,6 +57,11 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
 
   // useGoogleLogin — popup ni asosiy oynadan ochadi (iframe emas).
   // Bu window.opener null bo'lishini oldini oladi.
+  //
+  // `scope` MAJBURIY: implicit flow access token faqat so'ralgan scope'larga ruxsat oladi.
+  // Backend `https://www.googleapis.com/oauth2/v3/userinfo` dan email/profil o'qiydi —
+  // bu uchun `openid email profile` scope kerak. Aks holda userinfo 401 qaytaradi va
+  // backend "Google access token tekshirilmadi" (401) bilan rad etadi.
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) => {
       void handleSuccess(tokenResponse.access_token);
@@ -66,6 +71,7 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
       toast.error('Google orqali amalga oshmadi');
     },
     flow: 'implicit',
+    scope: 'openid email profile',
   });
 
   const handleClick = () => {

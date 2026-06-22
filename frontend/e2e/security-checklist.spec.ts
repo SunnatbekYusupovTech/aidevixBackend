@@ -12,7 +12,9 @@ test.describe('Security Checklist Smoke', () => {
     expect(headers['x-frame-options']).toBe('DENY');
     expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(headers['permissions-policy']).toContain('camera=');
-    expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+    // `same-origin-allow-popups` — Google OAuth popup window.opener bilan
+    // bog'lana olishi uchun zarur (`same-origin` popup callback'ni bloklaydi).
+    expect(headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
     expect(headers['cross-origin-resource-policy']).toBe('same-site');
     expect(headers['strict-transport-security']).toContain('max-age=');
     expect(headers['content-security-policy-report-only']).toContain("default-src 'self'");

@@ -1298,7 +1298,13 @@ const googleAuth = asyncHandler(async (req, res, next) => {
         email_verified: data.email_verified,
       };
     } catch (err) {
-      securityLogger.suspicious(req, 'google_access_token_invalid', { error: err.message });
+      // Google API javobini ham log qilamiz — debug uchun (masalan insufficient scope,
+      // invalid_token, audience mos emas). Client'ga generic xabar qaytadi.
+      securityLogger.suspicious(req, 'google_access_token_invalid', {
+        error: err.message,
+        status: err.response?.status,
+        googleError: err.response?.data?.error || err.response?.data?.error_description,
+      });
       return next(new ErrorResponse('Google access token tekshirilmadi', 401));
     }
   }

@@ -62,7 +62,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
+    // CI builds the app first (`npm run build`), so serve the production build
+    // with `next start` — pre-compiled pages load in ms. `next dev` recompiles
+    // every route on first hit, which made the serial suite blow past the
+    // 30-minute job timeout. Locally we keep `next dev` for fast iteration.
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: BASE_URL,
     reuseExistingServer: false,
     timeout: 120_000,

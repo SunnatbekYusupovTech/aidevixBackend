@@ -28,9 +28,15 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    // Google orqali kirgan userlarda parol bo'lmaydi — shunda majburiy emas.
+    required: [function () { return !this.googleId; }, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
     select: false, // Don't return password by default
+  },
+  // Google OAuth identifikatori (token payload'idagi `sub`). Parolsiz kirish uchun.
+  googleId: {
+    type: String,
+    default: null,
   },
   refreshToken: {
     type: String,
@@ -180,6 +186,7 @@ userSchema.index({ createdAt: -1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ xp: -1 });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 // userSchema.index({ referralCode: 1 }, { sparse: true }); // Duplicate index removed
 
 // Hash password before saving

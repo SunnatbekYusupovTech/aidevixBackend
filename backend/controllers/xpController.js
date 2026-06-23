@@ -498,6 +498,83 @@ const getStreakStatus = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Kunlik check-in — ilovaga kirgani uchun streakni oshiradi (XP bermaydi)
+ * @route POST /api/xp/check-in
+ * @access Private
+ *
+ * Mantiq addVideoWatchXP (109-135) dagi streak hisoblashning aynan nusxasi,
+ * lekin XP/video sanog'isiz. Server vaqtidan foydalanadi (anti-cheat).
+ */
+const checkIn = async (req, res) => {
+  try {
+    let stats = await UserStats.findOne({ userId: req.user.id });
+    if (!stats) {
+      stats = await UserStats.create({ userId: req.user.id });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let increased = false;
+    let freezeUsed = false;
+    let alreadyCheckedToday = false;
+
+    if (stats.lastActivityDate) {
+      const last = new Date(stats.lastActivityDate);
+      last.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Bugun allaqachon faol bo'lgan (check-in yoki video/quiz) — qayta oshmaydi
+        alreadyCheckedToday = true;
+      } else if (diffDays === 1) {
+        stats.streak += 1; // Ketma-ket kun
+        increased = true;
+      } else if (diffDays > 1) {
+        // Streak freeze tekshiruvi (addVideoWatchXP bilan bir xil qoida)
+        if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
+          stats.streakFreezes -= 1;
+          stats.streakFreezeUsedAt = new Date();
+          freezeUsed = true;
+          // streak saqlanadi
+        } else {
+          stats.streak = 1; // Streak uzildi — yangidan boshlandi
+          increased = true;
+        }
+      }
+    } else {
+      stats.streak = 1; // Birinchi marta
+      increased = true;
+    }
+
+    // Faqat haqiqiy o'zgarish bo'lganda saqlaymiz (keraksiz yozuv yo'q)
+    if (!alreadyCheckedToday) {
+      stats.lastActivityDate = new Date();
+      await stats.save();
+
+      // User modelini sinxronlash (Navbar va Auth uchun)
+      const user = await User.findById(req.user.id);
+      if (user && user.streak !== stats.streak) {
+        user.streak = stats.streak;
+        await user.save();
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        streak: stats.streak,
+        increased,
+        freezeUsed,
+        alreadyCheckedToday,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getUserStats,
   addVideoWatchXP,
@@ -509,4 +586,5 @@ module.exports = {
   getWeeklyLeaderboard,
   getXPHistory,
   getStreakStatus,
+  checkIn,
 };

@@ -219,6 +219,7 @@ app.use('/api/payments',     require('./routes/paymentRoutes'));
 app.use('/api/admin',        require('./routes/adminRoutes'));
 app.use('/api/upload',       require('./routes/uploadRoutes'));
 app.use('/api/users',        require('./routes/userRoutes'));
+app.use('/api/ai',           require('./routes/aiRoutes'));
 
 // Health check route
 /**

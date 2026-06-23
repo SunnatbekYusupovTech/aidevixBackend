@@ -11,6 +11,7 @@ const {
 } = require('../utils/jwt');
 const crypto = require('crypto');
 const validator = require('validator');
+const { OAuth2Client } = require('google-auth-library');
 const { sendWelcomeEmail, sendResetCodeEmail, sendEmailVerificationCode } = require('../utils/emailService');
 const {
   attachAuthCookies,
@@ -34,6 +35,30 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const normalizeUsername = (username) => String(username || '').trim().toLowerCase();
+
+// Google id_token'ni tekshirish uchun ruxsat etilgan client ID'lar (web/android/ios).
+// GOOGLE_CLIENT_IDS=vergul bilan ajratilgan ro'yxat (yoki bitta GOOGLE_CLIENT_ID).
+const getGoogleClientIds = () =>
+  String(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+const googleClient = new OAuth2Client();
+
+// Google profilidan unik username yasaymiz (collision bo'lsa raqam qo'shamiz).
+const generateUniqueUsername = async (base) => {
+  let candidate = normalizeUsername(base).replace(/[^a-z0-9_]/g, '').slice(0, 20);
+  if (candidate.length < 3) candidate = `user${crypto.randomBytes(2).toString('hex')}`;
+  let username = candidate;
+  let suffix = 0;
+  // eslint-disable-next-line no-await-in-loop
+  while (await User.findOne({ username })) {
+    suffix += 1;
+    username = `${candidate}${suffix}`;
+  }
+  return username;
+};
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -148,6 +173,8 @@ const register = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       user: sanitizeUser(user),
+      accessToken,
+      refreshToken,
     },
   });
 });
@@ -183,6 +210,117 @@ const login = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       user: sanitizeUser(user),
+      accessToken,
+      refreshToken,
+    },
+  });
+});
+
+// @desc    Google bilan kirish / ro'yxatdan o'tish
+// Mobil ilova Google'dan olgan id_token'ni yuboradi; uni Google bilan tekshiramiz,
+// userni topamiz (yoki yaratamiz) va odatiy login javobini qaytaramiz.
+const googleAuth = asyncHandler(async (req, res, next) => {
+  const { idToken, referralCode } = req.body;
+  if (!idToken) {
+    return next(new ErrorResponse('Google token kerak', 400));
+  }
+
+  const allowedClientIds = getGoogleClientIds();
+  if (allowedClientIds.length === 0) {
+    return next(new ErrorResponse('Google auth sozlanmagan', 500));
+  }
+
+  // id_token'ni Google bilan tekshiramiz — audience bizning client ID'lardan biri bo'lishi shart.
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: allowedClientIds });
+    payload = ticket.getPayload();
+  } catch (err) {
+    return next(new ErrorResponse('Google token yaroqsiz', 401));
+  }
+
+  if (!payload || !payload.email) {
+    return next(new ErrorResponse('Google token yaroqsiz', 401));
+  }
+
+  const googleId = payload.sub;
+  const email = normalizeEmail(payload.email);
+  const picture = payload.picture || null;
+  const firstName = payload.given_name || null;
+  const lastName = payload.family_name || null;
+
+  // googleId yoki email bo'yicha mavjud userni qidiramiz.
+  let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+  if (user) {
+    // Mavjud (masalan parol bilan ochilgan) akkauntni Google'ga bog'laymiz.
+    if (!user.googleId) user.googleId = googleId;
+    if (!user.emailVerified) user.emailVerified = true;
+    if (!user.avatar && picture) user.avatar = picture;
+  } else {
+    // Yangi user — referral logikasi (register bilan bir xil).
+    let referredBy = null;
+    let startingXp = 0;
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode });
+      if (referrer) {
+        referredBy = referrer._id;
+        startingXp = 500;
+        referrer.xp = (referrer.xp || 0) + 1000;
+        referrer.rankTitle = calculateRank(referrer.xp);
+        referrer.referralsCount = (referrer.referralsCount || 0) + 1;
+        await referrer.save();
+
+        const referrerStats = await UserStats.findOne({ userId: referrer._id });
+        if (referrerStats) {
+          referrerStats.xp = (referrerStats.xp || 0) + 1000;
+          referrerStats.weeklyXp = (referrerStats.weeklyXp || 0) + 1000;
+          referrerStats.level = referrerStats.calculateLevel();
+          await referrerStats.save();
+        }
+      }
+    }
+
+    const username = await generateUniqueUsername(email.split('@')[0]);
+    const newReferralCode = username.substring(0, 4).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase();
+
+    user = new User({
+      username,
+      email,
+      googleId,
+      firstName,
+      lastName,
+      avatar: picture,
+      emailVerified: true, // Google emaillari allaqachon tasdiqlangan
+      referralCode: newReferralCode,
+      referredBy,
+      xp: startingXp,
+      rankTitle: calculateRank(startingXp),
+    });
+
+    // Background tasks (register bilan bir xil)
+    UserStats.create({ userId: user._id, xp: user.xp, weeklyXp: user.xp }).catch(() => {});
+    sendWelcomeEmail(user.email, user.username).catch(() => {});
+    try {
+      const { getBot } = require('../utils/telegramBot');
+      const bot = getBot();
+      if (bot) bot.notifyNewRegistration(user);
+    } catch (_) {}
+  }
+
+  const accessToken = generateAccessToken({ userId: user._id });
+  const refreshToken = generateRefreshToken({ userId: user._id });
+  user.refreshToken = hashToken(refreshToken);
+  user.lastLogin = Date.now();
+  await user.save();
+  attachAuthCookies(res, accessToken, refreshToken);
+
+  res.json({
+    success: true,
+    data: {
+      user: sanitizeUser(user),
+      accessToken,
+      refreshToken,
     },
   });
 });
@@ -190,7 +328,7 @@ const login = asyncHandler(async (req, res, next) => {
 // @desc    Refresh Token
 const refresh = asyncHandler(async (req, res, next) => {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[REFRESH_COOKIE_NAME];
+  const token = cookies[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
 
   if (!token) return next(new ErrorResponse('No refresh token provided', 400));
 
@@ -213,6 +351,8 @@ const refresh = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       user: sanitizeUser(user),
+      accessToken,
+      refreshToken: newRefreshToken,
     },
   });
 });
@@ -437,6 +577,7 @@ const resendVerification = asyncHandler(async (req, res, next) => {
 module.exports = {
   register,
   login,
+  googleAuth,
   refreshToken: refresh,
   logout,
   getMe,

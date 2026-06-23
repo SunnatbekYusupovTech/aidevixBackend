@@ -11,6 +11,7 @@ const {
   getWeeklyLeaderboard,
   getXPHistory,
   getStreakStatus,
+  checkIn,
 } = require('../controllers/xpController');
 const { authenticate } = require('../middleware/auth');
 
@@ -34,5 +35,7 @@ router.post('/streak-freeze/add', authenticate, addStreakFreeze);
 router.get('/history', authenticate, getXPHistory);
 
 router.get('/streak-status', authenticate, getStreakStatus);
+
+router.post('/check-in', authenticate, checkIn);
 
 module.exports = router;

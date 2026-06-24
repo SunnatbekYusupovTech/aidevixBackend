@@ -63,6 +63,14 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // `/videos` indeks sahifasi mavjud emas (404) — eski havola/sitemap qoldiqlari
+      // va menyu uchun kurslar katalogiga 301 yo'naltiramiz. `/videos/:id` (alohida
+      // video) bundan ta'sirlanmaydi — u o'z route'ida qoladi.
+      { source: '/videos', destination: '/courses', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       {

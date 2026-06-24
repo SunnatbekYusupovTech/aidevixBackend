@@ -3,8 +3,9 @@ import BlogClient from './BlogClient';
 import { SSR_API_BASE_URL } from '@/utils/constants';
 
 export const metadata: Metadata = {
-  title: 'Blog — Aidevix',
+  title: 'Blog',
   description: 'AI dunyosi va dasturlash bo\'yicha yangiliklar, qo\'llanmalar va tahlillar — o\'zbek tilida.',
+  alternates: { canonical: '/blog' },
   openGraph: {
     title: 'Aidevix Blog — AI va dasturlash yangiliklari',
     description: 'Eng so\'nggi AI tools yangiliklari va amaliy qo\'llanmalar.',

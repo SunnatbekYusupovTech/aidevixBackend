@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "IT Vakansiyalar — O'zbekiston | Aidevix",
+  title: "IT Vakansiyalar — O'zbekiston",
   description:
     "O'zbekiston va remote IT vakansiyalar: junior, middle, senior, lead. Frontend, backend, mobile, AI. Maosh, level, kompaniya.",
   alternates: {

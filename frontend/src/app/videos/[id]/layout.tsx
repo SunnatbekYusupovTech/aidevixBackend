@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const video = await fetchVideo(params.id);
   if (!video) {
     return {
-      title: 'Video topilmadi | Aidevix',
+      title: 'Video topilmadi',
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${video.title} | Aidevix`;
+  const title = video.title;
   const description =
     video.description?.slice(0, 160) ||
     `${video.title} — Aidevix platformasidagi video dars.`;

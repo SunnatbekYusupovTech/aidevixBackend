@@ -1,4 +1,10 @@
 import { Suspense } from 'react';
+import { Metadata } from 'next';
+
+// Auth oqimi sahifalari (2FA, telegram-login, email verify) — indekslanmaydi.
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

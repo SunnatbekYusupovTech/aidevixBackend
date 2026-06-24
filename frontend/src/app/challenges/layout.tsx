@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Kunlik Challenges — Aidevix',
+  title: 'Kunlik Challenges',
   description:
     "Har kuni yangi dasturlash va AI vazifalari. Streak quring, XP yig'ing, badge'lar oling — Claude, Cursor va boshqa AI vositalar bilan tajriba orting.",
   alternates: {

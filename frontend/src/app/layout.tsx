@@ -92,7 +92,7 @@ export const viewport = {
   themeColor: '#4f46e5',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
+  // maximumScale olib tashlandi — foydalanuvchi zoom qila olishi kerak (WCAG 1.4.4).
 };
 
 // Site-wide Organization schema — every page inherits this. Powers the Google

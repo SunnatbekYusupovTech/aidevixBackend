@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "XP Leaderboard — O'zbek Dasturchilar | Aidevix",
+  title: "XP Leaderboard — O'zbek Dasturchilar",
   description:
     "Global va kategoriyalar bo'yicha XP reyting: JavaScript, React, Python, UI/UX. Top dasturchilar, level'lar, AI stack va badge'lar.",
   alternates: {

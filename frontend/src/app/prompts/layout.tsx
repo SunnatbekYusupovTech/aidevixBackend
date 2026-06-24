@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'AI Prompt Library — Claude, Cursor, Copilot | Aidevix',
+  title: 'AI Prompt Library — Claude, Cursor, Copilot',
   description:
     "Claude Code, Cursor, GitHub Copilot, ChatGPT, Gemini, Windsurf uchun professional promptlar. Coding, debugging, architecture, refactoring, testing.",
   alternates: {

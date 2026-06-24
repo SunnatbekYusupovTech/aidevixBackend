@@ -29,12 +29,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await fetchCourse(params.id);
   if (!course) {
     return {
-      title: 'Kurs topilmadi | Aidevix',
+      title: 'Kurs topilmadi',
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${course.title} | Aidevix`;
+  const title = course.title;
   const description =
     course.description?.slice(0, 160) ||
     `${course.title} — O'zbek tilidagi professional dasturlash kursi.`;
@@ -113,15 +113,11 @@ export default async function CourseLayout({ params, children }: Props) {
   };
 
   if (course.level) courseSchema.educationalLevel = course.level;
-  if (course.rating && course.ratingCount) {
-    courseSchema.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: Number(course.rating).toFixed(1),
-      ratingCount: course.ratingCount,
-      bestRating: 5,
-      worstRating: 1,
-    };
-  }
+  // ⚠️ aggregateRating ATAYIN chiqarib tashlandi. Kurs rating/ratingCount qiymatlari
+  // hozircha seed qilingan (seedCourses.js — masalan 1240, 890, 2100 ovoz), real
+  // foydalanuvchi sharhlariga asoslanmagan. Google siyosatiga ko'ra real review'siz
+  // aggregateRating markup — "spammy structured data" → manual action xavfi.
+  // Haqiqiy CourseRating'lar yig'ilgach, real review[] bilan birga qayta qo'shiladi.
   const totalDuration = isoDurationFromMinutes(course.totalDurationMinutes || course.totalDuration);
   if (totalDuration) courseSchema.timeRequired = totalDuration;
 

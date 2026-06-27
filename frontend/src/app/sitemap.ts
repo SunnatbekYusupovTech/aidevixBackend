@@ -1,5 +1,7 @@
 import { MetadataRoute } from 'next'
 import { SSR_API_BASE_URL } from '@/utils/constants'
+import { BLOG_ARTICLES } from '@/data/blogArticles'
+import { COURSE_CATEGORIES } from '@/data/courseCategories'
 
 const BASE = 'https://aidevix.uz'
 
@@ -58,6 +60,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Statik SEO sahifalar — blog qo'llanmalari + kurs kategoriya landinglari.
+  const blogUrls = BLOG_ARTICLES.map((a) => ({
+    url: `${BASE}/blog/${a.slug}`,
+    lastModified: new Date(a.updated || a.date),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  const categoryUrls = COURSE_CATEGORIES.map((c) => ({
+    url: `${BASE}/courses/category/${c.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
     .map((entry) => entry.user?.username)
@@ -85,6 +102,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly', priority: 0.5 },
     { url: `${BASE}/help`,        lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE}/contact`,     lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    ...categoryUrls,
+    ...blogUrls,
     ...courseUrls,
     ...profileUrls,
   ];

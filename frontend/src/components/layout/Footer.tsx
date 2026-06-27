@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { FaInstagram, FaTelegram, FaYoutube } from 'react-icons/fa'
 import { HiArrowRight, HiLightningBolt } from 'react-icons/hi'
 import SiteLogoMark from '@components/common/SiteLogoMark'
+import { COURSE_CATEGORIES } from '@/data/courseCategories'
 import { ROUTES, SOCIAL_LINKS } from '@utils/constants'
 import { useLang } from '@/context/LangContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -190,6 +191,32 @@ export default function Footer() {
                   ))}
                 </ul>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 2b. Kurs yo'nalishlari — har kategoriya alohida SEO landing sahifasi */}
+        <div
+          className="mx-auto max-w-7xl px-6 pb-10 sm:px-12 md:px-16"
+          style={{ borderTop: `1px solid ${borderClr}` }}
+        >
+          <h4 className={`text-xs font-bold uppercase tracking-[0.2em] mb-4 mt-10 ${headingText}`}>
+            {t('footer.directions') || 'Kurs yo\'nalishlari'}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {COURSE_CATEGORIES.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/courses/category/${c.slug}`}
+                onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
+                className={`px-3 py-1.5 rounded-none border text-xs font-medium transition-all duration-300 hover:-translate-y-0.5 ${
+                  isDark
+                    ? 'border-white/5 bg-white/[0.03] text-slate-400 hover:border-platinum-500/30 hover:text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-platinum-500/20 hover:text-platinum-600'
+                }`}
+              >
+                {c.label}
+              </Link>
             ))}
           </div>
         </div>

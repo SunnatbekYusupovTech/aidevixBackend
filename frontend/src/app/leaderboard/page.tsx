@@ -150,7 +150,6 @@ export default function LeaderboardPage() {
   const [loading, setLoading]     = useState(false)
   const [pagination, setPagination] = useState<any>(null)
   const [userPosition, setUserPosition] = useState<any>(null)
-  const [isMounted, setIsMounted]       = useState(false)
   const [weeklyData, setWeeklyData]     = useState<any>(null)
   const [countdown, setCountdown]       = useState('')
   const { t } = useLang();
@@ -207,7 +206,6 @@ export default function LeaderboardPage() {
   }
 
   useEffect(() => {
-    setIsMounted(true)
     fetchUsers(1, true)
     userApi.getWeeklyPrizes()
       .then(({ data }) => setWeeklyData(data?.data))
@@ -233,9 +231,8 @@ export default function LeaderboardPage() {
     return () => clearInterval(id)
   }, [weeklyData?.nextReset])
 
-  useEffect(() => { if (isMounted) fetchPosition() }, [isLoggedIn, currentUser?._id, isMounted])
-
-  if (!isMounted) return <div className="min-h-screen bg-base-100 flex items-center justify-center"><span className="loading loading-spinner loading-lg"></span></div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchPosition() }, [isLoggedIn, currentUser?._id])
 
   const displayUsers = apiUsers
   const podiumUsers  = displayUsers.slice(0, 3)

@@ -27,6 +27,7 @@
     "@react-oauth/google": "^0.13.5",
     "@reduxjs/toolkit": "^2.2.7",
     "@sankyu/react-circle-flags": "^1.6.7",
+    "@sentry/nextjs": "^10.62.0",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",

@@ -159,23 +159,22 @@ describe('POST /api/auth/register', () => {
     password: 'Valid@Pass1!',
   };
 
-  test('201 and sets auth cookies on valid registration', async () => {
+  // Auth flow (2026-05-15): registration no longer auto-logins. It returns
+  // requiresEmailVerification and issues NO session cookies until the user
+  // verifies their email — this prevents an unverified session.
+  test('201 with email-verification required on valid registration', async () => {
     const res = await request(app).post('/api/auth/register').send(validBody);
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.user).toBeDefined();
-    // Auth cookies must be set
-    const cookies = res.headers['set-cookie'];
-    expect(cookies).toBeDefined();
-    expect(cookies.some((c) => c.startsWith('aidevix_access='))).toBe(true);
-    expect(cookies.some((c) => c.startsWith('aidevix_refresh='))).toBe(true);
+    expect(res.body.requiresEmailVerification).toBe(true);
+    expect(res.body.email).toBeDefined();
   });
 
-  test('auth cookies must be HttpOnly', async () => {
+  test('registration must NOT set auth cookies before email verification', async () => {
     const res = await request(app).post('/api/auth/register').send(validBody);
-    const cookies = res.headers['set-cookie'];
-    const accessCookie = cookies.find((c) => c.startsWith('aidevix_access='));
-    expect(accessCookie.toLowerCase()).toContain('httponly');
+    const cookies = res.headers['set-cookie'] || [];
+    expect(cookies.some((c) => c.startsWith('aidevix_access='))).toBe(false);
+    expect(cookies.some((c) => c.startsWith('aidevix_refresh='))).toBe(false);
   });
 
   test('400 when username is missing', async () => {

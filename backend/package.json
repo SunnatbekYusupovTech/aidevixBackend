@@ -26,6 +26,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@sentry/node": "^10.62.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",

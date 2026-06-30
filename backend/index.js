@@ -7,6 +7,9 @@ require('dotenv').config();
 // Without (2), every outbound socket attempts IPv6 first and dies ENETUNREACH.
 try { require('dns').setDefaultResultOrder('ipv4first'); } catch (_) {}
 try { require('net').setDefaultAutoSelectFamily(false); } catch (_) {}
+// Sentry — loaded before express so the SDK can instrument http/express.
+// No-op unless SENTRY_DSN is set (see instrument.js).
+const Sentry = require('./instrument');
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
@@ -412,6 +415,12 @@ app.use((req, res) => {
     message: 'Route not found',
   });
 });
+
+// Sentry must capture errors before our handler turns them into a response.
+// No-op unless SENTRY_DSN is set.
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // Global error handler
 const errorHandler = require('./middleware/errorMiddleware');

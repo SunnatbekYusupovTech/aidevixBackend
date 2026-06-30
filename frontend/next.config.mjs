@@ -26,6 +26,8 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   experimental: {
+    // Enables instrumentation.ts (required on Next 14 for the Sentry register hook).
+    instrumentationHook: true,
     optimizePackageImports: [
       'react-icons',
       'framer-motion',
@@ -110,4 +112,19 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry. Source maps are only uploaded when SENTRY_AUTH_TOKEN is
+// present (CI/prod); without it the build still succeeds and just skips upload.
+// Runtime error capture is independently gated on NEXT_PUBLIC_SENTRY_DSN.
+import { withSentryConfig } from '@sentry/nextjs';
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+});

@@ -683,6 +683,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     'notFound.courses': "Kurslarni ko'rish",
     'notFound.brand': 'Aidevix Professional Learning Platform',
 
+    // Error boundary
+    'error.title': 'Nimadir xato ketdi',
+    'error.desc': "Kutilmagan xatolik yuz berdi. Bu vaqtinchalik bo'lishi mumkin — qaytadan urinib ko'ring.",
+    'error.retry': 'Qaytadan urinish',
+    'error.home': 'Bosh sahifaga qaytish',
+    'error.digest': 'Xatolik kodi',
+    'error.brand': 'Aidevix Professional Learning Platform',
+    'error.globalTitle': 'Tizimda jiddiy xatolik',
+    'error.globalDesc': "Ilovani yuklab bo'lmadi. Sahifani qaytadan yuklang yoki keyinroq urinib ko'ring.",
+    'error.globalRetry': 'Sahifani qayta yuklash',
+
     'offline.title': 'Internetga ulanmagan',
     'offline.desc': "Aidevix ga ulanish uchun internet kerak. Tarmoqni tekshiring va qaytadan urinib ko'ring.",
     'offline.retry': 'Qaytadan urinish',
@@ -1930,6 +1941,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     'notFound.courses': 'Смотреть курсы',
     'notFound.brand': 'Aidevix — профессиональная платформа обучения',
 
+    // Error boundary
+    'error.title': 'Что-то пошло не так',
+    'error.desc': 'Произошла непредвиденная ошибка. Возможно, это временно — попробуйте ещё раз.',
+    'error.retry': 'Попробовать снова',
+    'error.home': 'На главную',
+    'error.digest': 'Код ошибки',
+    'error.brand': 'Aidevix — профессиональная платформа обучения',
+    'error.globalTitle': 'Серьёзная ошибка системы',
+    'error.globalDesc': 'Не удалось загрузить приложение. Перезагрузите страницу или попробуйте позже.',
+    'error.globalRetry': 'Перезагрузить страницу',
+
     'offline.title': 'Нет подключения к интернету',
     'offline.desc': 'Для работы Aidevix нужен интернет. Проверьте сеть и попробуйте снова.',
     'offline.retry': 'Повторить',
@@ -3169,6 +3191,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     'notFound.home': 'Back to home',
     'notFound.courses': 'Browse courses',
     'notFound.brand': 'Aidevix Professional Learning Platform',
+
+    // Error boundary
+    'error.title': 'Something went wrong',
+    'error.desc': 'An unexpected error occurred. It may be temporary — please try again.',
+    'error.retry': 'Try again',
+    'error.home': 'Back to home',
+    'error.digest': 'Error code',
+    'error.brand': 'Aidevix Professional Learning Platform',
+    'error.globalTitle': 'A critical error occurred',
+    'error.globalDesc': 'The application could not load. Reload the page or try again later.',
+    'error.globalRetry': 'Reload page',
 
     'offline.title': 'You are offline',
     'offline.desc': 'Aidevix needs an internet connection. Check your network and try again.',

@@ -318,7 +318,9 @@ async function runSchedulerTick() {
 
   const now = new Date();
   const tashkentHour = (now.getUTCHours() + 5) % 24;
-  const todayStr     = now.toISOString().split('T')[0];
+  // Toshkent sanasini UTC+5 dan olamiz (UTC sana bilan aralashtirmaslik uchun)
+  const tashkentDate = new Date(now.getTime() + 5 * 3600000);
+  const todayStr     = tashkentDate.toISOString().split('T')[0];
 
   const channels = await getNewsChannels();
   if (channels.length === 0) return;

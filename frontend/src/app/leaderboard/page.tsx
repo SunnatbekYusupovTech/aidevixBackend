@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSelector } from 'react-redux'
@@ -175,7 +175,7 @@ export default function LeaderboardPage() {
   const { xp, level, levelProgress, xpToNextLevel, streak, badges,
           justLeveledUp, newLevel, quizResult, dismissLevelUp } = useUserStats()
 
-  const fetchUsers = async (page=1, replace=true) => {
+  const fetchUsers = useCallback(async (page=1, replace=true) => {
     setLoading(true)
     try {
       const { data } = await api.get('/ranking/users', {
@@ -191,9 +191,9 @@ export default function LeaderboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchPosition = async () => {
+  const fetchPosition = useCallback(async () => {
     if (!isLoggedIn || !currentUser?._id) return
     try {
       const { data } = await api.get(`/ranking/users/${currentUser._id}/position`)
@@ -203,7 +203,7 @@ export default function LeaderboardPage() {
         console.warn('ranking position:', err?.message || err)
       }
     }
-  }
+  }, [isLoggedIn, currentUser?._id])
 
   useEffect(() => {
     fetchUsers(1, true)
@@ -231,8 +231,7 @@ export default function LeaderboardPage() {
     return () => clearInterval(id)
   }, [weeklyData?.nextReset])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchPosition() }, [isLoggedIn, currentUser?._id])
+  useEffect(() => { fetchPosition() }, [fetchPosition])
 
   const displayUsers = apiUsers
   const podiumUsers  = displayUsers.slice(0, 3)
@@ -390,7 +389,7 @@ export default function LeaderboardPage() {
             {pagination && pageNum < Math.min(pagination.totalPages||pagination.pages||1, 10) && (
               <div className="text-center py-4">
                 <button
-                  onClick={() => { setPageNum(p => p+1); fetchUsers(pageNum+1, false) }}
+                  onClick={() => setPageNum(p => { const next = p + 1; fetchUsers(next, false); return next; })}
                   disabled={loading}
                   className="btn btn-outline btn-sm px-4 sm:px-10 gap-2 font-bold tracking-wider"
                 >

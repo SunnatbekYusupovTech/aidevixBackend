@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'O\'quv yo\'l xaritasi — Aidevix',
     description: 'Dasturchi bo\'lish uchun bosqichma-bosqich yo\'l xaritasi.',
+    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
   },
 };
 

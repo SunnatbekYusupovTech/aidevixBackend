@@ -242,9 +242,13 @@ async function weeklyReset() {
           `Siz bu hafta ${s.weeklyXp} XP to'plash bilan <b>${i + 1}-o'rin</b>ni egalladin!\n` +
           `Mukofot: <b>+${prize.xp} XP</b> va <b>${prize.badge.name}</b> badge 🎉\n\n` +
           `Keyingi haftada ham faol bo'ling! 💪\n#Aidevix #HaftalikTurnir`;
-        axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          chat_id: chatId, text: msg, parse_mode: 'HTML',
-        }).catch(() => {});
+        try {
+          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            chat_id: chatId, text: msg, parse_mode: 'HTML',
+          });
+        } catch (e) {
+          console.warn('[ChallengeScheduler] prize notify failed:', e.response?.data?.description || e.message);
+        }
       }
     }
 
@@ -299,14 +303,23 @@ async function sendStreakReminders() {
           `Hoziroq bir video ko'ring yoki quiz ishlang 👇\n` +
           `<a href="https://aidevix.uz">aidevix.uz</a>`;
 
-      axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        chat_id: chatId,
-        text: msg,
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
-        },
-      }).catch(() => {});
+      try {
+        await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          chat_id: chatId,
+          text: msg,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
+          },
+        });
+      } catch (e) {
+        // 403 (bot blocked) va 400 (invalid chat) — kutilgan holat, log qilmaylik
+        if (e.response?.status !== 403 && e.response?.status !== 400) {
+          console.warn('[ChallengeScheduler] streak reminder failed:', e.response?.data?.description || e.message);
+        }
+      }
+      // Telegram rate limit himoyasi (digestScheduler paterni)
+      await new Promise(r => setTimeout(r, 50));
     }
 
     if (atRisk.length > 0) {

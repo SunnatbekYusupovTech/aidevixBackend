@@ -127,9 +127,9 @@ class AidevixBot {
         case 'cb_help': await this._cmdHelp(chatId, userId, firstName); break;
         case 'cb_courses': await this._cmdCourses(chatId, firstName); break;
         case 'cb_leaderboard': await this._cmdLeaderboard(chatId); break;
-        case 'news_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); break;
-        case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); break;
-        case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); break;
+        case 'news_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); return;
+        case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); return;
+        case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); return;
       }
       await this.answerCallbackQuery(id, '');
     }
@@ -640,7 +640,10 @@ class AidevixBot {
       };
 
       await this.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard });
-    } catch (e) {}
+    } catch (e) {
+      console.error('[Bot] _cmdReferral error:', e.message);
+      this.sendMessage(chatId, '❌ Referral ma\'lumotlarini yuklashda xato yuz berdi. Qayta urinib ko\'ring.').catch(() => {});
+    }
   }
 
   /** /channels — Admin: barcha ro'yxatdagi kanallar */
@@ -1379,7 +1382,10 @@ class AidevixBot {
 
       const keyboard = { inline_keyboard: [[{ text: '🔓 Saytga kirish', url: loginLink }]] };
       await this.sendMessage(chatId, `🔐 <b>Magic Login</b>\n\nTugmani bosing va tizimga parolsiz kiring.`, { parse_mode: 'HTML', reply_markup: keyboard });
-    } catch (e) {}
+    } catch (e) {
+      console.error('[Bot] _cmdLogin error:', e.message);
+      this.sendMessage(chatId, '❌ Login havolasini yaratishda xato. Qayta urinib ko\'ring.').catch(() => {});
+    }
   }
 
   async _cmdPostNews(chatId, userId) {
@@ -1473,17 +1479,23 @@ class AidevixBot {
   }
 
   async sendMessage(chatId, text, opts = {}) {
-    try { await axios.post(`${this.apiUrl}/sendMessage`, { chat_id: chatId, text, ...opts }); } catch (e) {}
+    try { await axios.post(`${this.apiUrl}/sendMessage`, { chat_id: chatId, text, ...opts }); } catch (e) {
+      console.warn('[Bot] sendMessage error:', e.response?.data?.description || e.message);
+    }
   }
 
   async editMessage(chatId, messageId, text, opts = {}) {
     try {
       await axios.post(`${this.apiUrl}/editMessageText`, { chat_id: chatId, message_id: messageId, text, ...opts });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Bot] editMessage error:', e.response?.data?.description || e.message);
+    }
   }
 
   async answerCallbackQuery(id, text) {
-    try { await axios.post(`${this.apiUrl}/answerCallbackQuery`, { callback_query_id: id, text }); } catch (e) {}
+    try { await axios.post(`${this.apiUrl}/answerCallbackQuery`, { callback_query_id: id, text }); } catch (e) {
+      console.warn('[Bot] answerCallbackQuery error:', e.response?.data?.description || e.message);
+    }
   }
 }
 

@@ -14,6 +14,7 @@ import { formatDuration } from '@utils/formatDuration';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { videoApi } from '@/api/videoApi';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import VideoComments from '@/components/videos/VideoComments';
 
@@ -108,6 +109,7 @@ export default function VideoPage() {
   const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [question, setQuestion] = useState('');
+  const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(1024);
@@ -118,9 +120,13 @@ export default function VideoPage() {
   const watchedSecondsRef = useRef<number>(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // fetchById is recreated each render — stabilise via ref so the effect deps stay correct
+  const fetchByIdRef = useRef(fetchById);
+  useEffect(() => { fetchByIdRef.current = fetchById; }, [fetchById]);
+
   useEffect(() => {
     setIsMounted(true);
-    if (id) fetchById(id);
+    if (id) fetchByIdRef.current(id);
   }, [id]);
 
   useEffect(() => {
@@ -178,6 +184,28 @@ export default function VideoPage() {
   const handleModalSuccess = () => {
     setShowModal(false);
     window.location.reload();
+  };
+
+  const handleQuestionSubmit = async () => {
+    if (!question.trim() || isSubmittingQuestion) return;
+    setIsSubmittingQuestion(true);
+    try {
+      await videoApi.askQuestion(id, { question: question.trim() });
+      toast.success(
+        lang === 'en' ? 'Question submitted!' :
+        lang === 'ru' ? 'Вопрос отправлен!' :
+        'Savol yuborildi!'
+      );
+      setQuestion('');
+    } catch {
+      toast.error(
+        lang === 'en' ? 'Failed to submit question' :
+        lang === 'ru' ? 'Не удалось отправить вопрос' :
+        "Savol yuborishda xato yuz berdi"
+      );
+    } finally {
+      setIsSubmittingQuestion(false);
+    }
   };
 
   if (!isMounted || loading) {
@@ -504,11 +532,11 @@ export default function VideoPage() {
                   placeholder={localText.qaPlaceholder}
                 />
                 <button
-                  onClick={() => setQuestion('')}
-                  disabled={!question.trim()}
+                  onClick={handleQuestionSubmit}
+                  disabled={!question.trim() || isSubmittingQuestion}
                   className="absolute bottom-3 right-3 px-4 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-lg active:scale-95"
                 >
-                  {localText.send}
+                  {isSubmittingQuestion ? '...' : localText.send}
                 </button>
               </div>
             </div>

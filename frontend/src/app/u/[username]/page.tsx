@@ -29,8 +29,6 @@ export async function generateMetadata({ params }: { params: { username: string 
       canonical: url,
       languages: {
         'uz-UZ': url,
-        'ru-RU': url,
-        'en-US': url,
         'x-default': url,
       },
     },

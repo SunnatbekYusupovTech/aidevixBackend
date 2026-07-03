@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { authApi } from '@api/authApi'
 import { tokenStorage } from '@utils/tokenStorage'
+import type { RootState } from '../index'
 
 // ─── Async Thunks ─────────────────────────────────────────────
 

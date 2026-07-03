@@ -127,6 +127,12 @@ JSON format:
     return res.json({ success: true, data: review });
   } catch (err) {
     console.error('[Playground] reviewCode xatosi:', err.message);
+    // Timeout (25s) — 500 o'rniga graceful heuristic fallback
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      const fbCode = String(req.body?.code || '');
+      const fbLang = String(req.body?.language || 'javascript').toLowerCase();
+      return res.json({ success: true, data: buildFallbackReview(fbCode, fbLang), degraded: true });
+    }
     return res.status(500).json({ success: false, message: 'AI review amalga oshmadi' });
   }
 };

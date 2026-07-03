@@ -39,7 +39,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     course.description?.slice(0, 160) ||
     `${course.title} — O'zbek tilidagi professional dasturlash kursi.`;
   const image = course.thumbnail || 'https://aidevix.uz/Logo.jpg';
-  const url = `https://aidevix.uz/courses/${params.id}`;
+  // SEO-007: canonical URL slug bilan (slug yo'q bo'lsa params.id)
+  const canonicalSlug = (course.slug as string | undefined) || params.id;
+  const url = `https://aidevix.uz/courses/${canonicalSlug}`;
 
   return {
     title,
@@ -48,8 +50,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: url,
       languages: {
         'uz-UZ': url,
-        'ru-RU': url,
-        'en-US': url,
         'x-default': url,
       },
     },
@@ -79,7 +79,9 @@ export default async function CourseLayout({ params, children }: Props) {
   const course = await fetchCourse(params.id);
   if (!course) return <>{children}</>;
 
-  const url = `https://aidevix.uz/courses/${params.id}`;
+  // SEO-007: JSON-LD'da ham canonical slug URL
+  const canonicalSlug = (course.slug as string | undefined) || params.id;
+  const url = `https://aidevix.uz/courses/${canonicalSlug}`;
   const instructorName =
     typeof course.instructor === 'string'
       ? course.instructor

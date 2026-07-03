@@ -4,6 +4,13 @@ const User = require('../models/User');
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// PB-012: In-memory TTL caches for hot public leaderboard endpoints (same pattern as getHomeStats)
+const RANKING_TTL = 60_000; // 60 seconds
+let _weeklyLeaderboardCache = null;   // top-10 leaderboard array only (user-specific myRank not cached)
+let _weeklyLeaderboardCacheAt = 0;
+let _weeklyPrizesCache = null;        // { prizes, leaderboard } — time fields recomputed each call
+let _weeklyPrizesCacheAt = 0;
+
 /**
  * Level asosida rank unvonini hisoblash
  * Figma leaderboard da ko'rsatiladigan unvonlar: GRANDMASTER, VICE-ADMIRAL, COMMANDER...
@@ -157,11 +164,34 @@ const getUserPosition = async (req, res) => {
  */
 const getWeeklyLeaderboard = async (req, res) => {
   try {
-    const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
-      .sort({ weeklyXp: -1 })
-      .limit(10)
-      .populate('userId', 'username firstName lastName avatar')
-      .lean();
+    let top;
+    let myStats = null;
+
+    if (_weeklyLeaderboardCache && Date.now() - _weeklyLeaderboardCacheAt < RANKING_TTL) {
+      // PB-012: cache hit — only fetch per-user stats if needed
+      top = _weeklyLeaderboardCache;
+      if (req.user) {
+        myStats = await UserStats.findOne({ userId: req.user.id }).select('weeklyXp').lean();
+      }
+    } else {
+      // PB-009 + PB-002: parallel fetch + select to exclude xpAwardedVideos[]
+      const [topResult, myStatsResult] = await Promise.all([
+        UserStats.find({ weeklyXp: { $gt: 0 } })
+          .sort({ weeklyXp: -1 })
+          .limit(10)
+          .select('userId weeklyXp level streak')
+          .populate('userId', 'username firstName lastName avatar')
+          .lean(),
+        req.user
+          ? UserStats.findOne({ userId: req.user.id }).select('weeklyXp').lean()
+          : Promise.resolve(null),
+      ]);
+      top = topResult;
+      myStats = myStatsResult;
+      // PB-012: store top array in cache (user-specific parts are never cached)
+      _weeklyLeaderboardCache = top;
+      _weeklyLeaderboardCacheAt = Date.now();
+    }
 
     const rankedUsers = top.map((u, i) => ({
       rank: i + 1,
@@ -171,15 +201,12 @@ const getWeeklyLeaderboard = async (req, res) => {
       streak: u.streak,
     }));
 
-    // Joriy foydalanuvchi pozitsiyasi
+    // Joriy foydalanuvchi pozitsiyasi — always fresh (not cached)
     let myRank = null;
     let myWeeklyXp = 0;
-    if (req.user) {
-      const myStats = await UserStats.findOne({ userId: req.user.id }).lean();
-      if (myStats) {
-        myWeeklyXp = myStats.weeklyXp || 0;
-        myRank = await UserStats.countDocuments({ weeklyXp: { $gt: myWeeklyXp } }) + 1;
-      }
+    if (req.user && myStats) {
+      myWeeklyXp = myStats.weeklyXp || 0;
+      myRank = await UserStats.countDocuments({ weeklyXp: { $gt: myWeeklyXp } }) + 1;
     }
 
     res.json({ success: true, data: { leaderboard: rankedUsers, myRank, myWeeklyXp } });
@@ -195,11 +222,24 @@ const getWeeklyLeaderboard = async (req, res) => {
  */
 const getWeeklyPrizes = async (req, res) => {
   try {
+    // Time-sensitive fields recomputed on every call (countdown accuracy)
     const now = new Date();
     const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
     const nextReset = new Date(now);
     nextReset.setDate(now.getDate() + daysUntilSunday);
     nextReset.setHours(19, 0, 0, 0); // Yakshanba 00:00 Toshkent = 19:00 UTC
+
+    // PB-012: cache hit — prizes and leaderboard are stable within TTL
+    if (_weeklyPrizesCache && Date.now() - _weeklyPrizesCacheAt < RANKING_TTL) {
+      return res.json({
+        success: true,
+        data: {
+          ..._weeklyPrizesCache,
+          nextReset:    nextReset.toISOString(),
+          msUntilReset: nextReset.getTime() - Date.now(),
+        },
+      });
+    }
 
     const prizes = [
       { rank: 1, xp: 500, badge: '🥇 Hafta Chempioni',   color: 'gold'   },
@@ -207,9 +247,11 @@ const getWeeklyPrizes = async (req, res) => {
       { rank: 3, xp: 150, badge: '🥉 Bronza O\'rin',     color: 'bronze' },
     ];
 
+    // PB-002: add .select() to exclude xpAwardedVideos[]
     const top = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })
       .limit(10)
+      .select('userId weeklyXp level avatar')
       .populate('userId', 'username firstName lastName avatar aiStack')
       .lean();
 
@@ -221,12 +263,16 @@ const getWeeklyPrizes = async (req, res) => {
       avatar:   u.avatar,
     }));
 
+    // PB-012: store stable parts in cache
+    _weeklyPrizesCache = { prizes, leaderboard };
+    _weeklyPrizesCacheAt = Date.now();
+
     res.json({
       success: true,
       data: {
         prizes,
         leaderboard,
-        nextReset: nextReset.toISOString(),
+        nextReset:    nextReset.toISOString(),
         msUntilReset: nextReset.getTime() - Date.now(),
       },
     });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
@@ -41,26 +41,26 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
   const moreRef = useRef<HTMLLIElement>(null)
-  const navLocalText = {
+  const navLocalText = useMemo(() => ({
     prompts: lang === 'en' ? 'Prompts' : lang === 'ru' ? 'Промпты' : 'Prompts',
     roadmap: lang === 'en' ? 'Roadmap' : lang === 'ru' ? 'Роадмап' : 'Roadmap',
     adminPanel: lang === 'en' ? 'Admin Panel' : lang === 'ru' ? 'Админ панель' : 'Admin Panel',
-  }
+  }), [lang])
 
   /** Chiptada gorizontal skrollsiz: asosiy 4 + qolganlari “Yana” menyusida. */
-  const navPrimary: { label: string; to: string }[] = [
+  const navPrimary = useMemo<{ label: string; to: string }[]>(() => [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: `⚡ ${navLocalText.prompts}`, to: ROUTES.PROMPTS },
     { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
-  ]
-  const navMore: { label: string; to: string }[] = [
+  ], [t, navLocalText])
+  const navMore = useMemo<{ label: string; to: string }[]>(() => [
     { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
     { label: 'Mentorship', to: ROUTES.MENTORSHIP },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
-  ]
+  ], [t, navLocalText])
   const allNavMobile = [...navPrimary, ...navMore]
   const isMoreGroupActive = navMore.some((l) => l.to === pathname)
 
@@ -83,9 +83,9 @@ export default function Navbar() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  const playHoverSound = () => {
+  const playHoverSound = useCallback(() => {
     playSound('/sounds/onlyclick.wav')
-  }
+  }, [playSound])
 
   useEffect(() => {
     playSound('/sounds/navchange.wav', 0.25)

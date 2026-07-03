@@ -31,7 +31,7 @@ import { BsLightningChargeFill } from 'react-icons/bs';
 import { useVideos } from '@hooks/useVideos';
 import { useUserStats } from '@hooks/useUserStats';
 import { useSubscription } from '@hooks/useSubscription';
-import { selectIsLoggedIn } from '@store/slices/authSlice';
+import { selectIsLoggedIn, selectUser } from '@store/slices/authSlice';
 import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice';
 import { userApi } from '@/api/userApi';
 import { videoApi } from '@/api/videoApi';
@@ -109,6 +109,7 @@ export default function VideoPlaygroundPage() {
   const { current: video, player, loading, fetchById } = useVideos();
   const { xp } = useUserStats();
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const user = useSelector(selectUser);
   const { instagram, telegram, allVerified } = useSubscription();
   const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -132,34 +133,46 @@ export default function VideoPlaygroundPage() {
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const sandboxIframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isOutputExpanded, setIsOutputExpanded] = useState(true);
 
   const category = video?.course?.category || 'html';
   const fileName = category === 'html' ? 'index.html' : category === 'javascript' ? 'script.js' : 'main.py';
   const language = category === 'html' ? 'html' : category === 'javascript' ? 'javascript' : 'python';
 
-  // Set initial code when video loads
+  // Set initial code when video loads — use ref so user edits are never overwritten
+  const initialCodeSetRef = useRef(false);
   useEffect(() => {
-    if (video && !code) {
+    if (video && !initialCodeSetRef.current) {
+      initialCodeSetRef.current = true;
       setCode(DEFAULT_CODES[category] || DEFAULT_CODES.html);
       if (category === 'html') setOutputTab('preview');
     }
   }, [video, category]);
 
-  // Load Pyodide for Python
+  // Load Pyodide for Python — guard: skip if already in DOM, cancel setState on unmount
   useEffect(() => {
     if ((category === 'python' || category === 'ai') && !pyodide && !isPyodideLoading) {
+      if (document.getElementById('pyodide-script')) return;
+      let cancelled = false;
       setIsPyodideLoading(true);
       const script = document.createElement('script');
+      script.id = 'pyodide-script';
       script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
       script.async = true;
       script.onload = async () => {
         // @ts-ignore
         const py = await window.loadPyodide();
-        setPyodide(py);
-        setIsPyodideLoading(false);
+        if (!cancelled) {
+          setPyodide(py);
+          setIsPyodideLoading(false);
+        }
       };
       document.body.appendChild(script);
+      return () => {
+        cancelled = true;
+        try { document.body.removeChild(script); } catch { /* already removed */ }
+      };
     }
   }, [category, pyodide, isPyodideLoading]);
  
@@ -173,9 +186,13 @@ export default function VideoPlaygroundPage() {
     }
   }, [code, category]);
 
+  // fetchById is recreated each render — stabilise via ref (same pattern as runCodeRef below)
+  const fetchByIdRef = useRef(fetchById);
+  useEffect(() => { fetchByIdRef.current = fetchById; }, [fetchById]);
+
   useEffect(() => {
     setIsMounted(true);
-    if (id) fetchById(id);
+    if (id) fetchByIdRef.current(id);
   }, [id]);
 
   useEffect(() => {
@@ -229,9 +246,8 @@ export default function VideoPlaygroundPage() {
     setIsRunning(true);
 
     if (category === 'html') {
-      const blob = new Blob([code], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      // Live-preview useEffect already keeps previewUrl up-to-date via its own blob URL
+      // Creating a second blob URL here would leak the old one — just switch tab
       setOutputTab('preview');
       setOutput([{ type: 'info', content: t('playground.previewUpdated') }]);
       setIsRunning(false);
@@ -266,15 +282,50 @@ export default function VideoPlaygroundPage() {
         logs.push({ type: 'error', content: err.message });
       }
     } else {
-      const oldLog = console.log;
-      try {
-        console.log = (...args: any[]) => logs.push({ type: 'log', content: args.join(' ') });
-        const fn = new Function(code);
-        fn();
-      } catch (err: any) {
-        logs.push({ type: 'error', content: err.message });
-      } finally {
-        console.log = oldLog;
+      // Sandboxed iframe — user JS never runs in page global scope
+      const iframe = sandboxIframeRef.current;
+      if (iframe) {
+        const collected: OutputLine[] = [...logs];
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(tid);
+          window.removeEventListener('message', onMsg);
+          setOutput(collected);
+          setIsRunning(false);
+          setOutputTab('terminal');
+        };
+        const tid = window.setTimeout(() => {
+          collected.push({ type: 'error', content: t('playground.sandboxTimeout') || 'Execution timeout (5s)' });
+          settle();
+        }, 5000);
+        const onMsg = (ev: MessageEvent) => {
+          if (ev.source !== iframe.contentWindow) return;
+          const d = ev.data as { __aidevix?: number; type?: string; content?: string } | null;
+          if (!d?.__aidevix) return;
+          if (d.type === 'log') collected.push({ type: 'log', content: String(d.content ?? '') });
+          else if (d.type === 'error') collected.push({ type: 'error', content: String(d.content ?? '') });
+          else if (d.type === 'done') settle();
+        };
+        window.addEventListener('message', onMsg);
+        // encodeURIComponent safely embeds arbitrary user code as URL-encoded text
+        const encoded = encodeURIComponent(code);
+        iframe.srcdoc = `<!DOCTYPE html><html><body>` +
+          `<script>const __s=(t,c)=>parent.postMessage({__aidevix:1,type:t,content:c},'*');` +
+          `window.console={` +
+          `log:(...a)=>__s('log',a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' ')),` +
+          `error:(...a)=>__s('error',a.map(String).join(' ')),` +
+          `warn:(...a)=>__s('log','[warn] '+a.map(String).join(' ')),` +
+          `info:(...a)=>__s('log','[info] '+a.map(String).join(' '))};` +
+          `window.onerror=(m)=>{__s('error',String(m));__s('done','');return true};<\/script>` +
+          `<script id="uc" type="text/plain">${encoded}<\/script>` +
+          `<script>try{eval(decodeURIComponent(document.getElementById('uc').textContent));__s('done','');}` +
+          `catch(e){__s('error',e.message);__s('done','');}<\/script>` +
+          `</body></html>`;
+        return; // state updates handled asynchronously by onMsg/settle
+      } else {
+        logs.push({ type: 'error', content: 'JS sandbox not available' });
       }
     }
 
@@ -382,7 +433,9 @@ export default function VideoPlaygroundPage() {
             aria-label={t('playground.profileAria')}
           >
              <div className="flex h-full w-full items-center justify-center rounded-[15px] bg-[#10121f]">
-                <span className="text-xs font-bold text-white">M</span>
+                <span className="text-xs font-bold text-white">
+                  {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+                </span>
              </div>
           </button>
         </div>
@@ -836,6 +889,15 @@ export default function VideoPlaygroundPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Hidden sandbox iframe for safe JS execution (QF-008) */}
+      <iframe
+        ref={sandboxIframeRef}
+        sandbox="allow-scripts"
+        title="js-sandbox"
+        aria-hidden="true"
+        style={{ display: 'none', width: 0, height: 0, position: 'absolute', border: 'none' }}
+      />
 
       {/* Instagram Verification Modal */}
       <SubscriptionGate

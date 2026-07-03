@@ -3,6 +3,14 @@ const Video  = require('../models/Video');
 const CourseRating = require('../models/CourseRating');
 const Enrollment = require('../models/Enrollment');
 
+// SEO-007: 24-belgili hex → ObjectId; boshqasi → slug
+const isObjectId = (s) => /^[0-9a-f]{24}$/.test(s);
+
+// PB-014: getCategories in-memory cache (TTL = 300s)
+let _catCache = null;
+let _catCacheAt = 0;
+const CAT_TTL = 5 * 60 * 1000;
+
 /**
  * @desc  Barcha kurslar — filter, qidiruv, pagination
  * @route GET /api/courses?category=react&search=...&level=beginner&sort=popular&page=1&limit=12
@@ -108,18 +116,22 @@ const getTopCourses = async (req, res) => {
  */
 const getCategories = async (req, res) => {
   try {
-    const categories = await Course.aggregate([
+    // PB-014: serve from cache if still fresh
+    if (_catCache && Date.now() - _catCacheAt < CAT_TTL) {
+      return res.json({ success: true, data: { categories: _catCache } });
+    }
+
+    const raw = await Course.aggregate([
       { $match: { isActive: true } },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
 
-    res.json({
-      success: true,
-      data: {
-        categories: categories.map((c) => ({ name: c._id, count: c.count })),
-      },
-    });
+    const result = raw.map((c) => ({ name: c._id, count: c.count }));
+    _catCache = result;
+    _catCacheAt = Date.now();
+
+    res.json({ success: true, data: { categories: result } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -127,12 +139,17 @@ const getCategories = async (req, res) => {
 
 /**
  * @desc  Bitta kurs to'liq ma'lumoti (videolar va loyihalar bilan)
- * @route GET /api/courses/:id
+ * @route GET /api/courses/:id   (id = ObjectId YOKI slug)
  * @access Public
  */
 const getCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id)
+    const param = req.params.id;
+    const query = isObjectId(param)
+      ? Course.findById(param)
+      : Course.findOne({ slug: param });
+
+    const course = await query
       .populate('instructor', 'username email jobTitle position')
       .populate({
         path:   'videos',
@@ -147,9 +164,16 @@ const getCourse = async (req, res) => {
     }
 
     // Ko'rishlar sonini oshirish (background'da) — unhandled rejection oldini olish
-    Course.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } })
+    Course.findByIdAndUpdate(course._id, { $inc: { viewCount: 1 } })
       .exec()
       .catch((err) => console.error('[courseController] viewCount inc xato:', err.message));
+
+    // SEO-007: Eski hujjatlarda slug yo'q bo'lsa — fon'da generatsiya qilinadi
+    if (!course.slug) {
+      Course.findById(course._id)
+        .then((doc) => doc && doc.save())
+        .catch((err) => console.error('[courseController] slug gen xato:', err.message));
+    }
 
     res.json({ success: true, data: { course } });
   } catch (error) {
@@ -164,7 +188,11 @@ const getCourse = async (req, res) => {
  */
 const getRecommendedCourses = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).select('category');
+    const param = req.params.id;
+    const baseQuery = isObjectId(param)
+      ? Course.findById(param)
+      : Course.findOne({ slug: param });
+    const course = await baseQuery.select('category _id').lean();
     if (!course) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
@@ -174,7 +202,7 @@ const getRecommendedCourses = async (req, res) => {
     const courses = await Course.find({
       isActive: true,
       category: course.category,
-      _id: { $ne: req.params.id },
+      _id: { $ne: course._id },
     })
       .populate('instructor', 'username email jobTitle position')
       .sort({ rating: -1, viewCount: -1 })
@@ -292,7 +320,10 @@ const rateCourse = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Reyting 1 dan 5 gacha bo\'lishi kerak' });
     }
 
-    const course = await Course.findById(req.params.id);
+    const param = req.params.id;
+    const course = isObjectId(param)
+      ? await Course.findById(param)
+      : await Course.findOne({ slug: param });
     if (!course || !course.isActive) {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
@@ -339,12 +370,11 @@ const getUserRecommendedCourses = async (req, res) => {
     const User = require('../models/User');
     const limit = Math.min(parseInt(req.query.limit) || 6, 20);
 
-    const user = await User.findById(req.user._id).select('aiStack').lean();
-
-    // Foydalanuvchi yozilgan kurslar — duplikatlarni chetlatamiz
-    const myEnrollments = await Enrollment.find({ userId: req.user._id })
-      .select('courseId isCompleted')
-      .lean();
+    // PB-011: parallelize independent reads
+    const [user, myEnrollments] = await Promise.all([
+      User.findById(req.user._id).select('aiStack').lean(),
+      Enrollment.find({ userId: req.user._id }).select('courseId isCompleted').lean(),
+    ]);
     const enrolledIds = myEnrollments.map((e) => e.courseId);
 
     // Tugatilgan kurslar kategoriyalarini olamiz (signal)
@@ -439,29 +469,52 @@ const getAutocomplete = async (req, res) => {
  */
 const getFilterCounts = async (req, res) => {
   try {
-    const [catAgg, levelAgg, freeCount, paidCount] = await Promise.all([
-      Course.aggregate([
-        { $match: { isActive: true } },
-        { $group: { _id: '$category', count: { $sum: 1 } } },
-      ]),
-      Course.aggregate([
-        { $match: { isActive: true } },
-        { $group: { _id: '$level', count: { $sum: 1 } } },
-      ]),
-      Course.countDocuments({ isActive: true, isFree: true }),
-      Course.countDocuments({ isActive: true, isFree: false }),
+    // PB-004: single $facet aggregation instead of 4 separate DB round-trips
+    const [result] = await Course.aggregate([
+      { $match: { isActive: true } },
+      {
+        $facet: {
+          categories: [{ $group: { _id: '$category', count: { $sum: 1 } } }],
+          levels:     [{ $group: { _id: '$level',    count: { $sum: 1 } } }],
+          free:       [{ $match: { isFree: true } },  { $count: 'n' }],
+          paid:       [{ $match: { isFree: false } }, { $count: 'n' }],
+        },
+      },
     ]);
 
     const categories = {};
-    catAgg.forEach((c) => { categories[c._id] = c.count; });
+    (result.categories || []).forEach((c) => { categories[c._id] = c.count; });
 
     const levels = {};
-    levelAgg.forEach((l) => { levels[l._id] = l.count; });
+    (result.levels || []).forEach((l) => { levels[l._id] = l.count; });
+
+    const freeCount = result.free[0]?.n ?? 0;
+    const paidCount = result.paid[0]?.n ?? 0;
 
     res.json({
       success: true,
       data: { categories, levels, free: freeCount, paid: paidCount },
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc  Sitemap uchun barcha aktiv kurslar (_id + slug + updatedAt) — limit 5000
+ *        getAllCourses 50-ta clamp'dan chetlashadi (Bonus-14 fix)
+ * @route GET /api/courses/sitemap
+ * @access Public (auth'siz)
+ */
+const getSitemapCourses = async (req, res) => {
+  try {
+    const courses = await Course.find({ isActive: true })
+      .select('_id slug updatedAt')
+      .sort({ createdAt: -1 })
+      .limit(5000)
+      .lean();
+
+    res.json({ success: true, data: { courses } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -476,6 +529,7 @@ module.exports = {
   getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
+  getSitemapCourses,
   createCourse,
   updateCourse,
   deleteCourse,

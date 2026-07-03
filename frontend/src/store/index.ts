@@ -30,3 +30,6 @@ export default store
 // Type helpers for TypeScript migration later
 export const getState  = store.getState
 export const dispatch  = store.dispatch
+
+export type RootState   = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch

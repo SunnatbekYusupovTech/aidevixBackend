@@ -5,7 +5,8 @@ import { COURSE_CATEGORIES } from '@/data/courseCategories'
 
 const BASE = 'https://aidevix.uz'
 
-type Course  = { _id: string; updatedAt?: string };
+// SEO-007: slug maydoni qo'shildi — sitemap'da endi slug URL'lar ishlatiladi
+type Course  = { _id: string; slug?: string; updatedAt?: string };
 type RankedUser = { user?: { username?: string; createdAt?: string }; xp?: number };
 
 // Profil sahifalari SEO sifatini ushlab turish uchun filtrlanadi. /ranking/users
@@ -36,6 +37,10 @@ async function fetchJson<T>(url: string, key: string): Promise<T[]> {
   }
 }
 
+// Barqaror sana: oxirgi real kontent yangilanish sanasi (2026-06-24 deploy).
+// `new Date()` o'rniga qo'yiladi — haqiqatan o'zgarmaydigan statik sahifalar uchun.
+const STATIC_LAST_MODIFIED = new Date('2026-06-24');
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all dynamic content types in parallel — sitemap render must stay fast.
   // Only endpoints that are PUBLIC (no auth) are usable here:
@@ -46,15 +51,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Videolar (/videos/:id) ATAYIN chiqarib tashlandi — sahifa standalone ochilganda
   // "Video topilmadi" + noindex qaytaradi (soft-404). Ularni sitemap'ga qo'yish
   // sitemap sifatini buzadi va indekslashni sekinlashtiradi.
-  const [courses, rankedUsers] = await Promise.all([
-    fetchJson<Course>(`${SSR_API_BASE_URL}courses?limit=500`, 'courses'),
+  // Bonus-14: /courses/sitemap endpoint'i 50-limit clamp'dan xoli (max 5000)
+  // va slug ma'lumotini qaytaradi. Fallback: eski /courses?limit=500 (deploy oldin).
+  const [rawCourses, rankedUsers] = await Promise.all([
+    fetchJson<Course>(`${SSR_API_BASE_URL}courses/sitemap`, 'courses'),
     fetchJson<RankedUser>(`${SSR_API_BASE_URL}ranking/users?limit=500`, 'users'),
   ]);
 
+  // Yangi endpoint ishlasa uni ishlat, aks holda eski fallback
+  const courses: Course[] = rawCourses.length > 0
+    ? rawCourses
+    : await fetchJson<Course>(`${SSR_API_BASE_URL}courses?limit=500`, 'courses');
+
   const now = new Date();
 
+  // SEO-007: slug mavjud bo'lsa slug URL, aks holda _id URL
   const courseUrls = courses.map((c) => ({
-    url: `${BASE}/courses/${c._id}`,
+    url: `${BASE}/courses/${c.slug || c._id}`,
     lastModified: new Date(c.updatedAt || now),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
@@ -77,31 +90,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
-    .map((entry) => entry.user?.username)
-    .filter((u): u is string => Boolean(u) && !isJunkUsername(u))
-    .map((username) => ({
-      url: `${BASE}/u/${username}`,
-      lastModified: now,
+    .filter((entry) => Boolean(entry.user?.username) && !isJunkUsername(entry.user?.username ?? ''))
+    .map((entry) => ({
+      url: `${BASE}/u/${entry.user!.username!}`,
+      // createdAt mavjud bo'lsa ishlatiladi, aks holda lastModified tashlab yuboriladi
+      ...(entry.user?.createdAt ? { lastModified: new Date(entry.user.createdAt) } : {}),
       changeFrequency: 'weekly' as const,
       priority: 0.5,
     }));
 
   return [
-    { url: BASE,                  lastModified: now, changeFrequency: 'daily',  priority: 1   },
-    { url: `${BASE}/courses`,     lastModified: now, changeFrequency: 'daily',  priority: 0.9 },
-    { url: `${BASE}/leaderboard`, lastModified: now, changeFrequency: 'daily',  priority: 0.7 },
-    { url: `${BASE}/challenges`,  lastModified: now, changeFrequency: 'daily',  priority: 0.7 },
-    { url: `${BASE}/prompts`,     lastModified: now, changeFrequency: 'daily',  priority: 0.8 },
-    { url: `${BASE}/playground`,  lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${BASE}/roadmap`,     lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
-    { url: `${BASE}/mentorship`,  lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/careers`,     lastModified: now, changeFrequency: 'daily',  priority: 0.6 },
-    { url: `${BASE}/pricing`,     lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/about`,       lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${BASE}/team`,        lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly', priority: 0.5 },
-    { url: `${BASE}/help`,        lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${BASE}/contact`,     lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: BASE,                  lastModified: now,                    changeFrequency: 'daily',   priority: 1   },
+    { url: `${BASE}/courses`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.9 },
+    { url: `${BASE}/leaderboard`, lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
+    { url: `${BASE}/challenges`,  lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
+    { url: `${BASE}/prompts`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${BASE}/playground`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/roadmap`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'weekly',  priority: 0.6 },
+    { url: `${BASE}/mentorship`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/careers`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.6 },
+    { url: `${BASE}/pricing`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/about`,       lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/team`,        lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/blog`,        lastModified: now,                    changeFrequency: 'weekly',  priority: 0.5 },
+    { url: `${BASE}/help`,        lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/contact`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/privacy`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${BASE}/terms`,       lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
     ...categoryUrls,
     ...blogUrls,
     ...courseUrls,

@@ -7,6 +7,7 @@ const Prompt = require('../models/Prompt');
 const Follow = require('../models/Follow');
 const Enrollment = require('../models/Enrollment');
 const QuizResult = require('../models/QuizResult');
+const ActivityLog = require('../models/ActivityLog');
 
 /**
  * @desc  Home sahifa uchun ochiq statistika
@@ -32,10 +33,37 @@ const getHomeStats = async (_req, res) => {
     const startOfPast24Hours = new Date();
     startOfPast24Hours.setHours(startOfPast24Hours.getHours() - 24);
 
+    // ActivityLog mavjudligini tez tekshirish (kolleksiya metadata, skan yo'q)
+    const useActivityLog = (await ActivityLog.estimatedDocumentCount()) > 0;
+
+    // weeklyVideos va hourlyVideos: ActivityLog bor bo'lsa — tez yo'l (PB-001 fix)
+    // Aks holda — eski Enrollment $unwind aggregation (transition fallback)
+    const weeklyVideosQuery = useActivityLog
+      ? ActivityLog.aggregate([
+          { $match: { watchedAt: { $gte: startOfWeek } } },
+          { $group: { _id: { $dayOfWeek: '$watchedAt' }, count: { $sum: 1 } } },
+        ])
+      : Enrollment.aggregate([
+          { $unwind: '$watchedVideos' },
+          { $match: { 'watchedVideos.watchedAt': { $gte: startOfWeek } } },
+          { $group: { _id: { $dayOfWeek: '$watchedVideos.watchedAt' }, count: { $sum: 1 } } },
+        ]);
+
+    const hourlyVideosQuery = useActivityLog
+      ? ActivityLog.aggregate([
+          { $match: { watchedAt: { $gte: startOfPast24Hours } } },
+          { $group: { _id: { $hour: '$watchedAt' }, count: { $sum: 1 } } },
+        ])
+      : Enrollment.aggregate([
+          { $unwind: '$watchedVideos' },
+          { $match: { 'watchedVideos.watchedAt': { $gte: startOfPast24Hours } } },
+          { $group: { _id: { $hour: '$watchedVideos.watchedAt' }, count: { $sum: 1 } } },
+        ]);
+
     const [
-      students, 
-      videos, 
-      mentorsAgg, 
+      students,
+      videos,
+      mentorsAgg,
       ratingAgg,
       weeklyVideos,
       weeklyQuizzes,
@@ -53,16 +81,7 @@ const getHomeStats = async (_req, res) => {
         { $match: { isActive: true, rating: { $gt: 0 } } },
         { $group: { _id: null, avg: { $avg: '$rating' } } },
       ]),
-      Enrollment.aggregate([
-        { $unwind: '$watchedVideos' },
-        { $match: { 'watchedVideos.watchedAt': { $gte: startOfWeek } } },
-        {
-          $group: {
-            _id: { $dayOfWeek: '$watchedVideos.watchedAt' },
-            count: { $sum: 1 },
-          }
-        }
-      ]),
+      weeklyVideosQuery,
       QuizResult.aggregate([
         { $match: { completedAt: { $gte: startOfWeek } } },
         {
@@ -72,16 +91,7 @@ const getHomeStats = async (_req, res) => {
           }
         }
       ]),
-      Enrollment.aggregate([
-        { $unwind: '$watchedVideos' },
-        { $match: { 'watchedVideos.watchedAt': { $gte: startOfPast24Hours } } },
-        {
-          $group: {
-            _id: { $hour: '$watchedVideos.watchedAt' },
-            count: { $sum: 1 },
-          }
-        }
-      ]),
+      hourlyVideosQuery,
       QuizResult.aggregate([
         { $match: { completedAt: { $gte: startOfPast24Hours } } },
         {
@@ -156,34 +166,40 @@ const getPublicProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
     }
 
-    const stats = await UserStats.findOne({ userId: user._id })
-      .select('xp level streak badges bio skills weeklyXp')
-      .lean();
+    // PB-006: run stats + totalUsers in parallel (independent queries)
+    const [stats, totalUsers] = await Promise.all([
+      UserStats.findOne({ userId: user._id })
+        .select('xp level streak badges bio skills weeklyXp')
+        .lean(),
+      UserStats.countDocuments(),
+    ]);
 
-    const totalUsers = await UserStats.countDocuments();
-    const rank = stats
-      ? (await UserStats.countDocuments({ xp: { $gt: stats.xp || 0 } })) + 1
-      : totalUsers;
-
+    // PB-006: merge rank query into the main Promise.all to cut one sequential await
     // Sertifikatlar, promptlar, follow statistikasi — bitta Promise.all bilan
-    const [certCount, topCerts, promptCount, topPrompts, followersCount, followingCount, completedCourses] =
-      await Promise.all([
-        Certificate.countDocuments({ userId: user._id }),
-        Certificate.find({ userId: user._id })
-          .sort({ createdAt: -1 })
-          .limit(3)
-          .select('courseName certificateCode createdAt')
-          .lean(),
-        Prompt.countDocuments({ author: user._id }),
-        Prompt.find({ author: user._id, isPublic: true })
-          .sort({ likesCount: -1, viewsCount: -1 })
-          .limit(3)
-          .select('title category tool likesCount viewsCount')
-          .lean(),
-        Follow.countDocuments({ followingId: user._id }),
-        Follow.countDocuments({ followerId: user._id }),
-        Enrollment.countDocuments({ userId: user._id, isCompleted: true }),
-      ]);
+    const [
+      rank,
+      certCount, topCerts, promptCount, topPrompts,
+      followersCount, followingCount, completedCourses,
+    ] = await Promise.all([
+      stats
+        ? UserStats.countDocuments({ xp: { $gt: stats.xp || 0 } }).then(c => c + 1)
+        : Promise.resolve(totalUsers),
+      Certificate.countDocuments({ userId: user._id }),
+      Certificate.find({ userId: user._id })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .select('courseName certificateCode createdAt')
+        .lean(),
+      Prompt.countDocuments({ author: user._id }),
+      Prompt.find({ author: user._id, isPublic: true })
+        .sort({ likesCount: -1, viewsCount: -1 })
+        .limit(3)
+        .select('title category tool likesCount viewsCount')
+        .lean(),
+      Follow.countDocuments({ followingId: user._id }),
+      Follow.countDocuments({ followerId: user._id }),
+      Enrollment.countDocuments({ userId: user._id, isCompleted: true }),
+    ]);
 
     const getRankTitle = (level = 1) => {
       if (level >= 90) return 'GRANDMASTER';

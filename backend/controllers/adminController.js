@@ -49,6 +49,7 @@ const getTopStudents = async (req, res) => {
     const stats = await UserStats.find()
       .sort({ xp: -1 })
       .limit(10)
+      .select('userId xp level')
       .populate('userId', 'username email')
       .lean();
 
@@ -223,12 +224,12 @@ const globalSearch = async (req, res) => {
 
     const [users, courses, videos] = await Promise.all([
       User.find({ $or: [{ username: regex }, { email: regex }] })
-        .select('username email role isActive avatar').limit(6),
+        .select('username email role isActive avatar').limit(6).lean(),
       Course.find({ title: regex, isActive: true })
-        .select('title category isPublished studentsCount thumbnail').limit(6),
+        .select('title category isPublished studentsCount thumbnail').limit(6).lean(),
       Video.find({ title: regex, isActive: true })
         .select('title bunnyStatus course duration')
-        .populate('course', 'title').limit(6),
+        .populate('course', 'title').limit(6).lean(),
     ]);
 
     res.json({ success: true, data: { users, courses, videos } });

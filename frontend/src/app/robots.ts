@@ -19,10 +19,10 @@ export default function robots(): MetadataRoute.Robots {
           '/referral',
           '/api/',
           '/level-up',
+          '/offline',
         ],
       },
     ],
     sitemap: 'https://aidevix.uz/sitemap.xml',
-    host: 'https://aidevix.uz',
   };
 }

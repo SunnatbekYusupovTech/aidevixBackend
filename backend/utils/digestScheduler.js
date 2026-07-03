@@ -108,7 +108,7 @@ async function runWeeklyDigest() {
     const activeStatsIds = await UserStats.find({
       $or: [{ weeklyXp: { $gt: 0 } }, { xp: { $gt: 0 } }],
     })
-      .select('userId xp weeklyXp streak')
+      .select('userId xp weeklyXp streak newBadges')
       .lean();
 
     if (activeStatsIds.length === 0) {
@@ -194,7 +194,6 @@ function startDigestScheduler() {
   // Har 15 daqiqada tekshirish — yakshanba 09:00 oynasini ushlash uchun
   const interval = setInterval(async () => {
     const hour = getTashkentHour();
-    const dayOfWeek = new Date().getUTCDay(); // Toshkent UTC+5: yakshanba 00:00 (UTC=Saturday 19:00) ...
     // Toshkent vaqti bo'yicha kun olish
     const tashkentDate = new Date();
     tashkentDate.setUTCHours(tashkentDate.getUTCHours() + 5);

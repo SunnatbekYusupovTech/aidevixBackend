@@ -26,10 +26,15 @@ const getCourseVideos = async (req, res) => {
   try {
     const { courseId } = req.params;
 
+    // PB-008: faqat kerakli fieldlar — questions (embedded massiv) va materials chiqariladi
+    // Public: _id/title/duration/thumbnail/sectionId; Admin: + description/order/bunnyVideoId/bunnyStatus
     const videos = await Video.find({
       course: courseId,
       isActive: true
-    }).sort({ order: 1 }).lean();
+    })
+      .select('_id title description order duration thumbnail viewCount sectionId course bunnyVideoId bunnyStatus')
+      .sort({ order: 1 })
+      .lean();
 
     res.json({
       success: true,

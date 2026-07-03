@@ -321,11 +321,13 @@ const register = asyncHandler(async (req, res, next) => {
       sendEmailVerificationCode(existingUser.email, existingUser.username, resendCode).catch((err) =>
         securityLogger.suspicious(req, 'email_verify_send_failed', { userId: String(existingUser._id), error: err.message })
       );
-      return res.status(200).json({
+      // SEC-D05: status 201 (same as new-user path) + generic message to prevent
+      // enumeration of unverified accounts. Flag + email still present for redirect.
+      return res.status(201).json({
         success: true,
         requiresEmailVerification: true,
         email: normalizedEmail,
-        message: 'Bu email ro\'yxatdan o\'tilgan, lekin tasdiqlanmagan. Yangi tasdiqlash kodi yuborildi.',
+        message: 'Email manzilingizga tasdiqlash kodi yuborildi. Hisobni faollashtirish uchun kodni kiriting.',
       });
     }
     return next(new ErrorResponse('Email or username already exists', 400));

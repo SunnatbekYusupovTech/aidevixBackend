@@ -9,6 +9,7 @@ const {
   getUserRecommendedCourses,
   getAutocomplete,
   getFilterCounts,
+  getSitemapCourses,
   createCourse,
   updateCourse,
   deleteCourse,
@@ -27,19 +28,24 @@ router.get('/autocomplete',    getAutocomplete);
 router.get('/filter-counts',   getFilterCounts);
 // Foydalanuvchi uchun aqlli tavsiya — aiStack + tugatilgan kurslar asosida
 router.get('/recommended', authenticate, getUserRecommendedCourses);
+// Bonus-14: sitemap uchun lightweight endpoint (50-clamp yo'q, slug bilan)
+// MUHIM: /:id dan OLDIN turishi shart — Express route tartibi
+router.get('/sitemap', getSitemapCourses);
 router.post('/', authenticate, requireAdmin, createCourse);
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses/:id  |  PUT /api/courses/:id  |  DELETE /api/courses/:id
-// :id ObjectId validatsiyasi — yaroqsiz ID 400 qaytaradi (Mongoose CastError → 500 emas)
+// SEO-007: GET /:id endi slug ham qabul qiladi — validateObjectId olib tashlandi
+// Admin operatsiyalar (PUT/DELETE) hali ham ObjectId talab qiladi
 // ════════════════════════════════════════════════════════════════
-router.get('/:id', validateObjectId(), getCourse);
+router.get('/:id', getCourse);
 
-router.get('/:id/recommended', validateObjectId(), getRecommendedCourses);
+router.get('/:id/recommended', getRecommendedCourses);
 
 router.put('/:id', validateObjectId(), authenticate, requireAdmin, updateCourse);
 router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteCourse);
 
-router.post('/:id/rate', validateObjectId(), authenticate, rateCourse);
+// SEO-007: users slug URL'da rate qilishi mumkin
+router.post('/:id/rate', authenticate, rateCourse);
 
 module.exports = router;

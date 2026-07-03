@@ -2,6 +2,7 @@ const Enrollment = require('../models/Enrollment');
 const Course     = require('../models/Course');
 const UserStats  = require('../models/UserStats');
 const Certificate = require('../models/Certificate');
+const ActivityLog = require('../models/ActivityLog');
 const { awardBadges } = require('../utils/badgeService');
 const { sendEnrollmentEmail, sendCertificateEmail } = require('../utils/emailService');
 const crypto = require('crypto');
@@ -58,20 +59,30 @@ const markVideoWatched = async (req, res) => {
     const { courseId, videoId } = req.params;
     const { watchedSeconds = 0 } = req.body;
 
-    const enrollment = await Enrollment.findOne({ userId: req.user._id, courseId });
+    // PB-005: parallelize independent reads
+    const [enrollment, course] = await Promise.all([
+      Enrollment.findOne({ userId: req.user._id, courseId }),
+      Course.findById(courseId).select('videos').lean(),
+    ]);
     if (!enrollment)
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
 
     const alreadyWatched = enrollment.watchedVideos.find(w => w.videoId.toString() === videoId);
     if (!alreadyWatched) {
       enrollment.watchedVideos.push({ videoId, watchedSeconds });
+      // ActivityLog: birinchi ko'rishni denormalized log'ga yoz (fire-and-forget)
+      // getHomeStats aggregation'ini tezlashtirish uchun (PB-001)
+      ActivityLog.create({
+        userId: req.user._id,
+        videoId,
+        courseId,
+      }).catch(err => console.error('[ActivityLog] yozishda xato:', err.message));
     } else {
       alreadyWatched.watchedSeconds = Math.max(alreadyWatched.watchedSeconds, watchedSeconds);
     }
 
     // Progress hisoblash
-    const course = await Course.findById(courseId).select('videos');
-    const totalVideos = course.videos.length;
+    const totalVideos = course ? course.videos.length : 0;
     enrollment.progressPercent = totalVideos > 0
       ? Math.round((enrollment.watchedVideos.length / totalVideos) * 100)
       : 0;

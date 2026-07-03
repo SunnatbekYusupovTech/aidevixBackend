@@ -168,8 +168,8 @@ export default function ProfilePage() {
       setSavingStack(false);
     }
   };
-  const avatarInputRef = useRef(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

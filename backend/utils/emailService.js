@@ -366,7 +366,7 @@ const sendStreakReminderEmail = async (email, username, streak) => {
       <div style="text-align:center;margin:24px 0;">${button(FE, 'Platformaga kirish →', 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)')}</div>
     `,
   });
-  await sendMail({ from: FROM, to: email, subject: `🔥 ${streak} kunlik streak'ingizni saqlang!`, html }).catch(() => {});
+  await sendMail({ from: FROM, to: email, subject: `🔥 ${streak} kunlik streak'ingizni saqlang!`, html }).catch((err) => console.error('[email] sendStreakReminderEmail failed:', err.message));
 };
 
 const sendQuizResultEmail = async (email, username, quizTitle, score, passed) => {
@@ -390,7 +390,7 @@ const sendQuizResultEmail = async (email, username, quizTitle, score, passed) =>
       </div>
     `,
   });
-  await sendMail({ from: FROM, to: email, subject: `${icon} Kviz natijasi: ${score}% — ${quizTitle}`, html }).catch(() => {});
+  await sendMail({ from: FROM, to: email, subject: `${icon} Kviz natijasi: ${score}% — ${quizTitle}`, html }).catch((err) => console.error('[email] sendQuizResultEmail failed:', err.message));
 };
 
 const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {
@@ -414,7 +414,7 @@ const sendNewDeviceLoginEmail = async (email, username, { ip, ua, when }) => {
       <div style="text-align:center;margin:24px 0;">${button(`${FE}/profile/security`, 'Sessiyalarni boshqarish →', 'linear-gradient(135deg, #dc2626 0%, #ea580c 100%)')}</div>
     `,
   });
-  await sendMail({ from: FROM, to: email, subject: '🛡️ Yangi qurilmadan Aidevix hisobiga kirish', html }).catch(() => {});
+  await sendMail({ from: FROM, to: email, subject: '🛡️ Yangi qurilmadan Aidevix hisobiga kirish', html }).catch((err) => console.error('[email] sendNewDeviceLoginEmail failed:', err.message));
 };
 
 const sendAccountDeletedEmail = async (email, username) => {
@@ -429,7 +429,7 @@ const sendAccountDeletedEmail = async (email, username) => {
       <p style="margin:0;color:${BRAND.textMuted};font-size:13px;text-align:center;" class="text-muted">Agar bu xato bo'lsa yoki yordam kerak bo'lsa — <a href="mailto:support@aidevix.uz" style="color:${BRAND.primary};text-decoration:none;font-weight:600;">support@aidevix.uz</a></p>
     `,
   });
-  await sendMail({ from: FROM, to: email, subject: 'Aidevix hisobi o\'chirildi', html }).catch(() => {});
+  await sendMail({ from: FROM, to: email, subject: 'Aidevix hisobi o\'chirildi', html }).catch((err) => console.error('[email] sendAccountDeletedEmail failed:', err.message));
 };
 
 const sendWeeklyDigestEmail = async (email, digest) => {

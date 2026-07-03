@@ -1,5 +1,5 @@
 /**
- * Aidevix Service Worker v2
+ * Aidevix Service Worker v3
  *
  * Strategiya:
  *   - HTML navigation → network-first, offline fallback /offline

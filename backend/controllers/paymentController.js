@@ -171,6 +171,12 @@ const initiatePayment = async (req, res) => {
         !candidate.courseIds.some(cid => String(cid) === String(courseId));
 
       if (!scopedToOther) {
+        // Atomik courseIds scope tekshiruvi: agar promo aniq kurslarga bog'liq bo'lsa,
+        // o'sha shartni atomic filter'ga kiritamiz (TOCTOU race fix).
+        // bo'sh/yo'q courseIds = barcha kurslarga amal qiladi (semantika saqlanadi).
+        if (candidate && Array.isArray(candidate.courseIds) && candidate.courseIds.length > 0) {
+          filter.courseIds = courseId;
+        }
         // Atomik: usedCount++ faqat barcha shartlar bajarilsa (race-safe)
         const promo = await PromoCode.findOneAndUpdate(filter, { $inc: { usedCount: 1 } }, { new: true });
         if (promo) {
@@ -223,7 +229,8 @@ const initiatePayment = async (req, res) => {
       data: { payment: { _id: payment._id, amount: payment.amount, provider, status: 'pending' }, paymentUrl, promo: appliedPromo },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[payment:initiatePayment]', err);
+    res.status(500).json({ success: false, message: 'To\'lov tizimida xato. Qayta urinib ko\'ring.' });
   }
 };
 
@@ -251,7 +258,8 @@ const getMyPayments = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[payment:getMyPayments]', err);
+    res.status(500).json({ success: false, message: 'To\'lov tarixini olishda xato. Qayta urinib ko\'ring.' });
   }
 };
 
@@ -278,7 +286,8 @@ const getPaymentStatus = async (req, res) => {
 
     res.json({ success: true, data: { payment } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[payment:getPaymentStatus]', err);
+    res.status(500).json({ success: false, message: 'To\'lov holatini tekshirishda xato. Qayta urinib ko\'ring.' });
   }
 };
 

@@ -14,7 +14,7 @@
 
 const crypto = require('crypto');
 
-const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60; // 24 soat
+const MAX_AUTH_AGE_SECONDS = 6 * 60 * 60; // 6 soat (SEC-D07: 24h → 6h replay window)
 
 /**
  * @param {string} initDataRaw — `window.Telegram.WebApp.initData` qiymati (URL-encoded)

@@ -90,6 +90,7 @@ export default function EditCoursePage() {
   const [dragOver, setDragOver]     = useState(false);
   const fileRef  = useRef<HTMLInputElement>(null);
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Edit modal
   const [editVid, setEditVid] = useState<VideoRow | null>(null);
@@ -119,7 +120,10 @@ export default function EditCoursePage() {
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (phaseTimeoutRef.current) clearTimeout(phaseTimeoutRef.current);
+  }, []);
 
   // ── Course save ────────────────────────────────────────────────────────────
   const saveCourse = async (e: React.FormEvent) => {
@@ -216,7 +220,7 @@ export default function EditCoursePage() {
       toast.success(`${autoTitle} — muvaffaqiyatli yuklandi!`);
       setTopic(''); setDesc(''); setFile(null);
       setShowUpload(false);
-      setTimeout(() => setPhase('idle'), 1500);
+      phaseTimeoutRef.current = setTimeout(() => setPhase('idle'), 1500);
       fetchData();
     } catch (err: any) {
       setPhase('error');

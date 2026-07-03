@@ -98,7 +98,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
 
   return (
     <Link
-      href={ROUTES.COURSE(course._id)}
+      href={ROUTES.COURSE(course.slug || course._id)}
       ref={cardRef}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}

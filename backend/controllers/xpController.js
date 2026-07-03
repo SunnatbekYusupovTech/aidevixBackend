@@ -22,7 +22,12 @@ const calculateRank = (xp) => {
  */
 const getUserStats = async (req, res) => {
   try {
-    let stats = await UserStats.findOne({ userId: req.user.id });
+    // PB-015: parallelize independent reads (User fetch is independent of stats)
+    const [statsRaw, user] = await Promise.all([
+      UserStats.findOne({ userId: req.user.id }),
+      User.findById(req.user.id).select('xp streak').lean(),
+    ]);
+    let stats = statsRaw;
 
     // Agar stats mavjud bo'lmasa, yangi yaratamiz
     if (!stats) {
@@ -40,7 +45,6 @@ const getUserStats = async (req, res) => {
 
     // Mirroring check: User va UserStats XP'ni atomic $max bilan moslaymiz
     // (read-modify-write save race va weeklyXp inflatsiyasi olib tashlandi)
-    const user = await User.findById(req.user.id).select('xp streak').lean();
     if (user && (user.xp !== stats.xp || user.streak !== stats.streak)) {
       const maxXP = Math.max(user.xp || 0, stats.xp || 0);
       const maxStreak = Math.max(user.streak || 0, stats.streak || 0);
@@ -311,15 +315,17 @@ const submitQuiz = async (req, res) => {
  */
 const getQuizByVideo = async (req, res) => {
   try {
+    // PB-007: add .lean() — read-only path, no instance methods or save() used on quiz
     const quiz = await Quiz.findOne({ videoId: req.params.videoId, isActive: true })
-      .select('-questions.correctAnswer'); // To'g'ri javobni bermaymiz
+      .select('-questions.correctAnswer')
+      .lean();
 
     if (!quiz) {
       return res.json({ success: true, data: null, message: 'Bu video uchun quiz mavjud emas' });
     }
 
-    // Yechilganmi tekshirish
-    const solved = await QuizResult.findOne({ userId: req.user.id, quizId: quiz._id });
+    // Yechilganmi tekshirish — read-only, .lean() safe
+    const solved = await QuizResult.findOne({ userId: req.user.id, quizId: quiz._id }).lean();
 
     res.json({
       success: true,

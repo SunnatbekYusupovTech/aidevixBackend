@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Mentorlik dasturi — Aidevix',
     description: 'Tajribali dasturchilardan shaxsiy mentorlik va kod review.',
+    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
   },
 };
 

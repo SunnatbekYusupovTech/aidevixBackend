@@ -11,8 +11,6 @@ export const metadata: Metadata = {
     canonical: 'https://aidevix.uz',
     languages: {
       'uz-UZ': 'https://aidevix.uz',
-      'ru-RU': 'https://aidevix.uz',
-      'en-US': 'https://aidevix.uz',
       'x-default': 'https://aidevix.uz',
     },
   },

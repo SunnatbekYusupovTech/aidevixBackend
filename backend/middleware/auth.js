@@ -51,10 +51,14 @@ const authenticate = async (req, res, next) => {
       return unauthorized(res, 'User not found or inactive.');
     }
 
-    if (typeof decoded.tv === 'number' && decoded.tv !== (user.tokenVersion || 0)) {
+    // Treat missing `tv` as 0 — pre-tv tokens must not skip the version check.
+    // After logoutAll/resetPassword increments tokenVersion, any old token (tv=0 or absent)
+    // will be rejected once tokenVersion > 0, forcing a re-login.
+    const tokenTv = typeof decoded.tv === 'number' ? decoded.tv : 0;
+    if (tokenTv !== (user.tokenVersion || 0)) {
       authDebug('authenticate:token_version_mismatch', {
         userId: String(user._id),
-        decodedTv: decoded.tv,
+        decodedTv: tokenTv,
         dbTv: user.tokenVersion || 0,
       });
       securityLogger.tokenVersionMismatch(req, user._id);

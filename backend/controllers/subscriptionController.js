@@ -22,6 +22,7 @@ const verifyInstagram = async (req, res) => {
 
     // Update user's Instagram subscription status
     const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     user.socialSubscriptions.instagram = {
       subscribed: verification.subscribed,
       username: verification.username,
@@ -95,6 +96,7 @@ const verifyTelegram = async (req, res) => {
 
     // Update user's Telegram subscription status
     const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     user.socialSubscriptions.telegram = {
       subscribed: verification.subscribed,
       username: verification.username,
@@ -141,6 +143,7 @@ const verifyTelegram = async (req, res) => {
 const getSubscriptionStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const telegramData = user.socialSubscriptions?.telegram;
     const telegramId = user.telegramUserId || telegramData?.telegramUserId;
 
@@ -206,6 +209,7 @@ const setTelegramId = async (req, res) => {
 const getRealtimeStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
     const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
 
@@ -317,6 +321,7 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
 const checkVerifyToken = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
 
     if (!telegramId) {

@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Aidevix Blog — AI va dasturlash yangiliklari',
     description: 'Eng so\'nggi AI tools yangiliklari va amaliy qo\'llanmalar.',
+    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix Blog' }],
   },
 };
 

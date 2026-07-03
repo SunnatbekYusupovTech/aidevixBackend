@@ -36,6 +36,19 @@ const syncDocumentLang = (nextLang: Lang) => {
   root.dataset.lang = nextLang;
 };
 
+// Lazy-load a non-default language dict and merge it into the shared translations object.
+// Uses explicit import() calls so webpack/Next.js can statically analyse the chunks.
+const loadLangDict = (lang: 'ru' | 'en'): Promise<void> => {
+  if (lang === 'ru') {
+    return import('@utils/i18n/ru').then((mod) => {
+      Object.assign(translations.ru, mod.default);
+    });
+  }
+  return import('@utils/i18n/en').then((mod) => {
+    Object.assign(translations.en, mod.default);
+  });
+};
+
 interface LangContextType {
   lang: Lang;
   setLang: (lang: Lang) => void;
@@ -53,6 +66,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
   // Real value is read from localStorage in useEffect after mount.
   const [lang, setLangState] = useState<Lang>('uz');
 
+  // Incremented each time a lazy dict finishes loading, so t() is re-created.
+  const [dictVersion, setDictVersion] = useState(0);
+
   useEffect(() => {
     // On mount, sync real lang from localStorage
     const saved = readInitialLang();
@@ -68,6 +84,13 @@ export function LangProvider({ children }: { children: ReactNode }) {
     syncDocumentLang(lang);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+    }
+
+    // uz is always synchronously available (main bundle); ru/en are lazy-loaded on demand.
+    if (lang !== 'uz' && Object.keys(translations[lang]).length === 0) {
+      loadLangDict(lang).then(() => {
+        setDictVersion((v) => v + 1);
+      });
     }
   }, [lang]);
 
@@ -91,6 +114,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback((key: string, vars?: Record<string, string>): string => {
+    // While a non-uz dict is loading, fall back to en then uz (both always safe).
     let text = translations[lang]?.[key] ?? translations.en?.[key] ?? translations.uz?.[key] ?? key;
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
@@ -98,7 +122,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
       });
     }
     return text;
-  }, [lang]);
+  // dictVersion causes t() to be re-created once the lazy dict has been populated.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, dictVersion]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 

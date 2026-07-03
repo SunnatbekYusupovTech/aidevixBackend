@@ -172,7 +172,7 @@ const bugReportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   message: jsonMessage('Soatiga 5 tadan ortiq bug xabari yuborib bo\'lmaydi.'),
-  keyGenerator: (req) => (req.user?._id ? String(req.user._id) : ipKey(req)),
+  keyGenerator: (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res)),
 });
 
 module.exports = {

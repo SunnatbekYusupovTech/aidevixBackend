@@ -375,9 +375,12 @@ function PromptCard({
       )}
 
       <div className="flex items-start gap-3 mb-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={prompt.author?.avatar || `https://ui-avatars.com/api/?name=${prompt.author?.username || 'U'}&background=312e81&color=fff&size=48`}
           alt={prompt.author?.username || ''}
+          width={44}
+          height={44}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
@@ -597,8 +600,16 @@ export default function PromptsPage() {
       void (async () => {
         try {
           const listRes = await promptApi.getAll(params);
-          setPrompts(listRes.data.data.prompts);
-          setTotal(listRes.data.data.total);
+          const newPrompts = listRes.data.data.prompts as Prompt[];
+          const newTotal = listRes.data.data.total as number;
+          setPrompts(prev => {
+            if (
+              newPrompts.length === prev.length &&
+              newPrompts[0]?._id === prev[0]?._id
+            ) return prev;
+            return newPrompts;
+          });
+          setTotal(newTotal);
           if (isAuth) {
             const { data: idData } = await promptApi.getSavedIds();
             setSavedIds(new Set(idData.data.ids ?? []));

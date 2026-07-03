@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
@@ -667,6 +667,7 @@ export default function HomeClient({
   }, [homeStats?.activityTelemetry]);
 
   return (
+    <LazyMotion features={domAnimation} strict>
     <div ref={pageRef} className={`min-h-screen w-full min-w-0 max-w-full font-sans selection:bg-platinum-500/30 ${pageBg}`}>
       <section ref={statsRef} className={`relative isolate w-full min-w-0 overflow-x-clip px-3 pt-6 sm:px-4 sm:pt-8 ${heroText}`}>
         <div className="aidevix-grid absolute inset-0 opacity-[0.12]" />
@@ -878,7 +879,7 @@ export default function HomeClient({
                   </div>
 
                   {/* Dropdown Expansion */}
-                  <motion.div
+                  <m.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ 
                       height: hoveredCard === 'b1' ? 'auto' : 0, 
@@ -901,7 +902,7 @@ export default function HomeClient({
                         <span className="text-platinum-400 font-semibold">412+</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </m.div>
                 </div>
 
                 {/* Component B2 - Floating Video Lesson Card */}
@@ -929,7 +930,7 @@ export default function HomeClient({
                   </div>
 
                   {/* Dropdown Expansion */}
-                  <motion.div
+                  <m.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ 
                       height: hoveredCard === 'b2' ? 'auto' : 0, 
@@ -952,7 +953,7 @@ export default function HomeClient({
                         <span className="text-zinc-300">UltraHD</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </m.div>
                 </div>
 
                 {/* Component C - Top Accent Overlay Widget */}
@@ -984,7 +985,7 @@ export default function HomeClient({
                   </div>
 
                   {/* Dropdown Expansion */}
-                  <motion.div
+                  <m.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ 
                       height: hoveredCard === 'c' ? 'auto' : 0, 
@@ -1007,7 +1008,7 @@ export default function HomeClient({
                         <span className="text-emerald-400">ONLINE</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </m.div>
                 </div>
 
               </div>
@@ -1024,7 +1025,7 @@ export default function HomeClient({
 
       {/* Continue Learning Widget — faqat login qilgan foydalanuvchilar uchun */}
       {isLoggedIn && continueLearning && (
-        <motion.section
+        <m.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -1055,7 +1056,7 @@ export default function HomeClient({
               <IoPlay className="text-base" /> {t('home.continueAction')}
             </Link>
           </div>
-        </motion.section>
+        </m.section>
       )}
 
       {/* Personalized sections — faqat auth user uchun. isLoggedIn gate anonim
@@ -1158,5 +1159,6 @@ export default function HomeClient({
 
 
     </div>
+    </LazyMotion>
   );
 }

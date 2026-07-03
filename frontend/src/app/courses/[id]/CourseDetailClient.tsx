@@ -223,7 +223,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
   }
 
   return (
-    <div className="min-h-screen bg-[#101214] relative overflow-hidden text-[#e2e6e9] selection:bg-platinum-500/30">
+    <div className="min-h-screen bg-[#0A0E1A] relative overflow-hidden text-[#e2e6e9] selection:bg-platinum-500/30">
       {/* Background ambient glows */}
       <div className="absolute inset-x-0 top-0 h-[40rem] pointer-events-none z-0">
         <div className="absolute left-[5%] top-[-10%] w-[45%] h-[30rem] rounded-full blur-[140px] opacity-[0.08] bg-platinum-600 pointer-events-none" />
@@ -298,7 +298,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
 
             {/* Instructor */}
             {instructorName && (
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-none bg-[#16191d]/50 border border-zinc-800 backdrop-blur-md">
+              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-none bg-[#111726]/50 border border-zinc-800 backdrop-blur-md">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none bg-platinum-900/60 border border-platinum-800 flex items-center justify-center text-white font-black text-base sm:text-lg flex-shrink-0">
                   {instructorName[0]?.toUpperCase()}
                 </div>
@@ -336,7 +336,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                   <IoCheckmarkCircle className="text-emerald-400" />
                   {localText.whatYouLearn}
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-none bg-[#16191d]/20 border border-zinc-850">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-none bg-[#111726]/20 border border-zinc-850">
                   {course.requirements.map((req, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-400">
                       <IoCheckmarkCircle className="text-emerald-500 text-sm flex-shrink-0 mt-0.5" />
@@ -378,7 +378,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                   </div>
                 </Accordion>
               ) : (
-                <div className="py-8 text-center text-sm text-zinc-500 rounded-none bg-[#16191d]/20 border border-zinc-850">
+                <div className="py-8 text-center text-sm text-zinc-500 rounded-none bg-[#111726]/20 border border-zinc-850">
                   {localText.lessonsNotAdded}
                 </div>
               )}
@@ -393,7 +393,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                 </h2>
                 <div className="space-y-3">
                   {projects.map((p) => (
-                    <div key={p._id} className="p-4 rounded-none bg-[#16191d]/40 border border-zinc-800 space-y-2">
+                    <div key={p._id} className="p-4 rounded-none bg-[#111726]/40 border border-zinc-800 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-semibold text-sm text-white">{p.title}</p>
                         <div className="flex gap-1 flex-shrink-0">
@@ -411,7 +411,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                       {p.technologies?.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-1">
                           {p.technologies.map((tech, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-none text-xs bg-[#16191d]/60 border border-zinc-850 text-zinc-400">{tech}</span>
+                            <span key={i} className="px-2 py-0.5 rounded-none text-xs bg-[#111726]/60 border border-zinc-850 text-zinc-400">{tech}</span>
                           ))}
                         </div>
                       )}
@@ -583,11 +583,11 @@ function DesktopPriceCard(props) {
   const localizedTitle = localizeCourseText(currentLang, course.title).title
 
   return (
-    <div className="rounded-none border border-zinc-800 bg-[#16191d]/90 backdrop-blur-xl overflow-hidden shadow-2xl">
+    <div className="rounded-none border border-zinc-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-2xl">
       <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         {course.thumbnail ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#16191d]">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#111726]">
               <div className="relative w-full h-full">
                 <DynamicSVG
                   src={course.thumbnail}
@@ -602,7 +602,7 @@ function DesktopPriceCard(props) {
             {course.category?.toUpperCase().slice(0, 2)}
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#16191d] via-[#16191d]/50 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#111726] via-[#111726]/50 to-transparent pointer-events-none" />
       </div>
       <PriceCardContent {...props} />
     </div>
@@ -612,7 +612,7 @@ function DesktopPriceCard(props) {
 function MobilePriceCard(props) {
   const { isSubscribed, onWatch, uiText } = props
   return (
-    <div className="rounded-none border border-zinc-800 bg-[#16191d]/90 backdrop-blur-xl overflow-hidden shadow-lg">
+    <div className="rounded-none border border-zinc-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-lg">
       <div className="flex items-center justify-center px-4 py-3">
         <button onClick={onWatch} className="btn bg-platinum-600 hover:bg-platinum-500 border-none text-white btn-sm rounded-none gap-1">
           {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}

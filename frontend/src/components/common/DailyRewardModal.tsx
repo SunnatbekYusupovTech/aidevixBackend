@@ -146,11 +146,11 @@ export default function DailyRewardModal() {
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0c14]/80 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0A0E1A]/80 px-4 backdrop-blur-sm"
     >
       <div
         ref={contentRef}
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-[#1c2331] to-[#0a0c14] p-8 text-center shadow-[0_0_50px_rgba(79,70,229,0.3)]"
+        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-[#1c2331] to-[#0A0E1A] p-8 text-center shadow-[0_0_50px_rgba(79,70,229,0.3)]"
       >
         <button
           onClick={closeModal}

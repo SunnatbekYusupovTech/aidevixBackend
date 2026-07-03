@@ -75,7 +75,7 @@ export default function ContinueWatching() {
         href={`/videos/${nextVideo._id}`}
         className={`group block rounded-none overflow-hidden border transition-all hover:-translate-y-0.5 ${
           isDark
-            ? 'bg-gradient-to-r from-platinum-500/10 via-[#101214]/80 to-platinum-500/5 border-white/5 hover:border-platinum-400/40'
+            ? 'bg-gradient-to-r from-platinum-500/10 via-[#0A0E1A]/80 to-platinum-500/5 border-white/5 hover:border-platinum-400/40'
             : 'bg-gradient-to-r from-platinum-50 via-white to-platinum-100 border-slate-200 hover:border-platinum-400/60'
         }`}
       >

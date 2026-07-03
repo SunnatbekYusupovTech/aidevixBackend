@@ -48,7 +48,7 @@ const LevelUpModal = ({ isOpen, level, levelName, xp, quizResult, onClose }: Lev
             animate={{ scale:1, y:0, opacity:1 }}
             exit={{ scale:0.8, opacity:0 }}
             transition={{ type:'spring', damping:16, stiffness:260 }}
-            className="relative bg-[#03071e] border border-[#ffba08]/20 rounded-3xl p-7 max-w-[340px] w-full mx-4 text-center"
+            className="relative bg-[#0A0E1A] border border-[#ffba08]/20 rounded-3xl p-7 max-w-[340px] w-full mx-4 text-center"
             style={{ boxShadow:'0 0 60px rgba(232,93,4,0.25), 0 0 120px rgba(55,6,23,0.1)' }}
           >
             {/* Floating icons */}

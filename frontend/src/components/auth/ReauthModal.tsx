@@ -111,7 +111,7 @@ export default function ReauthModal({
       onClick={handleBackdrop}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1017] p-6 shadow-2xl shadow-black/50"
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0E1A] p-6 shadow-2xl shadow-black/50"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 mb-4">

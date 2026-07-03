@@ -281,7 +281,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050507] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-6 sm:pb-20 sm:pt-28 lg:px-12">
+    <div className="min-h-screen bg-[#0A0E1A] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-6 sm:pb-20 sm:pt-28 lg:px-12">
       <div className="mx-auto max-w-6xl">
 
         {/* --- HERO SECTION --- */}

@@ -135,7 +135,7 @@ export default function Navbar() {
   const showSolidNavbar = scrolled || !isHome
 
   const navBg = isDark
-    ? 'bg-[#0d0d0f]/80 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-md'
+    ? 'bg-[#0A0E1A]/80 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-md'
     : 'bg-white/80 shadow-[0_8px_32px_rgba(15,23,42,0.04)] backdrop-blur-md'
 
   const borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'
@@ -148,9 +148,9 @@ export default function Navbar() {
   const surface = isDark ? 'bg-white/[0.04] border-white/10 backdrop-blur-md' : 'bg-slate-950/[0.03] border-slate-900/10 backdrop-blur-md'
   const navLinkBase = isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.06] border border-transparent' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-900/[0.05] border border-transparent'
   const activeNavLink = isDark ? 'text-white bg-gradient-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/30 shadow-[0_2px_12px_rgba(99,102,241,0.15)] font-semibold' : 'text-indigo-600 bg-indigo-50/80 border border-indigo-100 shadow-[0_2px_8px_rgba(79,70,229,0.08)] font-semibold'
-  const dropdownBg = isDark ? 'bg-[#0d1017]/95 border-white/10 text-slate-200 backdrop-blur-xl' : 'bg-white/95 border-slate-900/10 text-slate-800 backdrop-blur-xl'
+  const dropdownBg = isDark ? 'bg-[#0A0E1A]/95 border-white/10 text-slate-200 backdrop-blur-xl' : 'bg-white/95 border-slate-900/10 text-slate-800 backdrop-blur-xl'
   const dropdownItemColor = isDark ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]' : 'text-slate-700 hover:text-slate-950 hover:bg-slate-900/[0.05]'
-  const mobileMenuBg = isDark ? 'bg-[#090b10]/96' : 'bg-white/96'
+  const mobileMenuBg = isDark ? 'bg-[#0A0E1A]/96' : 'bg-white/96'
 
   return (
     <>

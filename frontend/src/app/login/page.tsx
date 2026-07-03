@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (!loading && isLoggedIn) router.replace('/profile');
   }, [isLoggedIn, loading, router]);
 
-  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark ? 'bg-[#0d1224]/40 border-white/5' : 'bg-white border-gray-200 shadow-xl';
   const textMain = isDark ? 'text-white' : 'text-gray-900';
   const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';

@@ -29,7 +29,7 @@ export default function ErrorView({ error, reset, scope }: ErrorViewProps) {
   }, [error, scope]);
 
   return (
-    <div className="relative flex min-h-screen w-full min-w-0 max-w-full flex-col items-center justify-center overflow-x-clip bg-[#03071e] p-4 text-center font-sans selection:bg-[#efa243]/30 sm:p-6">
+    <div className="relative flex min-h-screen w-full min-w-0 max-w-full flex-col items-center justify-center overflow-x-clip bg-[#0A0E1A] p-4 text-center font-sans selection:bg-[#efa243]/30 sm:p-6">
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/4 w-[35vw] h-[35vw] rounded-full bg-rose-500/10 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[30vw] h-[30vw] rounded-full bg-[#efa243]/10 blur-[100px] pointer-events-none" />

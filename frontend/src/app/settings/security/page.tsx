@@ -102,7 +102,7 @@ export default function SecuritySettingsPage() {
   if (authLoading || !user) return null;
 
   // Theme classes
-  const pageBg = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-gray-50 text-gray-900';
+  const pageBg = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
   const linkBack = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
   const subTxt = isDark ? 'text-gray-400' : 'text-gray-600';
   const sectionCls = isDark ? 'bg-[#0d1224]/40 border-white/5' : 'bg-white border-gray-200 shadow-sm';

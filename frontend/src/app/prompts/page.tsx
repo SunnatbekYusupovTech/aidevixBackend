@@ -107,7 +107,7 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <div>
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formCategory')}</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-                className="w-full bg-[#0a0c14] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
+                className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
                 {categoryOptions.map((c) => (
                   <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>
                 ))}
@@ -116,7 +116,7 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <div>
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">{t('prompts.formTool')}</label>
               <select value={form.tool} onChange={e => setForm({ ...form, tool: e.target.value })}
-                className="w-full bg-[#0a0c14] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
+                className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-all">
                 {TOOLS.map((toolName) => <option key={toolName} value={toolName}>{toolName}</option>)}
               </select>
             </div>
@@ -217,7 +217,7 @@ function PromptDetailModal({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="relative flex max-h-[min(92vh,880px)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0a0c14] shadow-2xl sm:rounded-3xl"
+        className="relative flex max-h-[min(92vh,880px)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0A0E1A] shadow-2xl sm:rounded-3xl"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/5 px-5 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0 flex-1">
@@ -262,7 +262,7 @@ function PromptDetailModal({
           </pre>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-[#050507]/80 px-5 py-4 backdrop-blur sm:px-6">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-[#0A0E1A]/80 px-5 py-4 backdrop-blur sm:px-6">
           <div className="flex items-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1">
               <IoEye size={14} /> {prompt.viewsCount}
@@ -686,7 +686,7 @@ export default function PromptsPage() {
   const showSaveOnCards = promptAccess === 'granted' && isAuth;
 
   return (
-    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#050507] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-24 md:px-6 lg:px-12">
+    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#0A0E1A] px-3 pb-16 pt-20 text-slate-200 selection:bg-indigo-500/30 sm:px-4 sm:pb-20 sm:pt-24 md:px-6 lg:px-12">
       <div className="mx-auto max-w-7xl">
         {/* Compact hero */}
         <header className="relative mb-6 sm:mb-8">
@@ -827,7 +827,7 @@ export default function PromptsPage() {
         {promptAccess === 'granted' && (
           <>
         {/* Sticky filters — categories first, always visible while scrolling */}
-        <div className="sticky top-14 z-30 -mx-3 mb-8 border-y border-white/10 bg-[#050507]/90 px-3 py-3 backdrop-blur-xl sm:-mx-4 sm:px-4 sm:py-4 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 sm:top-16">
+        <div className="sticky top-14 z-30 -mx-3 mb-8 border-y border-white/10 bg-[#0A0E1A]/90 px-3 py-3 backdrop-blur-xl sm:-mx-4 sm:px-4 sm:py-4 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 sm:top-16">
           <div className="mx-auto max-w-7xl">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{t('prompts.filterCategory')}</p>
             <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto pb-1 px-1">
@@ -874,7 +874,7 @@ export default function PromptsPage() {
                   id="prompt-tool-filter"
                   value={tool}
                   onChange={(e) => setTool(e.target.value)}
-                  className="w-full min-w-[10rem] rounded-2xl border border-white/10 bg-[#0a0c14] px-3 py-2.5 text-xs font-semibold text-slate-200 focus:border-indigo-500/50 focus:outline-none sm:w-auto"
+                  className="w-full min-w-[10rem] rounded-2xl border border-white/10 bg-[#0A0E1A] px-3 py-2.5 text-xs font-semibold text-slate-200 focus:border-indigo-500/50 focus:outline-none sm:w-auto"
                 >
                   <option value="all">{t('prompts.toolsAll')}</option>
                   {TOOLS.map((t) => (

@@ -31,12 +31,14 @@ module.exports = {
           blue:   '#00f0ff',
           purple: '#bf5fff',
         },
+        // Yagona dark palitra — sahifa fon kanoni #0A0E1A (navy) oilasi.
+        // Barcha sahifa fonlari shu oiladan (2026-07-04 UI unifikatsiya).
         dark: {
-          base:    '#0d0d0f',
-          surface: '#111113',
-          card:    '#18181b',
-          border:  '#27272a',
-          muted:   '#3f3f46',
+          base:    '#0A0E1A',
+          surface: '#111726',
+          card:    '#161D31',
+          border:  '#232C44',
+          muted:   '#3A445F',
         },
         ink_black: { DEFAULT: '#03071e', 100: '#010106', 200: '#01030b', 300: '#020411', 400: '#020516', 500: '#03071e', 600: '#0b1b73', 700: '#142fca', 800: '#5068ee', 900: '#a8b4f6' },
         night_bordeaux: { DEFAULT: '#370617', 100: '#0b0105', 200: '#160209', 300: '#21040e', 400: '#2c0513', 500: '#370617', 600: '#880f39', 700: '#d9185b', 800: '#ed5d90', 900: '#f6aec7' },
@@ -62,8 +64,10 @@ module.exports = {
           950: '#211303'
         },
         'amber-450': '#f7a223',
+        // 800–950 navy oilaga moslandi — bosh sahifa (bg-platinum-950) ham
+        // #0A0E1A kanon fonda bo'lishi uchun (2026-07-04 UI unifikatsiya).
         platinum: {
-          50: '#f1f2f4',
+          50: '#f8fafc',
           100: '#e2e6e9',
           200: '#c5ccd3',
           300: '#a9b3bc',
@@ -71,9 +75,9 @@ module.exports = {
           500: '#6f7f90',
           600: '#596673',
           700: '#434c56',
-          800: '#2c333a',
-          900: '#16191d',
-          950: '#101214'
+          800: '#232C44',
+          900: '#111726',
+          950: '#0A0E1A'
         },
       },
       fontFamily: {
@@ -85,8 +89,8 @@ module.exports = {
         display: ['"Host Grotesk"', 'sans-serif'],
       },
       backgroundImage: {
-        'hero-gradient':    'radial-gradient(ellipse at top left, #312e81 0%, #0d0d0f 50%, #1e1b4b 100%)',
-        'card-gradient':    'linear-gradient(135deg, #18181b 0%, #27272a 100%)',
+        'hero-gradient':    'radial-gradient(ellipse at top left, #312e81 0%, #0A0E1A 50%, #1e1b4b 100%)',
+        'card-gradient':    'linear-gradient(135deg, #161D31 0%, #232C44 100%)',
         'glow-primary':     'radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)',
         'glow-accent':      'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)',
         'shimmer':          'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
@@ -157,11 +161,12 @@ module.exports = {
           'primary-content': '#ffffff',
           secondary:         '#8b5cf6',
           accent:            '#06b6d4',
-          neutral:           '#16191d',
-          'base-100':        '#101214',
-          'base-200':        '#16191d',
-          'base-300':        '#2c333a',
-          'base-content':    '#e2e6e9',
+          // Navy oilasi — sahifa fon kanoni #0A0E1A bilan bir xil.
+          neutral:           '#141A2C',
+          'base-100':        '#0A0E1A',
+          'base-200':        '#111726',
+          'base-300':        '#1C2438',
+          'base-content':    '#E3E8F2',
           info:              '#3b82f6',
           success:           '#22c55e',
           warning:           '#f59e0b',

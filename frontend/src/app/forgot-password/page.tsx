@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
   const tabActive = 'bg-indigo-600 text-white';
   const tabInactive = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
 
-  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark
     ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
     : 'bg-white border border-gray-200 shadow-xl';

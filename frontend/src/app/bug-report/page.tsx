@@ -77,7 +77,7 @@ export default function BugReportPage() {
   };
 
   // Theme-aware
-  const pageBg = isDark ? 'bg-[#050507] text-slate-200' : 'bg-gray-50 text-gray-800';
+  const pageBg = isDark ? 'bg-[#0A0E1A] text-slate-200' : 'bg-slate-50 text-slate-900';
   const titleCls = isDark ? 'text-white' : 'text-gray-900';
   const subCls = isDark ? 'text-slate-400' : 'text-gray-600';
   const cardCls = isDark ? 'border-white/10 bg-white/[0.03]' : 'border-gray-200 bg-white shadow-sm';
@@ -87,7 +87,7 @@ export default function BugReportPage() {
     ? 'border-white/10 bg-white/5 text-white focus:border-indigo-500/50'
     : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-indigo-500';
   const histCardCls = isDark
-    ? 'border-white/10 bg-[#0a0c14]/80'
+    ? 'border-white/10 bg-[#0A0E1A]/80'
     : 'border-gray-200 bg-white';
   const histTitleCls = isDark ? 'text-white' : 'text-gray-900';
   const histStatusCls = isDark ? 'bg-white/10 text-slate-400' : 'bg-gray-100 text-gray-500';

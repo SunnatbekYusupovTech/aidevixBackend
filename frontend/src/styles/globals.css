@@ -85,32 +85,32 @@
 :root {
   --color-primary: #5662f6;
   --color-accent: #f59e0b;
-  --color-dark: #08090d;
+  --color-dark: #0a0e1a;
   --font-sans: 'Plus Jakarta Sans', var(--app-font-sans), system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-display: 'Host Grotesk', var(--app-font-display), system-ui, sans-serif;
   --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --border-radius: 18px;
 
-  --bg: #08090d;
-  --bg-card: #11131a;
-  --bg-nav: rgba(8, 9, 13, 0.8);
+  --bg: #0a0e1a;
+  --bg-card: #111726;
+  --bg-nav: rgba(10, 14, 26, 0.8);
   --text: #f8fafc;
   --text-muted: #94a3b8;
   --border: rgba(255, 255, 255, 0.08);
   --page-bg:
     radial-gradient(circle at top left, rgba(86, 98, 246, 0.16), transparent 28%),
     radial-gradient(circle at 85% 12%, rgba(245, 158, 11, 0.12), transparent 24%),
-    linear-gradient(180deg, #090b10 0%, #0f1320 54%, #090b10 100%);
-  --scrollbar-track: #111113;
-  --scrollbar-thumb: #3f3f46;
+    linear-gradient(180deg, #090c16 0%, #0e1322 54%, #090c16 100%);
+  --scrollbar-track: #111726;
+  --scrollbar-thumb: #3a445f;
   color-scheme: dark;
 
   /* Course Card variables (Dark theme defaults) */
   --course-title-fallback: #ffffff;
-  --course-thumbnail-bg: #0f1115;
-  --course-logo-bg: #0c0d12;
-  --course-thumbnail-gradient: linear-gradient(to top, rgba(17, 20, 27, 0.85) 0%, rgba(17, 20, 27, 0.15) 50%, transparent 100%);
+  --course-thumbnail-bg: #0f1424;
+  --course-logo-bg: #0c1020;
+  --course-thumbnail-gradient: linear-gradient(to top, rgba(13, 18, 33, 0.85) 0%, rgba(13, 18, 33, 0.15) 50%, transparent 100%);
   --svg-draw-stroke-default: rgba(255, 255, 255, 0.15);
   --svg-draw-fill-default: rgba(255, 255, 255, 0.15);
   --svg-draw-stroke-hover: #ffffff;
@@ -129,7 +129,7 @@ html.light-mode {
   --page-bg:
     radial-gradient(circle at top left, rgba(86, 98, 246, 0.12), transparent 24%),
     radial-gradient(circle at 85% 12%, rgba(245, 158, 11, 0.1), transparent 22%),
-    linear-gradient(180deg, #f7f8fc 0%, #eef2ff 48%, #f7f8fc 100%);
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 48%, #f8fafc 100%);
   --scrollbar-track: #e2e8f0;
   --scrollbar-thumb: #94a3b8;
   color-scheme: light;
@@ -220,7 +220,7 @@ code, pre, kbd {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
+::-webkit-scrollbar-thumb:hover { background: #4a5570; }
 
 ::selection {
   background: rgba(99, 102, 241, 0.3);
@@ -537,7 +537,7 @@ html[data-theme='light'] {
   .min-h-screen[class*="bg-[#060a12]"],
   .min-h-screen[class*="bg-[#08090d]"],
   .min-h-screen[class*="bg-[#090b10]"] {
-    background-color: #f7f8fc;
+    background-color: #f8fafc;
   }
 
   /* === White overlay backgrounds (transparent on dark) → light gray === */
@@ -670,7 +670,7 @@ html[data-theme='light'] {
 /* Legacy `bg-dark-*` palette overrides — declared at top level (not nested)
    so Tailwind @apply can still resolve these class names in components. */
 html.light-mode .bg-dark-base,
-html[data-theme='light'] .bg-dark-base    { background-color: #f7f8fc !important; }
+html[data-theme='light'] .bg-dark-base    { background-color: #f8fafc !important; }
 html.light-mode .bg-dark-surface,
 html[data-theme='light'] .bg-dark-surface { background-color: #ffffff !important; }
 html.light-mode .bg-dark-card,

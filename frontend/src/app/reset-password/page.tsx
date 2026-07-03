@@ -79,7 +79,7 @@ function ResetPasswordContent() {
     }
   };
 
-  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark
     ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
     : 'bg-white border border-gray-200 shadow-xl';

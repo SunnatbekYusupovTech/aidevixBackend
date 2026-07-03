@@ -3,7 +3,7 @@ import Skeleton from '@/components/common/Skeleton';
 
 export default function HomeSkeleton() {
   return (
-    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#08090d] px-3 pt-20 pb-16 sm:px-4 sm:pt-24 sm:pb-20">
+    <div className="min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-[#0A0E1A] px-3 pt-20 pb-16 sm:px-4 sm:pt-24 sm:pb-20">
       <div className="mx-auto max-w-7xl">
         {/* Header/Hero Skeleton */}
         <div className="mb-20 space-y-6">

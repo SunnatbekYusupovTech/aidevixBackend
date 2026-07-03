@@ -370,7 +370,7 @@ export default function VideoPlaygroundPage() {
 
   if (!isMounted || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0d0e1a]">
+      <div className="flex items-center justify-center min-h-screen bg-[#0A0E1A]">
         <span className="loading loading-spinner loading-lg text-primary" />
       </div>
     );

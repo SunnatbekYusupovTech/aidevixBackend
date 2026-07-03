@@ -86,14 +86,14 @@ export default function ReferralPage() {
   const totalXp = referralData?.totalEarnedXp ?? (totalFriends * 1000);
 
   // Theme-aware classes
-  const bg = isDark ? 'bg-[#0a0c14]' : 'bg-gray-50';
+  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark ? 'bg-[#131B31]/80 border-white/5' : 'bg-white border-gray-200';
   const inputBg = isDark ? 'bg-[#0A0E1A] border-indigo-500/30 text-emerald-300' : 'bg-gray-50 border-indigo-200 text-emerald-700';
   const textMain = isDark ? 'text-white' : 'text-gray-900';
   const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
   const sectionBg = isDark ? 'bg-[#131B31]/50 border-white/5' : 'bg-white border-gray-200';
   const itemBg = isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100';
-  const friendBg = isDark ? 'bg-[#0a0c14]/50 border-white/5' : 'bg-gray-50 border-gray-200';
+  const friendBg = isDark ? 'bg-[#0A0E1A]/50 border-white/5' : 'bg-gray-50 border-gray-200';
 
   return (
     <div className={`relative min-h-screen w-full min-w-0 max-w-full overflow-x-clip py-16 sm:py-24 ${bg}`} ref={containerRef}>

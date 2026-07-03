@@ -212,6 +212,9 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://telegram.org" crossOrigin="" />
         <link rel="dns-prefetch" href="https://telegram.org" />
+        {/* Kurs thumbnail'lari Cloudinary'dan keladi — preconnect LCP'ni qisqartiradi. */}
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema) }}

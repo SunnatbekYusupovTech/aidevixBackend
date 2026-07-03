@@ -175,7 +175,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
      pathname?.includes('/admin/users/') ? 'Foydalanuvchi' : 'Admin');
 
   const sidebar = (
-    <div className="flex h-full flex-col border-r border-white/10 bg-[#0a0c14]/95 backdrop-blur-xl">
+    <div className="flex h-full flex-col border-r border-white/10 bg-[#0A0E1A]/95 backdrop-blur-xl">
       <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
         <SiteLogoMark size={40} className="rounded-xl ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/20" />
         <div className="min-w-0">
@@ -261,7 +261,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </AnimatePresence>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#0a0c14]/85 px-4 backdrop-blur-md sm:px-8">
+            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#0A0E1A]/85 px-4 backdrop-blur-md sm:px-8">
               <div className="flex items-center gap-3">
                 <button
                   type="button"

@@ -244,7 +244,7 @@ export default function LeaderboardPage() {
   const progressPct    = levelProgress || Math.round((currentLevelXP/nextLevelXP)*100)
 
   return (
-    <div className="leaderboard-page-container min-h-screen bg-[#03071e]">
+    <div className="leaderboard-page-container min-h-screen bg-[#0A0E1A]">
       <LevelUpModal
         isOpen={justLeveledUp}
         level={newLevel}

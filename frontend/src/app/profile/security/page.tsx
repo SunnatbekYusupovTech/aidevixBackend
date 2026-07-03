@@ -13,7 +13,7 @@ export default function ProfileSecurityRedirect() {
   useEffect(() => {
     router.replace(ROUTES.SETTINGS_SECURITY);
   }, [router]);
-  const bg = isDark ? 'bg-[#0A0E1A] text-slate-400' : 'bg-gray-50 text-gray-500';
+  const bg = isDark ? 'bg-[#0A0E1A] text-slate-400' : 'bg-slate-50 text-slate-500';
   return (
     <div className={`min-h-screen flex items-center justify-center text-sm ${bg}`}>
       {t('security.redirecting')}

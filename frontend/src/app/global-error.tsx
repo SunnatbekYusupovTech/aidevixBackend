@@ -63,7 +63,7 @@ export default function GlobalError({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '1rem',
-          background: '#03071e',
+          background: '#0A0E1A',
           color: '#fff',
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

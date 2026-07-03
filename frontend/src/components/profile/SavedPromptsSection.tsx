@@ -57,7 +57,7 @@ function DetailSheet({ prompt, onClose, onUnsave }: { prompt: SavedRow; onClose:
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="relative flex max-h-[min(92vh,880px)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0a0c14] shadow-2xl sm:rounded-3xl"
+        className="relative flex max-h-[min(92vh,880px)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0A0E1A] shadow-2xl sm:rounded-3xl"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/5 px-5 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ function DetailSheet({ prompt, onClose, onUnsave }: { prompt: SavedRow; onClose:
             {prompt.content}
           </pre>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-white/5 bg-[#050507]/80 px-5 py-4 backdrop-blur sm:px-6">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-white/5 bg-[#0A0E1A]/80 px-5 py-4 backdrop-blur sm:px-6">
           <button
             type="button"
             onClick={onUnsave}
@@ -206,7 +206,7 @@ export default function SavedPromptsSection() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-[#0a0c14] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-[#0A0E1A] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
             >
               {filterCategories.map((c) => (
                 <option key={c.key} value={c.key}>

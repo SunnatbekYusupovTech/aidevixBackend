@@ -31,7 +31,7 @@ export default function RegisterPage() {
     }
   }, []);
 
-  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-gray-50';
+  const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const panelBg = isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600';
   const cardBg = isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-gray-200 shadow-xl';
   const textMain = isDark ? 'text-white' : 'text-gray-900';

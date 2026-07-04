@@ -2,13 +2,14 @@ const mongoose = require('mongoose');
 const UserStats = require('../models/UserStats');
 const Course = require('../models/Course');
 const User = require('../models/User');
+const { putToBlob } = require('../middleware/uploadMiddleware');
 
 /** @desc  Avatar yuklash | @route POST /api/upload/avatar | @access Private */
 const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'Rasm tanlanmadi yoki turi noto\'g\'ri' });
 
-    const avatarUrl = req.file.path || req.file.url; // Cloudinary returns path or url
+    const avatarUrl = await putToBlob(req.file, 'avatars');
     const userId = req.user._id || req.user.id;
 
     // 1. UserStats modelini yangilash
@@ -44,7 +45,7 @@ const uploadThumbnail = async (req, res) => {
 
     if (!req.file) return res.status(400).json({ success: false, message: 'Rasm tanlanmadi' });
 
-    const thumbnailUrl = req.file.path;
+    const thumbnailUrl = await putToBlob(req.file, 'thumbnails');
     const course = await Course.findByIdAndUpdate(
       req.params.courseId,
       { thumbnail: thumbnailUrl },

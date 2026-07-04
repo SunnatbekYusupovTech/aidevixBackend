@@ -99,6 +99,8 @@ const nextConfig = {
     //   - images.unsplash.com: homep, dekorativ avatarlar
     //   - t.me               : Telegram Mini App user photo_url (avatar sifatida)
     remotePatterns: [
+      // Vercel Blob — avatar/thumbnail storage (2026-07-04, Cloudinary o'rniga)
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com', pathname: '/**' },
       { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
       { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },

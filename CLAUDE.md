@@ -48,7 +48,7 @@ backend/
 │   ├── userController.js             # public profile (certs/prompts/follow), homeStats
 │   ├── wishlistController.js         # Course wishlist
 │   ├── sectionController.js          # Course sections
-│   └── uploadController.js           # File/avatar upload (Cloudinary)
+│   └── uploadController.js           # File/avatar upload (Vercel Blob, 2026-07-04)
 ├── middleware/
 │   ├── auth.js                       # JWT authenticate + requireAdmin
 │   ├── subscriptionCheck.js          # Real-time Telegram+Instagram gate (403 if not subscribed)

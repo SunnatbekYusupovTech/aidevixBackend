@@ -41,6 +41,20 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false)
   const langRef = useRef<HTMLDivElement>(null)
   const moreRef = useRef<HTMLLIElement>(null)
+  // "Yana" dropdown: trigger va menyu orasidagi bo'shliqdan sichqoncha o'tganda
+  // mouseleave darhol yopib yubormasligi uchun qisqa kechikish bilan yopamiz.
+  const moreCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openMore = () => {
+    if (moreCloseTimer.current) clearTimeout(moreCloseTimer.current)
+    setMoreOpen(true)
+  }
+  const closeMoreDelayed = () => {
+    if (moreCloseTimer.current) clearTimeout(moreCloseTimer.current)
+    moreCloseTimer.current = setTimeout(() => setMoreOpen(false), 250)
+  }
+  useEffect(() => () => {
+    if (moreCloseTimer.current) clearTimeout(moreCloseTimer.current)
+  }, [])
   const navLocalText = useMemo(() => ({
     prompts: lang === 'en' ? 'Prompts' : lang === 'ru' ? 'Промпты' : 'Prompts',
     roadmap: lang === 'en' ? 'Roadmap' : lang === 'ru' ? 'Роадмап' : 'Roadmap',
@@ -191,8 +205,8 @@ export default function Navbar() {
                 <li 
                   className="relative" 
                   ref={moreRef}
-                  onMouseEnter={() => setMoreOpen(true)}
-                  onMouseLeave={() => setMoreOpen(false)}
+                  onMouseEnter={openMore}
+                  onMouseLeave={closeMoreDelayed}
                 >
                   <button
                     type="button"
@@ -224,7 +238,11 @@ export default function Navbar() {
                   {moreOpen && (
                     <ul
                       role="menu"
-                      className={`absolute left-0 right-0 z-[60] mt-2 min-w-[min(100vw-2rem,16rem)] rounded-[1.25rem] border p-1.5 shadow-2xl backdrop-blur-2xl sm:left-auto sm:right-0 ${dropdownBg}`}
+                      onMouseEnter={openMore}
+                      onMouseLeave={closeMoreDelayed}
+                      // mt-2 o'rniga top-full + ko'rinmas ko'prik (before) — trigger va menyu
+                      // orasidagi 8px bo'shliq ham hover zonasiga kiradi, menyu yo'qolmaydi.
+                      className={`absolute left-0 right-0 top-full z-[60] mt-2 min-w-[min(100vw-2rem,16rem)] rounded-[1.25rem] border p-1.5 shadow-2xl backdrop-blur-2xl before:absolute before:-top-3 before:left-0 before:right-0 before:h-3 before:content-[''] sm:left-auto sm:right-0 ${dropdownBg}`}
                     >
                       {navMore.map((link) => (
                         <li key={link.to} role="none">

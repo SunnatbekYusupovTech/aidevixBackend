@@ -479,7 +479,7 @@ export default function HomeClient({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className={`p-4 rounded-none border backdrop-blur-xl shadow-2xl z-[90] ${isDark ? 'bg-slate-950/95 border-zinc-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
+        <div className={`p-4 rounded-none border backdrop-blur-xl shadow-2xl z-[90] ${isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
           <p className="text-xs font-semibold opacity-60 uppercase tracking-wider">{data.name}</p>
           <p className="text-2xl font-bold mt-1" style={{ color: data.color }}>{data.displayVal}</p>
         </div>
@@ -709,7 +709,7 @@ export default function HomeClient({
             </h1>
 
             <p
-              className="mt-6 max-w-2xl font-sans text-gray-400 text-lg font-light leading-relaxed sm:mt-8"
+              className="mt-6 max-w-2xl font-sans text-slate-400 text-lg font-light leading-relaxed sm:mt-8"
             >
               {t('hero.subtitle')}
             </p>
@@ -750,14 +750,14 @@ export default function HomeClient({
               <div className="relative w-full h-full md:[transform:rotateY(-12deg)_rotateX(8deg)_skewY(3deg)] md:[transform-style:preserve-3d] transition-all duration-700 ease-out hover:md:[transform:rotateY(-6deg)_rotateX(4deg)_skewY(1.5deg)] grid grid-cols-1 sm:grid-cols-2 md:block gap-6">
                 
                 {/* Component A - Main Base Card (Backplate) */}
-                <div className="col-span-1 sm:col-span-2 md:w-[94%] md:ml-auto border border-zinc-800 bg-slate-950/70 p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl flex flex-col justify-between rounded-none md:[transform-style:preserve-3d] relative z-10">
+                <div className="col-span-1 sm:col-span-2 md:w-[94%] md:ml-auto border border-slate-800 bg-slate-950/70 p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl flex flex-col justify-between rounded-none md:[transform-style:preserve-3d] relative z-10">
                   {/* Ambient dashboard background glows */}
                   <div className="absolute top-0 right-0 w-[50%] h-[50%] blur-[90px] rounded-full pointer-events-none bg-platinum-500/10" />
                   <div className="absolute bottom-0 left-0 w-[40%] h-[40%] blur-[90px] rounded-full pointer-events-none bg-platinum-400/10" />
 
                   <div className="relative z-10 flex flex-col h-full justify-between gap-6">
                     {/* Telemetry Header */}
-                    <div className="flex items-center justify-between border-b pb-4 border-zinc-800">
+                    <div className="flex items-center justify-between border-b pb-4 border-slate-800">
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
@@ -792,7 +792,7 @@ export default function HomeClient({
                     </div>
 
                     {/* Integrated Base Metrics (Mentors & Rating) */}
-                    <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-4 mt-2">
+                    <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-4 mt-2">
                       {/* Mentors */}
                       <div className="flex flex-col justify-between">
                         <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.mentors')}</span>
@@ -815,7 +815,7 @@ export default function HomeClient({
                     </div>
 
                     {/* Live Activity Telemetry (Contribution Map style) */}
-                    <div className="mt-2 border-t pt-4 border-zinc-800">
+                    <div className="mt-2 border-t pt-4 border-slate-800">
                       <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-semibold opacity-65 mb-2">
                         <span>{isDark ? 'Dars topshirish tahlili (oxirgi 24 soat)' : 'Lesson telemetry (last 24 hours)'}</span>
                         <span className="text-emerald-400">{isDark ? 'Yuqori faollik' : 'High activity'}</span>
@@ -845,7 +845,7 @@ export default function HomeClient({
 
                 {/* Component B1 - Floating Student Card */}
                 <div 
-                  className="col-span-1 md:absolute md:top-[12%] md:-left-10 md:z-20 md:w-56 p-4 border border-zinc-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(99,102,241,0.12)] transition-all duration-500 cursor-pointer"
+                  className="col-span-1 md:absolute md:top-[12%] md:-left-10 md:z-20 md:w-56 p-4 border border-slate-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(99,102,241,0.12)] transition-all duration-500 cursor-pointer"
                   onMouseEnter={() => setHoveredCard('b1')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -871,9 +871,9 @@ export default function HomeClient({
                   {/* Overlapping avatars stack — dekorativ (soxta stock-foto o'rniga lokal gradient) */}
                   <div className="mt-4 flex items-center justify-between gap-1">
                     <div className="flex -space-x-1.5 overflow-hidden" aria-hidden="true">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-indigo-500 to-purple-500 text-[8px] font-black text-white">A</span>
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-emerald-500 to-teal-500 text-[8px] font-black text-white">S</span>
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-amber-500 to-orange-500 text-[8px] font-black text-white">D</span>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-slate-800 bg-gradient-to-br from-indigo-500 to-purple-500 text-[8px] font-black text-white">A</span>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-slate-800 bg-gradient-to-br from-emerald-500 to-teal-500 text-[8px] font-black text-white">S</span>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-slate-800 bg-gradient-to-br from-amber-500 to-orange-500 text-[8px] font-black text-white">D</span>
                     </div>
                     <span className="text-[9px] font-mono font-bold text-emerald-400">{isDark ? 'faol jamiyat' : 'active community'}</span>
                   </div>
@@ -889,7 +889,7 @@ export default function HomeClient({
                     className="overflow-hidden"
                   >
                     {/* Soxta raqamlar (+24%, 3.2s/kun, 412+) o'rniga real platforma faktlari */}
-                    <div className="pt-3 border-t border-zinc-800/80 mt-3 text-[10px] font-mono text-zinc-400 space-y-1">
+                    <div className="pt-3 border-t border-slate-800/80 mt-3 text-[10px] font-mono text-slate-400 space-y-1">
                       <div className="flex justify-between">
                         <span>Kunlik challenge:</span>
                         <span className="text-emerald-400 font-bold">+XP</span>
@@ -908,7 +908,7 @@ export default function HomeClient({
 
                 {/* Component B2 - Floating Video Lesson Card */}
                 <div 
-                  className="col-span-1 md:absolute md:bottom-[15%] md:-right-10 md:z-20 md:w-52 p-4 border border-zinc-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(111,127,144,0.12)] transition-all duration-500 cursor-pointer"
+                  className="col-span-1 md:absolute md:bottom-[15%] md:-right-10 md:z-20 md:w-52 p-4 border border-slate-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(111,127,144,0.12)] transition-all duration-500 cursor-pointer"
                   onMouseEnter={() => setHoveredCard('b2')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -940,7 +940,7 @@ export default function HomeClient({
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-3 border-t border-zinc-800/80 mt-3 text-[10px] font-mono text-zinc-400 space-y-1">
+                    <div className="pt-3 border-t border-slate-800/80 mt-3 text-[10px] font-mono text-slate-400 space-y-1">
                       <div className="flex justify-between">
                         <span>Yangi darslar:</span>
                         <span className="text-platinum-400 font-bold">+4 dars</span>
@@ -951,7 +951,7 @@ export default function HomeClient({
                       </div>
                       <div className="flex justify-between">
                         <span>Format:</span>
-                        <span className="text-zinc-300">UltraHD</span>
+                        <span className="text-slate-300">UltraHD</span>
                       </div>
                     </div>
                   </m.div>
@@ -959,7 +959,7 @@ export default function HomeClient({
 
                 {/* Component C - Top Accent Overlay Widget */}
                 <div 
-                  className="col-span-1 sm:col-span-2 md:absolute md:-top-5 md:right-10 md:z-30 md:w-48 p-3 border border-zinc-800 bg-slate-950/95 backdrop-blur-xl rounded-none shadow-[0_0_25px_rgba(111,127,144,0.2)] transition-all duration-500 cursor-pointer"
+                  className="col-span-1 sm:col-span-2 md:absolute md:-top-5 md:right-10 md:z-30 md:w-48 p-3 border border-slate-800 bg-slate-950/95 backdrop-blur-xl rounded-none shadow-[0_0_25px_rgba(111,127,144,0.2)] transition-all duration-500 cursor-pointer"
                   onMouseEnter={() => setHoveredCard('c')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -978,7 +978,7 @@ export default function HomeClient({
                       <span className="absolute text-[9px] font-mono font-bold text-white">96%</span>
                     </div>
                     <div>
-                      <div className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 uppercase">ATS SCORE</div>
+                      <div className="text-[9px] font-mono font-bold tracking-widest text-slate-400 uppercase">ATS SCORE</div>
                       <div className="text-[8px] font-mono text-emerald-400 uppercase tracking-tight flex items-center gap-1">
                         <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse inline-block" /> Live Sync
                       </div>
@@ -995,7 +995,7 @@ export default function HomeClient({
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-2.5 border-t border-zinc-800/80 mt-2.5 text-[9px] font-mono text-zinc-400 space-y-1">
+                    <div className="pt-2.5 border-t border-slate-800/80 mt-2.5 text-[9px] font-mono text-slate-400 space-y-1">
                       <div className="flex justify-between">
                         <span>Tizim yuklamasi:</span>
                         <span className="text-white">12%</span>

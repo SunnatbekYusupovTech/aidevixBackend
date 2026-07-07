@@ -69,12 +69,12 @@ export default function EnrollmentsPage() {
           placeholder="Foydalanuvchi yoki kurs bo'yicha qidirish..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 min-w-[220px] rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
+          className="flex-1 min-w-[220px] rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
         />
         <select
           value={completedFilter}
           onChange={e => { setCompleted(e.target.value); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           <option value="">Barchasi</option>
           <option value="true">Tugatganlar</option>
@@ -89,7 +89,7 @@ export default function EnrollmentsPage() {
           { label: 'Tugatganlar', value: enrollments.filter(e => e.isCompleted).length, color: 'text-emerald-400' },
           { label: 'Jarayonda', value: enrollments.filter(e => !e.isCompleted).length, color: 'text-amber-400' },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-white/10 bg-[#0f121c] px-5 py-4">
+          <div key={s.label} className="rounded-2xl border border-white/10 bg-[#111726] px-5 py-4">
             <p className="text-xs text-slate-500">{s.label}</p>
             <p className={`mt-1 font-display text-2xl font-bold ${s.color}`}>{s.value}</p>
           </div>
@@ -97,7 +97,7 @@ export default function EnrollmentsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726]">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <span className="loading loading-spinner loading-lg text-amber-400" />

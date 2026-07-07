@@ -93,7 +93,7 @@ export default function GoogleAuthButton({ mode = 'login', className }: Props) {
         <div
           className={clsx(
             'rounded-[15px] px-3 py-3 sm:px-4 sm:py-4',
-            isDark ? 'bg-[#080b12]/[0.97]' : 'bg-white',
+            isDark ? 'bg-[#0A0E1A]/[0.97]' : 'bg-white',
             'ring-1 ring-inset',
             isDark ? 'ring-white/[0.06]' : 'ring-slate-200/80',
           )}

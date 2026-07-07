@@ -153,7 +153,7 @@ export default function TelegramVerify({
         <IoCheckmarkCircle className="text-7xl text-emerald-400 mx-auto" />
         <div>
           <h3 className="text-2xl font-bold text-white">{t('tg.verified')}</h3>
-          <p className="text-zinc-400 mt-2">{t('tg.verifiedDesc')}</p>
+          <p className="text-slate-400 mt-2">{t('tg.verifiedDesc')}</p>
         </div>
         {onTelegramVerified && (
           <button
@@ -170,11 +170,11 @@ export default function TelegramVerify({
   // ─── Timeout ────────────────────────────────────────────────────────
   if (phase === 'timeout') {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-[#1a1218] p-6 space-y-5">
+      <div className="rounded-2xl border border-red-500/20 bg-[#161D31] p-6 space-y-5">
         <div className="text-center space-y-2">
           <IoCloseCircle className="text-6xl text-red-400 mx-auto" />
           <h3 className="text-xl font-bold text-white">{t('tg.timeoutTitle')}</h3>
-          <p className="text-zinc-400 text-sm">{t('tg.timeoutDesc')}</p>
+          <p className="text-slate-400 text-sm">{t('tg.timeoutDesc')}</p>
         </div>
         <div className="space-y-2 p-4 bg-white/5 rounded-xl border border-white/5">
           <ChecklistItem done={false} text={t('tg.timeoutCheck1')} />
@@ -195,13 +195,13 @@ export default function TelegramVerify({
   if (phase === 'polling') {
     const progress = Math.min(100, (pollCount / MAX_POLL_ATTEMPTS) * 100)
     return (
-      <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+      <div className="rounded-2xl border border-white/5 bg-[#161D31] p-6 space-y-5">
         <div className="text-center space-y-1">
           <div className="w-16 h-16 bg-blue-500/10 border-2 border-blue-500/30 rounded-full flex items-center justify-center mx-auto">
             <FaTelegram className="text-3xl text-blue-400 animate-pulse" />
           </div>
           <h3 className="text-xl font-bold text-white pt-2">{t('tg.pollingTitle')}</h3>
-          <p className="text-zinc-500 text-sm">{t('tg.pollingDesc')}</p>
+          <p className="text-slate-500 text-sm">{t('tg.pollingDesc')}</p>
         </div>
 
         {/* Bot status */}
@@ -220,13 +220,13 @@ export default function TelegramVerify({
 
         {/* Progress bar */}
         <div className="space-y-1">
-          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-zinc-600 text-xs text-center">{t('tg.pollingHint')}</p>
+          <p className="text-slate-600 text-xs text-center">{t('tg.pollingHint')}</p>
         </div>
 
         {/* Channel reminder */}
@@ -239,14 +239,14 @@ export default function TelegramVerify({
 
         {/* Network hint */}
         {showNetworkHint && (
-          <p className="text-center text-zinc-600 text-xs">{t('tg.networkDelay')}</p>
+          <p className="text-center text-slate-600 text-xs">{t('tg.networkDelay')}</p>
         )}
 
         {/* Bot link copy fallback */}
         {botUrl && (
           <button
             onClick={copyBotLink}
-            className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 text-sm transition-all"
+            className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 text-sm transition-all"
           >
             <IoCopyOutline />
             {t('tg.copyLink')}
@@ -258,11 +258,11 @@ export default function TelegramVerify({
 
   // ─── Start (single button — bot guides the rest) ───────────────────
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+    <div className="rounded-2xl border border-white/5 bg-[#161D31] p-6 space-y-5">
       <Header />
 
       <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-3">
-        <p className="text-zinc-300 text-sm leading-relaxed">{t('tg.start.desc')}</p>
+        <p className="text-slate-300 text-sm leading-relaxed">{t('tg.start.desc')}</p>
         <ol className="space-y-2.5 text-sm">
           <StepBullet num={1} text={t('tg.start.step1')} />
           <StepBullet num={2} text={t('tg.start.step2')} />
@@ -302,7 +302,7 @@ function StepBullet({ num, text }: { num: number; text: string }) {
       <span className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
         {num}
       </span>
-      <span className="text-zinc-300">{text}</span>
+      <span className="text-slate-300">{text}</span>
     </li>
   )
 }
@@ -329,7 +329,7 @@ function StatusRow({
           <div className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
         )}
       </div>
-      <p className={`text-sm font-medium ${done ? 'text-emerald-300' : 'text-zinc-400'}`}>
+      <p className={`text-sm font-medium ${done ? 'text-emerald-300' : 'text-slate-400'}`}>
         {done ? doneText : waitText}
       </p>
     </div>
@@ -339,10 +339,10 @@ function StatusRow({
 function ChecklistItem({ done, text }: { done: boolean; text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className={`w-5 h-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500/20' : 'border-zinc-600'}`}>
+      <div className={`w-5 h-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center ${done ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-600'}`}>
         {done && <IoCheckmarkCircle className="text-emerald-400 text-sm" />}
       </div>
-      <p className="text-zinc-300 text-sm">{text}</p>
+      <p className="text-slate-300 text-sm">{text}</p>
     </div>
   )
 }

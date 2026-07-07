@@ -79,7 +79,7 @@ export default function ConfirmModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', damping: 30, stiffness: 380 }}
-            className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#0f121c] p-7 shadow-2xl"
+            className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#111726] p-7 shadow-2xl"
           >
             <button
               type="button"

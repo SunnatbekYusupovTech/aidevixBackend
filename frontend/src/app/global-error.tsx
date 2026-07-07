@@ -92,8 +92,8 @@ export default function GlobalError({
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '2rem',
-              background: 'linear-gradient(135deg, #efa243, #eb8a14)',
-              boxShadow: '0 10px 30px rgba(235,138,20,0.3)',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              boxShadow: '0 10px 30px rgba(99,102,241,0.35)',
             }}
           >
             ⚠️
@@ -138,12 +138,12 @@ export default function GlobalError({
               padding: '0 2rem',
               border: 'none',
               borderRadius: '9999px',
-              background: 'linear-gradient(90deg, #efa243, #eb8a14)',
+              background: 'linear-gradient(90deg, #6366f1, #4f46e5)',
               color: '#fff',
               fontSize: '1rem',
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(235,138,20,0.3)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.35)',
             }}
           >
             {c.retry}

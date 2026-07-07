@@ -109,7 +109,7 @@ export default function MentorshipPage() {
   }, []);
 
   const bgClass = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
-  const cardBg = isDark ? 'bg-[#0d1224]/70 border-white/5' : 'bg-white border-slate-200';
+  const cardBg = isDark ? 'bg-[#111726]/70 border-white/5' : 'bg-white border-slate-200';
   const muted = isDark ? 'text-slate-400' : 'text-slate-600';
   const inputCls = `w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors ${
     isDark

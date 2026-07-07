@@ -87,13 +87,13 @@ export default function ReferralPage() {
 
   // Theme-aware classes
   const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
-  const cardBg = isDark ? 'bg-[#131B31]/80 border-white/5' : 'bg-white border-gray-200';
-  const inputBg = isDark ? 'bg-[#0A0E1A] border-indigo-500/30 text-emerald-300' : 'bg-gray-50 border-indigo-200 text-emerald-700';
-  const textMain = isDark ? 'text-white' : 'text-gray-900';
-  const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
-  const sectionBg = isDark ? 'bg-[#131B31]/50 border-white/5' : 'bg-white border-gray-200';
-  const itemBg = isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100';
-  const friendBg = isDark ? 'bg-[#0A0E1A]/50 border-white/5' : 'bg-gray-50 border-gray-200';
+  const cardBg = isDark ? 'bg-[#161D31]/80 border-white/5' : 'bg-white border-slate-200';
+  const inputBg = isDark ? 'bg-[#0A0E1A] border-indigo-500/30 text-emerald-300' : 'bg-slate-50 border-indigo-200 text-emerald-700';
+  const textMain = isDark ? 'text-white' : 'text-slate-900';
+  const textMuted = isDark ? 'text-slate-400' : 'text-slate-500';
+  const sectionBg = isDark ? 'bg-[#161D31]/50 border-white/5' : 'bg-white border-slate-200';
+  const itemBg = isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-slate-50 hover:bg-slate-100';
+  const friendBg = isDark ? 'bg-[#0A0E1A]/50 border-white/5' : 'bg-slate-50 border-slate-200';
 
   return (
     <div className={`relative min-h-screen w-full min-w-0 max-w-full overflow-x-clip py-16 sm:py-24 ${bg}`} ref={containerRef}>
@@ -158,17 +158,17 @@ export default function ReferralPage() {
                 <span className={`text-sm ${textMuted}`}>{t('referral.shareVia')}</span>
                 <a href={`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all hover:scale-110">
+                  className="w-10 h-10 rounded-full bg-[#161D31] border border-white/5 flex items-center justify-center text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all hover:scale-110">
                   <FaTelegramPlane size={18} />
                 </a>
                 <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all hover:scale-110">
+                  className="w-10 h-10 rounded-full bg-[#161D31] border border-white/5 flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all hover:scale-110">
                   <FaWhatsapp size={18} />
                 </a>
                 <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#1A2234] border border-white/5 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all hover:scale-110">
+                  className="w-10 h-10 rounded-full bg-[#161D31] border border-white/5 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all hover:scale-110">
                   <FaFacebookF size={18} />
                 </a>
               </div>
@@ -184,7 +184,7 @@ export default function ReferralPage() {
                 <span className={textMuted}>{referralLocalText.countSuffix}</span>
               </div>
             </div>
-            <div className={`w-full h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`}></div>
+            <div className={`w-full h-px ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}></div>
             <div>
               <h3 className={`text-sm font-medium uppercase tracking-wider mb-2 ${textMuted}`}>{t('referral.earned')}</h3>
               <div className="flex items-baseline gap-2">
@@ -212,7 +212,7 @@ export default function ReferralPage() {
             </div>
             <div className="space-y-3">
               {loadingData ? (
-                <div className="text-center py-6 text-gray-500">{referralLocalText.loading}</div>
+                <div className="text-center py-6 text-slate-500">{referralLocalText.loading}</div>
               ) : referralData?.topReferrers?.length > 0 ? (
                 referralData.topReferrers.map((u: any, idx: number) => (
                   <div key={u._id} className={`flex items-center justify-between p-4 rounded-2xl transition-colors ${itemBg}`}>
@@ -228,7 +228,7 @@ export default function ReferralPage() {
                     </div>
                     <div className="text-right">
                       <div className={`text-2xl font-black ${textMain}`}>{u.referralsCount}</div>
-                      <div className="text-[10px] text-gray-400 uppercase tracking-widest">{t('general.friend')}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-widest">{t('general.friend')}</div>
                     </div>
                   </div>
                 ))
@@ -248,7 +248,7 @@ export default function ReferralPage() {
             </div>
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
               {loadingData ? (
-                <div className="text-center py-6 text-gray-500">{referralLocalText.loading}</div>
+                <div className="text-center py-6 text-slate-500">{referralLocalText.loading}</div>
               ) : referralData?.myFriends?.length > 0 ? (
                 referralData.myFriends.map((friend: any) => (
                   <div key={friend._id} className={`flex items-center justify-between p-4 border rounded-2xl ${friendBg}`}>

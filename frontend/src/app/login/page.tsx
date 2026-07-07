@@ -30,9 +30,9 @@ export default function LoginPage() {
   }, [isLoggedIn, loading, router]);
 
   const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
-  const cardBg = isDark ? 'bg-[#0d1224]/40 border-white/5' : 'bg-white border-gray-200 shadow-xl';
-  const textMain = isDark ? 'text-white' : 'text-gray-900';
-  const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
+  const cardBg = isDark ? 'bg-[#111726]/40 border-white/5' : 'bg-white border-slate-200 shadow-xl';
+  const textMain = isDark ? 'text-white' : 'text-slate-900';
+  const textMuted = isDark ? 'text-slate-400' : 'text-slate-500';
 
   return (
     <div className={`flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip font-sans selection:bg-indigo-500/30 ${bg} ${textMain}`}>
@@ -48,7 +48,7 @@ export default function LoginPage() {
             {t('cta.title1')}<br /><span className={isDark ? 'text-indigo-400' : 'text-yellow-300'}>{t('cta.titleHighlight')}</span>
           </h1>
           <div className={`border-l-2 ${isDark ? 'border-indigo-500/70' : 'border-white/50'} pl-5 mt-8`}>
-            <p className={`text-[1.1rem] leading-relaxed ${isDark ? 'text-gray-400/90' : 'text-white/70'}`}>
+            <p className={`text-[1.1rem] leading-relaxed ${isDark ? 'text-slate-400/90' : 'text-white/70'}`}>
               {t('hero.subtitle')}
             </p>
           </div>
@@ -57,14 +57,14 @@ export default function LoginPage() {
 
       <div className={`relative flex w-full min-w-0 flex-col items-center justify-start p-3 pt-16 sm:p-12 sm:pt-20 lg:w-1/2 lg:justify-center ${bg}`}>
         <div className="absolute top-4 right-3 z-20 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
-          <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
+          <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-slate-400 hover:text-yellow-400' : 'text-slate-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
           </button>
           {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
             <button
               key={l}
               onClick={() => setLang(l)}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-600 text-white' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-600 text-white' : isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}
             >
               {LANG_BADGES[l]}
             </button>
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <LoginForm />
         </div>
 
-        <div className={`mt-8 sm:mt-12 text-center text-[11px] sm:text-xs relative sm:absolute sm:bottom-8 ${isDark ? 'text-gray-500/70' : 'text-gray-400'}`}>
+        <div className={`mt-8 sm:mt-12 text-center text-[11px] sm:text-xs relative sm:absolute sm:bottom-8 ${isDark ? 'text-slate-500/70' : 'text-slate-400'}`}>
           {t('footer.copyright')}
         </div>
       </div>

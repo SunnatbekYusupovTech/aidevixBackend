@@ -83,7 +83,7 @@ export default function CookieConsent() {
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
           className="fixed inset-x-3 sm:inset-x-auto sm:right-6 bottom-3 sm:bottom-6 z-[1100] w-auto sm:max-w-md"
         >
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0d101a]/95 backdrop-blur-xl shadow-[0_20px_60px_-15px_rgba(79,70,229,0.45)]">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#111726]/95 backdrop-blur-xl shadow-[0_20px_60px_-15px_rgba(79,70,229,0.45)]">
             <div className="pointer-events-none absolute -top-20 -right-16 w-56 h-56 rounded-full bg-indigo-500/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-20 w-56 h-56 rounded-full bg-purple-500/20 blur-3xl" />
 

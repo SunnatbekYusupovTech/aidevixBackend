@@ -120,23 +120,23 @@ export default function RegisterForm() {
   };
 
   // Theme-aware classes
-  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
-  const subLabelCls = isDark ? 'text-gray-500' : 'text-gray-400';
-  const iconCls = isDark ? 'text-gray-400' : 'text-gray-500';
+  const labelCls = isDark ? 'text-slate-300' : 'text-slate-700';
+  const subLabelCls = isDark ? 'text-slate-500' : 'text-slate-400';
+  const iconCls = isDark ? 'text-slate-400' : 'text-slate-500';
   const inputBase = 'w-full pl-11 pr-4 py-3 rounded-xl outline-none transition-all';
   const inputCls = isDark
-    ? 'bg-[#0A0E1A]/50 text-white placeholder-gray-500 border focus:ring-1'
-    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border focus:ring-1';
-  const inputBorderOk = isDark ? 'border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/50' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/30';
+    ? 'bg-[#0A0E1A]/50 text-white placeholder-slate-500 border focus:ring-1'
+    : 'bg-slate-50 text-slate-900 placeholder-slate-400 border focus:ring-1';
+  const inputBorderOk = isDark ? 'border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/30';
   const inputBorderErr = isDark ? 'border-red-500/50' : 'border-red-400';
-  const eyeBtnCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
-  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-gray-200';
-  const dividerTextCls = isDark ? 'text-gray-500' : 'text-gray-400';
+  const eyeBtnCls = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800';
+  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-slate-200';
+  const dividerTextCls = isDark ? 'text-slate-500' : 'text-slate-400';
   const checkboxCls = isDark
     ? 'border-white/20 bg-[#0A0E1A]/50 text-indigo-500 focus:ring-indigo-500/50'
-    : 'border-gray-300 bg-white text-indigo-500 focus:ring-indigo-500/30';
-  const termsTextCls = isDark ? 'text-gray-400' : 'text-gray-600';
-  const strengthBarBg = isDark ? 'bg-gray-700' : 'bg-gray-200';
+    : 'border-slate-300 bg-white text-indigo-500 focus:ring-indigo-500/30';
+  const termsTextCls = isDark ? 'text-slate-400' : 'text-slate-600';
+  const strengthBarBg = isDark ? 'bg-slate-700' : 'bg-slate-200';
 
   const inputCN = (hasErr: boolean) => `${inputBase} ${inputCls} ${hasErr ? inputBorderErr : inputBorderOk}`;
 
@@ -294,7 +294,7 @@ export default function RegisterForm() {
             type="text"
             defaultValue={refCodeParam}
             {...register('referralCode')}
-            className={`${inputBase} ${inputCls} ${isDark ? 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/30'} uppercase`}
+            className={`${inputBase} ${inputCls} ${isDark ? 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/30'} uppercase`}
             placeholder={t('auth.register.refPlaceholder')}
           />
         </div>

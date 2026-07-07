@@ -28,7 +28,7 @@ export default function RecommendedCarousel({ courses }: Props) {
       {!isBeginning && (
         <button
           onClick={() => swiperRef.current?.slidePrev()}
-          className="absolute left-[-22px] top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-11 h-11 rounded-full border border-[#efa243]/20 bg-slate-950/75 backdrop-blur-md text-white/80 hover:text-white hover:border-[#efa243] hover:bg-[#efa243]/25 shadow-[0_0_20px_rgba(0,0,0,0.6)] transition-all duration-300 opacity-0 group-hover/carousel:opacity-100 scale-90 group-hover/carousel:scale-100 hover:scale-110 active:scale-95 cursor-pointer"
+          className="absolute left-[-22px] top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-11 h-11 rounded-full border border-primary-500/20 bg-[#0A0E1A]/75 backdrop-blur-md text-white/80 hover:text-white hover:border-primary-400 hover:bg-primary-500/25 shadow-[0_0_20px_rgba(0,0,0,0.6)] transition-all duration-300 opacity-0 group-hover/carousel:opacity-100 scale-90 group-hover/carousel:scale-100 hover:scale-110 active:scale-95 cursor-pointer"
           aria-label="Previous slide"
         >
           <IoChevronBack className="text-xl" />
@@ -39,7 +39,7 @@ export default function RecommendedCarousel({ courses }: Props) {
       {!isEnd && (
         <button
           onClick={() => swiperRef.current?.slideNext()}
-          className="absolute right-[-22px] top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-11 h-11 rounded-full border border-[#efa243]/20 bg-slate-950/75 backdrop-blur-md text-white/80 hover:text-white hover:border-[#efa243] hover:bg-[#efa243]/25 shadow-[0_0_20px_rgba(0,0,0,0.6)] transition-all duration-300 opacity-0 group-hover/carousel:opacity-100 scale-90 group-hover/carousel:scale-100 hover:scale-110 active:scale-95 cursor-pointer"
+          className="absolute right-[-22px] top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-11 h-11 rounded-full border border-primary-500/20 bg-[#0A0E1A]/75 backdrop-blur-md text-white/80 hover:text-white hover:border-primary-400 hover:bg-primary-500/25 shadow-[0_0_20px_rgba(0,0,0,0.6)] transition-all duration-300 opacity-0 group-hover/carousel:opacity-100 scale-90 group-hover/carousel:scale-100 hover:scale-110 active:scale-95 cursor-pointer"
           aria-label="Next slide"
         >
           <IoChevronForward className="text-xl" />

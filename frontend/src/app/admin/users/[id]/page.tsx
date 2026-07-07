@@ -120,7 +120,7 @@ export default function AdminUserDetailPage() {
           { icon: <FiBookOpen />, label: 'Kurslar', value: enrollments.length, color: 'text-emerald-400' },
           { icon: <FiDollarSign />, label: "To'lovlar", value: payments.length, color: 'text-violet-400' },
         ].map((c) => (
-          <div key={c.label} className="rounded-2xl border border-white/10 bg-[#0f121c] p-5">
+          <div key={c.label} className="rounded-2xl border border-white/10 bg-[#111726] p-5">
             <div className={`mb-2 ${c.color}`}>{c.icon}</div>
             <p className="text-xs text-slate-500">{c.label}</p>
             <p className="mt-1 font-display text-2xl font-bold text-white">{c.value}</p>
@@ -130,7 +130,7 @@ export default function AdminUserDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Enrollments */}
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
           <h3 className="mb-4 font-display text-lg font-bold text-white">Kurslar ({enrollments.length})</h3>
           {enrollments.length === 0 ? (
             <p className="text-sm text-slate-500">Kurslar yo'q</p>
@@ -159,7 +159,7 @@ export default function AdminUserDetailPage() {
         </div>
 
         {/* Payments */}
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
           <h3 className="mb-4 font-display text-lg font-bold text-white">To'lovlar ({payments.length})</h3>
           {payments.length === 0 ? (
             <p className="text-sm text-slate-500">To'lovlar yo'q</p>
@@ -186,7 +186,7 @@ export default function AdminUserDetailPage() {
 
       {/* Badges */}
       {stats?.badges && stats.badges.length > 0 && (
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
           <h3 className="mb-4 font-display text-lg font-bold text-white">Medalllar</h3>
           <div className="flex flex-wrap gap-2">
             {stats.badges.map((b) => (
@@ -205,7 +205,7 @@ export default function AdminUserDetailPage() {
       {/* XP Award Modal */}
       {xpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-2xl">
             <div className="mb-5 flex items-center gap-2">
               <FiZap className="h-5 w-5 text-amber-400" />
               <h3 className="font-display text-lg font-bold text-white">XP Berish</h3>

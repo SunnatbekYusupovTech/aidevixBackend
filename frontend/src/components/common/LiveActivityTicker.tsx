@@ -65,7 +65,7 @@ export default function LiveActivityTicker({ visible = true }: { visible?: boole
     <div className="hidden md:block fixed top-28 left-1/2 -translate-x-1/2 z-[40] w-fit">
       <div
         ref={itemRef}
-        className={`activity-item px-4 py-2 bg-[#12141c]/80 backdrop-blur-md border border-white/5 rounded-full flex items-center gap-3 shadow-2xl bg-gradient-to-r ${style.color} to-transparent`}
+        className={`activity-item px-4 py-2 bg-[#111726]/80 backdrop-blur-md border border-white/5 rounded-full flex items-center gap-3 shadow-2xl bg-gradient-to-r ${style.color} to-transparent`}
       >
         <div className="flex items-center gap-2">
           {style.icon}

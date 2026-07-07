@@ -23,7 +23,7 @@ export default function RoadmapPage() {
   const [paths, setPaths] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const bgClass = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
-  const cardClass = isDark ? 'bg-[#0d1224]/80 border-white/5' : 'bg-white border-slate-200';
+  const cardClass = isDark ? 'bg-[#111726]/80 border-white/5' : 'bg-white border-slate-200';
 
   useEffect(() => {
     axiosInstance.get('public/roadmap')
@@ -117,7 +117,7 @@ export default function RoadmapPage() {
                     className={`relative flex items-start gap-5 rounded-2xl border p-6 ${cardClass} sm:ml-8`}
                   >
                     {/* Step number circle */}
-                    <div className={`absolute -left-[3.25rem] w-6 h-6 rounded-full border-2 ${path.borderColor} ${isDark ? 'bg-[#0d1224]' : 'bg-white'} hidden items-center justify-center sm:flex`}>
+                    <div className={`absolute -left-[3.25rem] w-6 h-6 rounded-full border-2 ${path.borderColor} ${isDark ? 'bg-[#111726]' : 'bg-white'} hidden items-center justify-center sm:flex`}>
                       <span className={`text-[10px] font-black ${path.accentColor}`}>{i + 1}</span>
                     </div>
 

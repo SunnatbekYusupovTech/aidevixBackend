@@ -67,16 +67,16 @@ export default function LoginForm() {
   };
 
   // Theme-aware classes
-  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+  const labelCls = isDark ? 'text-slate-300' : 'text-slate-700';
   const inputCls = isDark
-    ? 'bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
-    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+    ? 'bg-white/5 text-white placeholder-slate-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
   const eyeBtnCls = isDark
-    ? 'text-gray-400 hover:text-gray-200'
-    : 'text-gray-500 hover:text-gray-700';
-  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-gray-200';
-  const dividerTextCls = isDark ? 'text-gray-500' : 'text-gray-400';
-  const noAccountCls = isDark ? 'text-gray-400' : 'text-gray-600';
+    ? 'text-slate-400 hover:text-slate-200'
+    : 'text-slate-500 hover:text-slate-700';
+  const dividerLineCls = isDark ? 'bg-white/10' : 'bg-slate-200';
+  const dividerTextCls = isDark ? 'text-slate-500' : 'text-slate-400';
+  const noAccountCls = isDark ? 'text-slate-400' : 'text-slate-600';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">

@@ -69,7 +69,7 @@ function GlobalSearch() {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-2xl"
+            className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#111726] shadow-2xl"
           >
             {!hasAny ? (
               <p className="px-4 py-6 text-center text-sm text-slate-500">Hech narsa topilmadi</p>
@@ -222,7 +222,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-[#06070d] font-sans text-slate-200">
+      <div className="min-h-screen bg-[#0A0E1A] font-sans text-slate-200">
         <div
           className="pointer-events-none fixed inset-0 opacity-[0.07]"
           style={{

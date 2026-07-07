@@ -3,7 +3,7 @@ import Skeleton from '@/components/common/Skeleton';
 
 export default function CourseCardSkeleton() {
   return (
-    <div className="block overflow-hidden rounded-[2rem] bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition-all duration-500">
+    <div className="block overflow-hidden rounded-[2rem] bg-[#111726] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition-all duration-500">
       {/* Thumbnail Skeleton */}
       <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         <div className="absolute inset-0 flex items-center justify-center">

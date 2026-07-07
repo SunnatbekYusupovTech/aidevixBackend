@@ -103,7 +103,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       className={
-        'group block overflow-hidden rounded-none bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
+        'group block overflow-hidden rounded-none bg-[#111726] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
         'transition-all duration-500 ' +
         cat.glow + ' ' + className
       }
@@ -112,7 +112,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
       <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         {course.thumbnail ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#11141b]">
+            <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-none overflow-hidden shadow-2xl p-4 sm:p-5 flex items-center justify-center bg-white dark:bg-[#111726]">
               <div className="relative w-full h-full">
                 <DynamicSVG
                   src={course.thumbnail}
@@ -187,7 +187,7 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
           <div className="flex items-center justify-between pt-1">
             {/* Instructor */}
             <div className="group/author flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-none border border-platinum-800 bg-[#15181e] text-[10px] font-bold text-platinum-400 transition-colors group-hover/author:bg-platinum-800/20 sm:h-7 sm:w-7">
+              <div className="flex h-6 w-6 items-center justify-center rounded-none border border-platinum-800 bg-[#161D31] text-[10px] font-bold text-platinum-400 transition-colors group-hover/author:bg-platinum-800/20 sm:h-7 sm:w-7">
                 {instructorName?.[0]?.toUpperCase() || 'A'}
               </div>
               <div className="flex flex-col">

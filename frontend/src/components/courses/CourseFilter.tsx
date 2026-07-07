@@ -65,7 +65,7 @@ export default function CourseFilter() {
               className={
                 'w-full rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-all duration-300 sm:text-sm ' +
                 (active
-                  ? 'scale-[1.02] bg-[#eb8a14] text-[#211303] shadow-[0_8px_25px_rgba(235,138,20,0.35)]'
+                  ? 'scale-[1.02] bg-primary-500 text-white shadow-[0_8px_25px_rgba(99,102,241,0.35)]'
                   : 'border border-base-content/10 bg-base-200 text-base-content/70 hover:scale-[1.01] hover:bg-base-300 hover:text-base-content')
               }
             >
@@ -78,7 +78,7 @@ export default function CourseFilter() {
           <button
             onClick={() => setExpanded(!expanded)}
             onMouseEnter={playHoverSound}
-            className="w-full rounded-xl border border-dashed border-[#eb8a14]/30 bg-base-200/50 px-3 py-2.5 text-center text-xs font-bold text-[#eb8a14] transition-all duration-300 hover:border-[#eb8a14]/60 hover:bg-[#eb8a14]/10 sm:text-sm"
+            className="w-full rounded-xl border border-dashed border-primary-500/30 bg-base-200/50 px-3 py-2.5 text-center text-xs font-bold text-primary-400 transition-all duration-300 hover:border-primary-500/60 hover:bg-primary-500/10 sm:text-sm"
           >
             {expanded ? t('filter.collapse') : t('filter.expand')}
           </button>
@@ -101,7 +101,7 @@ export default function CourseFilter() {
                   className={
                     'shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'border border-[#eb8a14]/30 bg-[#eb8a14]/15 text-[#efa243]'
+                      ? 'border border-primary-500/30 bg-primary-500/15 text-primary-400'
                       : 'border border-base-content/10 bg-base-200 text-base-content/60 hover:bg-base-300')
                   }
                 >
@@ -126,11 +126,11 @@ export default function CourseFilter() {
                   className={
                     'flex shrink-0 items-center gap-0.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ' +
                     (active
-                      ? 'border border-[#eb8a14]/30 bg-[#eb8a14]/15 text-[#efa243]'
+                      ? 'border border-primary-500/30 bg-primary-500/15 text-primary-400'
                       : 'border border-base-content/10 bg-base-200 text-base-content/60 hover:bg-base-300')
                   }
                 >
-                  {r.value > 0 && <IoStar className={`text-[10px] ${active ? 'text-[#eb8a14]' : 'text-base-content/40'}`} />}
+                  {r.value > 0 && <IoStar className={`text-[10px] ${active ? 'text-primary-400' : 'text-base-content/40'}`} />}
                   {r.label}
                 </button>
               )
@@ -148,11 +148,11 @@ export default function CourseFilter() {
                 setDropdownOpen(!dropdownOpen)
               }}
               type="button"
-              className="flex w-full items-center justify-between rounded-xl border border-base-content/10 bg-base-200 px-3.5 py-2 text-left text-xs font-semibold text-base-content/80 transition-all duration-300 hover:border-[#eb8a14]/40 hover:bg-base-300 sm:text-sm"
+              className="flex w-full items-center justify-between rounded-xl border border-base-content/10 bg-base-200 px-3.5 py-2 text-left text-xs font-semibold text-base-content/80 transition-all duration-300 hover:border-primary-500/40 hover:bg-base-300 sm:text-sm"
             >
               <span>{t(`sort.${filters.sort || 'newest'}`, SORT_OPTIONS.find(o => o.value === (filters.sort || 'newest'))?.label)}</span>
               <svg
-                className={`h-4 w-4 text-base-content/40 transition-transform duration-300 ${dropdownOpen ? 'rotate-180 text-[#eb8a14]' : ''}`}
+                className={`h-4 w-4 text-base-content/40 transition-transform duration-300 ${dropdownOpen ? 'rotate-180 text-primary-400' : ''}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -162,7 +162,7 @@ export default function CourseFilter() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 z-50 mt-1.5 w-full origin-top-right rounded-xl border border-[#eb8a14]/20 bg-base-200 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.15)] focus:outline-none">
+              <div className="absolute right-0 z-50 mt-1.5 w-full origin-top-right rounded-xl border border-primary-500/20 bg-base-200 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.15)] focus:outline-none">
                 <div className="space-y-1">
                   {SORT_OPTIONS.map((opt) => {
                     const active = (filters.sort || 'newest') === opt.value
@@ -176,8 +176,8 @@ export default function CourseFilter() {
                         }}
                         className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-all duration-200 sm:text-sm ${
                           active
-                            ? 'bg-[#eb8a14] text-[#211303] font-bold'
-                            : 'text-base-content/70 hover:bg-[#eb8a14]/10 hover:text-[#eb8a14]'
+                            ? 'bg-primary-500 text-white font-bold'
+                            : 'text-base-content/70 hover:bg-primary-500/10 hover:text-primary-400'
                         }`}
                       >
                         {t(`sort.${opt.value}`, opt.label)}

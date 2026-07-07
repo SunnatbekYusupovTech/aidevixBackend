@@ -37,9 +37,9 @@ export default function VideoCard({ video, index = 0 }: VideoProps) {
   return (
     <Link
       href={ROUTES.VIDEO(video._id)}
-      className="group flex w-full items-start gap-4 rounded-none border border-zinc-800 bg-[#10131a] p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-platinum-500/20 hover:bg-[#151a23]"
+      className="group flex w-full items-start gap-4 rounded-none border border-slate-800 bg-[#111726] p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-platinum-500/20 hover:bg-[#161D31]"
     >
-      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-none border border-zinc-800 bg-white/5">
+      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-none border border-slate-800 bg-white/5">
         {video.thumbnail ? (
           <Image
             src={video.thumbnail}

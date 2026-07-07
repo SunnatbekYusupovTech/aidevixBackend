@@ -40,7 +40,7 @@ export default function AccountDangerZone() {
   return (
     <section className="border border-rose-500/25 rounded-2xl p-6 bg-rose-500/[0.06]">
       <h2 className="text-lg font-semibold text-rose-200 mb-1">{t('security.danger.title')}</h2>
-      <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+      <p className="text-sm text-slate-400 mb-4 leading-relaxed">
         {t('security.danger.subtitle')}
       </p>
       {step === 'idle' && (

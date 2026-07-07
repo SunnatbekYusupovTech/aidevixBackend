@@ -55,7 +55,7 @@ export default function ExitIntentModal() {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.88, opacity: 0, y: 24 }}
             transition={{ type: 'spring', stiffness: 280, damping: 22 }}
-            className="relative w-full max-w-md bg-[#0d1224] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-[#111726] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
           >
             {/* Decorative glow */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_50%)] pointer-events-none" />

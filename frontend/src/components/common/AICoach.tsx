@@ -280,7 +280,7 @@ export default function AICoach({ visible = true }: { visible?: boolean }) {
           <IoSparkles className="text-2xl transition-transform group-hover:rotate-12" />
         )}
         {!isOpen && (
-          <div className="absolute -right-1 -top-1 h-4 w-4 animate-bounce rounded-full border-2 border-[#0a0a0c] bg-red-500" />
+          <div className="absolute -right-1 -top-1 h-4 w-4 animate-bounce rounded-full border-2 border-[#0A0E1A] bg-red-500" />
         )}
       </button>
 
@@ -290,7 +290,7 @@ export default function AICoach({ visible = true }: { visible?: boolean }) {
           role="dialog"
           aria-modal="true"
           aria-label={t('coach.title')}
-          className="coach-window absolute bottom-20 right-0 flex h-[min(520px,72vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#12141c]/95 shadow-2xl backdrop-blur-2xl max-sm:fixed max-sm:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] max-sm:left-2 max-sm:right-2 max-sm:h-[70vh] max-sm:w-auto"
+          className="coach-window absolute bottom-20 right-0 flex h-[min(520px,72vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111726]/95 shadow-2xl backdrop-blur-2xl max-sm:fixed max-sm:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] max-sm:left-2 max-sm:right-2 max-sm:h-[70vh] max-sm:w-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/5 bg-indigo-600/10 p-4">

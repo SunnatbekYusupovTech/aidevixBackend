@@ -87,7 +87,7 @@ function CreatePromptModal({ onClose, onCreated }: { onClose: () => void; onCrea
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-        className="relative w-full max-w-2xl bg-[#0d101a] border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+        className="relative w-full max-w-2xl bg-[#111726] border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-black text-white flex items-center gap-3"><IoSparkles className="text-indigo-400" /> {t('prompts.modalNewTitle')}</h2>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
@@ -367,7 +367,7 @@ function PromptCard({
 
   return (
     <motion.div ref={cardRef} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      className="group relative flex h-full flex-col bg-[#0d101a] border border-white/5 rounded-3xl p-5 sm:p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)]">
+      className="group relative flex h-full flex-col bg-[#111726] border border-white/5 rounded-3xl p-5 sm:p-6 hover:border-indigo-500/20 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.06)]">
       {prompt.isFeatured && (
         <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-widest">
           {t('prompts.featured')}
@@ -421,7 +421,7 @@ function PromptCard({
         <pre className="pointer-events-none max-h-[200px] overflow-hidden font-mono text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap break-words sm:max-h-[220px] sm:text-sm">
           {prompt.content}
         </pre>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/70 to-transparent" />
         <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 text-[11px] font-bold text-indigo-400">
           {t('prompts.expandDetail')} <IoChevronForward size={12} className="opacity-80" />
         </span>
@@ -777,7 +777,7 @@ export default function PromptsPage() {
 
         {promptAccess === 'need_subscription' && (
           <section
-            className="mb-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0d101a] via-[#0f1220] to-[#0d101a] p-8 sm:p-12"
+            className="mb-10 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#111726] via-[#111726] to-[#111726] p-8 sm:p-12"
             aria-labelledby="prompts-tg-gate-title"
           >
             {/* glow bg */}

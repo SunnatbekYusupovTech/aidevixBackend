@@ -99,11 +99,11 @@ export default function SessionDevicesPanel() {
   };
 
   return (
-    <section className="bg-[#0d1224]/40 border border-white/5 rounded-2xl p-6">
+    <section className="bg-[#111726]/40 border border-white/5 rounded-2xl p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-semibold">{t('security.sessions.title')}</h2>
-          <p className="text-gray-400 text-sm mt-0.5">{t('security.sessions.subtitle')}</p>
+          <p className="text-slate-400 text-sm mt-0.5">{t('security.sessions.subtitle')}</p>
         </div>
         {sessions.length > 1 && (
           <button
@@ -118,9 +118,9 @@ export default function SessionDevicesPanel() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 text-sm">{t('general.loading')}</p>
+        <p className="text-slate-500 text-sm">{t('general.loading')}</p>
       ) : sessions.length === 0 ? (
-        <p className="text-gray-500 text-sm">{t('security.sessions.empty')}</p>
+        <p className="text-slate-500 text-sm">{t('security.sessions.empty')}</p>
       ) : (
         <ul className="space-y-3">
           {sessions.map((s) => (
@@ -140,11 +140,11 @@ export default function SessionDevicesPanel() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t('security.sessions.ip')}: <span className="text-gray-300">{s.ip || '—'}</span>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {t('security.sessions.ip')}: <span className="text-slate-300">{s.ip || '—'}</span>
                   </p>
-                  <p className="text-xs text-gray-500">{t('security.sessions.lastActive')}: {formatDate(s.lastUsedAt, lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'uz-UZ')}</p>
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <p className="text-xs text-slate-500">{t('security.sessions.lastActive')}: {formatDate(s.lastUsedAt, lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'uz-UZ')}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
                     {t('security.sessions.created')}: {formatDate(s.createdAt, lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'uz-UZ')} · {t('security.sessions.expires')}: {formatDate(s.absoluteExpiresAt, lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'uz-UZ')}
                   </p>
                 </div>

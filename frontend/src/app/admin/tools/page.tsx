@@ -50,7 +50,7 @@ function ChallengeSection() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-2">
         <FiActivity className="text-amber-400" />
         <h3 className="font-display text-lg font-bold text-white">Kunlik vazifa (challenge)</h3>
@@ -145,7 +145,7 @@ function TelegramSection() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-2">
         <FiSend className="text-sky-400" />
         <h3 className="font-display text-lg font-bold text-white">Telegram kanalga xabar</h3>
@@ -222,7 +222,7 @@ function BulkLinkSection() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
       <div className="mb-5 flex items-center gap-2">
         <FiLink className="text-violet-400" />
         <h3 className="font-display text-lg font-bold text-white">Bulk Bunny GUID ulash</h3>
@@ -370,7 +370,7 @@ function AiNewsSection() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+    <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
       <div className="mb-5 flex items-center justify-between gap-3">
         <h3 className="font-display text-lg font-bold text-white">AI News Banner boshqaruvi</h3>
         <button

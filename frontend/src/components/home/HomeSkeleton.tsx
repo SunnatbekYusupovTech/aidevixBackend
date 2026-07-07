@@ -35,7 +35,7 @@ export default function HomeSkeleton() {
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-[2.5rem] bg-[#11141b] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] p-2">
+              <div key={i} className="rounded-[2.5rem] bg-[#111726] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] p-2">
                 <Skeleton className="aspect-video w-full rounded-[2rem]" />
                 <div className="p-6 space-y-4">
                    <div className="flex gap-2">

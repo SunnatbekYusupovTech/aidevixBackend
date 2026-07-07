@@ -52,13 +52,13 @@ function TelegramLoginContent() {
       />
 
       {/* Status Card */}
-      <div className="bg-[#0d1224]/60 border border-white/5 rounded-2xl p-8 space-y-6 backdrop-blur-sm">
+      <div className="bg-[#111726]/60 border border-white/5 rounded-2xl p-8 space-y-6 backdrop-blur-sm">
         <h1 className="text-2xl font-bold text-white">Telegram orqali kirish</h1>
 
         {status === 'loading' && (
           <div className="space-y-4">
             <div className="w-12 h-12 mx-auto border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-zinc-400 animate-pulse">{message}</p>
+            <p className="text-slate-400 animate-pulse">{message}</p>
           </div>
         )}
 
@@ -93,7 +93,7 @@ function TelegramLoginContent() {
         )}
       </div>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-slate-600">
         Aidevix IT-Ta&apos;lim Platformasi © {new Date().getFullYear()}
       </p>
     </div>
@@ -107,7 +107,7 @@ export default function TelegramLoginPage() {
         fallback={
           <div className="text-center space-y-4">
             <div className="w-12 h-12 mx-auto border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-zinc-400">Yuklanmoqda...</p>
+            <p className="text-slate-400">Yuklanmoqda...</p>
           </div>
         }
       >

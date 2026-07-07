@@ -78,23 +78,23 @@ export default function BugReportPage() {
 
   // Theme-aware
   const pageBg = isDark ? 'bg-[#0A0E1A] text-slate-200' : 'bg-slate-50 text-slate-900';
-  const titleCls = isDark ? 'text-white' : 'text-gray-900';
-  const subCls = isDark ? 'text-slate-400' : 'text-gray-600';
-  const cardCls = isDark ? 'border-white/10 bg-white/[0.03]' : 'border-gray-200 bg-white shadow-sm';
-  const cardTextCls = isDark ? 'text-slate-400' : 'text-gray-600';
-  const labelCls = isDark ? 'text-slate-500' : 'text-gray-500';
+  const titleCls = isDark ? 'text-white' : 'text-slate-900';
+  const subCls = isDark ? 'text-slate-400' : 'text-slate-600';
+  const cardCls = isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white shadow-sm';
+  const cardTextCls = isDark ? 'text-slate-400' : 'text-slate-600';
+  const labelCls = isDark ? 'text-slate-500' : 'text-slate-500';
   const inputCls = isDark
     ? 'border-white/10 bg-white/5 text-white focus:border-indigo-500/50'
-    : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-indigo-500';
+    : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-500';
   const histCardCls = isDark
     ? 'border-white/10 bg-[#0A0E1A]/80'
-    : 'border-gray-200 bg-white';
-  const histTitleCls = isDark ? 'text-white' : 'text-gray-900';
-  const histStatusCls = isDark ? 'bg-white/10 text-slate-400' : 'bg-gray-100 text-gray-500';
-  const histSubCls = isDark ? 'text-slate-500' : 'text-gray-500';
-  const histNoteCls = isDark ? 'text-slate-400' : 'text-gray-600';
-  const dividerCls = isDark ? 'border-white/10' : 'border-gray-200';
-  const hintCls = isDark ? 'text-slate-500' : 'text-gray-500';
+    : 'border-slate-200 bg-white';
+  const histTitleCls = isDark ? 'text-white' : 'text-slate-900';
+  const histStatusCls = isDark ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-500';
+  const histSubCls = isDark ? 'text-slate-500' : 'text-slate-500';
+  const histNoteCls = isDark ? 'text-slate-400' : 'text-slate-600';
+  const dividerCls = isDark ? 'border-white/10' : 'border-slate-200';
+  const hintCls = isDark ? 'text-slate-500' : 'text-slate-500';
 
   return (
     <div className={`min-h-screen px-3 pb-20 pt-24 selection:bg-indigo-500/30 sm:px-4 sm:pt-28 md:px-6 ${pageBg}`}>

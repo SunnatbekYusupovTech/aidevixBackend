@@ -47,7 +47,7 @@ export default function WeeklyXpChart({ data }: { data: XpPoint[] }) {
           content={({ active, payload }: any) => {
             if (active && payload && payload.length) {
               return (
-                <div className="p-2.5 rounded-none border border-zinc-800 backdrop-blur-xl text-xs font-mono font-semibold shadow-xl z-[90] bg-slate-950/95 text-white">
+                <div className="p-2.5 rounded-none border border-slate-800 backdrop-blur-xl text-xs font-mono font-semibold shadow-xl z-[90] bg-slate-950/95 text-white">
                   <p className="opacity-60">{payload[0].payload.day}</p>
                   <p className="text-platinum-400 mt-0.5">{payload[0].value} XP</p>
                 </div>

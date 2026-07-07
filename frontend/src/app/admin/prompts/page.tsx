@@ -125,27 +125,27 @@ export default function AdminPromptsPage() {
             placeholder="Sarlavha, kontent, tavsif..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full rounded-xl border border-white/10 bg-[#0f121c] py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
+            className="w-full rounded-xl border border-white/10 bg-[#111726] py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
           />
         </div>
         <select
           value={category}
           onChange={e => { setCategory(e.target.value); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           {CATEGORIES.map(c => <option key={c} value={c}>{c === 'all' ? 'Barcha kategoriya' : c}</option>)}
         </select>
         <select
           value={tool}
           onChange={e => { setTool(e.target.value); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           {TOOLS.map(t => <option key={t} value={t}>{t === 'all' ? 'Barcha tool' : t}</option>)}
         </select>
         <select
           value={visibility}
           onChange={e => { setVisibility(e.target.value as '' | 'public' | 'hidden'); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           <option value="">Hammasi</option>
           <option value="public">Ochiq</option>
@@ -153,7 +153,7 @@ export default function AdminPromptsPage() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726]">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <span className="loading loading-spinner loading-lg text-amber-400" />

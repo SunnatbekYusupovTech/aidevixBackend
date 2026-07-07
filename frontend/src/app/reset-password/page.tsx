@@ -81,21 +81,21 @@ function ResetPasswordContent() {
 
   const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark
-    ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
-    : 'bg-white border border-gray-200 shadow-xl';
-  const headTextMain = isDark ? 'text-white' : 'text-gray-900';
-  const headTextMuted = isDark ? 'text-gray-400' : 'text-gray-600';
-  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
-  const iconCls = isDark ? 'text-gray-400' : 'text-gray-500';
+    ? 'bg-[#0A0E1A] lg:bg-[#111726]/40 border-0 lg:border lg:border-white/5'
+    : 'bg-white border border-slate-200 shadow-xl';
+  const headTextMain = isDark ? 'text-white' : 'text-slate-900';
+  const headTextMuted = isDark ? 'text-slate-400' : 'text-slate-600';
+  const labelCls = isDark ? 'text-slate-300' : 'text-slate-700';
+  const iconCls = isDark ? 'text-slate-400' : 'text-slate-500';
   const inputBase = 'w-full pl-11 pr-12 py-3 rounded-xl outline-none transition-all';
   const inputCls = isDark
-    ? 'bg-white/5 text-white placeholder-gray-500 border focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
-    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
-  const inputBorderOk = isDark ? 'border-white/10' : 'border-gray-200';
+    ? 'bg-white/5 text-white placeholder-slate-500 border focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-slate-50 text-slate-900 placeholder-slate-400 border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+  const inputBorderOk = isDark ? 'border-white/10' : 'border-slate-200';
   const inputBorderErr = isDark ? 'border-red-500/50' : 'border-red-400';
-  const eyeBtnCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
-  const strengthBarBg = isDark ? 'bg-gray-700' : 'bg-gray-200';
-  const backLinkCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
+  const eyeBtnCls = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800';
+  const strengthBarBg = isDark ? 'bg-slate-700' : 'bg-slate-200';
+  const backLinkCls = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900';
   const inputCN = (hasErr: boolean) => `${inputBase} ${inputCls} ${hasErr ? inputBorderErr : inputBorderOk}`;
 
   return (

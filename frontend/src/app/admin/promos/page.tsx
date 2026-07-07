@@ -132,12 +132,12 @@ export default function PromosPage() {
           placeholder="Kod bo'yicha qidirish..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 min-w-[200px] rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
+          className="flex-1 min-w-[200px] rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
         />
         <select
           value={statusFilter}
           onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           <option value="">Barchasi</option>
           <option value="active">Faol</option>
@@ -146,7 +146,7 @@ export default function PromosPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726]">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <span className="loading loading-spinner loading-lg text-amber-400" />
@@ -266,7 +266,7 @@ export default function PromosPage() {
       {/* Create Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-2xl">
             <h3 className="mb-5 font-display text-xl font-bold text-white">Yangi promo kod</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>

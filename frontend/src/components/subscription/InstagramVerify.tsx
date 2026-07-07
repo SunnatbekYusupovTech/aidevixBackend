@@ -49,11 +49,11 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
 
   if (phase === 'success') {
     return (
-      <div className="rounded-2xl overflow-hidden border border-green-500/20 bg-[#0f1a14]">
+      <div className="rounded-2xl overflow-hidden border border-emerald-500/20 bg-[#111726]">
         <div className="p-6 text-center space-y-3">
           <IoCheckmarkCircle className="text-5xl text-green-400 mx-auto" />
           <h3 className="text-xl font-bold text-white">{t('ig.verified')}</h3>
-          <p className="text-zinc-400 text-sm">@{savedUsername}</p>
+          <p className="text-slate-400 text-sm">@{savedUsername}</p>
         </div>
 
         <div className="mx-4 mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex gap-3">
@@ -77,20 +77,20 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1a1c26] p-6 space-y-5">
+    <div className="rounded-2xl border border-white/5 bg-[#161D31] p-6 space-y-5">
       <div className="text-center space-y-2">
         <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-pink-500/20">
           <IoLogoInstagram className="text-3xl text-white" />
         </div>
         <h3 className="text-xl font-bold text-white">{t('ig.title')}</h3>
-        <p className="text-zinc-400 text-sm">{t('ig.subtitle')}</p>
+        <p className="text-slate-400 text-sm">{t('ig.subtitle')}</p>
       </div>
 
       <div className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-white/5">
         <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-bold flex items-center justify-center shrink-0">
           1
         </div>
-        <p className="text-zinc-300 text-sm">
+        <p className="text-slate-300 text-sm">
           {t('ig.step1a')} <strong className="text-pink-400">@aidevix</strong> {t('ig.step1b')}
         </p>
       </div>
@@ -99,7 +99,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
         <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-400 text-xs font-bold flex items-center justify-center shrink-0">
           2
         </div>
-        <p className="text-zinc-300 text-sm">{t('ig.step2')}</p>
+        <p className="text-slate-300 text-sm">{t('ig.step2')}</p>
       </div>
 
       <div className="space-y-3 pt-1">
@@ -110,7 +110,7 @@ export default function InstagramVerify({ onVerified }: InstagramVerifyProps) {
           onChange={(e) => setUsername(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !submitting && handleSubmit()}
           disabled={submitting}
-          className="w-full px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500/50 transition-colors text-sm disabled:opacity-50"
+          className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors text-sm disabled:opacity-50"
         />
 
         <button

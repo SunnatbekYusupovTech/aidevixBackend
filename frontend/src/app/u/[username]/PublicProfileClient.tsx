@@ -51,7 +51,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-3xl border p-8 mb-6 ${isDark ? 'bg-[#0d1224]/80 border-white/5' : 'bg-white border-slate-200'}`}
+          className={`rounded-3xl border p-8 mb-6 ${isDark ? 'bg-[#111726]/80 border-white/5' : 'bg-white border-slate-200'}`}
         >
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar */}
@@ -111,7 +111,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             { icon: <IoSparkles className="text-pink-400" />, label: 'Prompt', value: achievements?.promptsCount ?? 0 },
             { icon: <IoPeople className="text-indigo-400" />, label: 'Follower', value: followers },
           ].map((stat, i) => (
-            <div key={i} className={`rounded-2xl border p-5 text-center ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}>
+            <div key={i} className={`rounded-2xl border p-5 text-center ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}>
               <div className="text-2xl mb-1 flex justify-center">{stat.icon}</div>
               <div className="text-xl font-black">{stat.value}</div>
               <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">{stat.label}</div>
@@ -125,7 +125,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}
+            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}
           >
             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-5">Yutuqlar</h2>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -145,7 +145,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}
+            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}
           >
             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-5">AI Stack</h2>
             <div className="flex flex-wrap gap-2">
@@ -164,7 +164,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className={`rounded-3xl border p-6 ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}
+            className={`rounded-3xl border p-6 ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}
           >
             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-5">Ko'nikmalar</h2>
             <div className="flex flex-wrap gap-2">
@@ -183,7 +183,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}
+            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Sertifikatlar</h2>
@@ -212,7 +212,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45 }}
-            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}
+            className={`rounded-3xl border p-6 mb-6 ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}
           >
             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-5">Eng yaxshi promptlar</h2>
             <div className="space-y-2">
@@ -238,7 +238,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
         )}
 
         {/* Social */}
-        <div className={`rounded-3xl border p-5 mb-6 flex items-center justify-around ${isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-3xl border p-5 mb-6 flex items-center justify-around ${isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200'}`}>
           <div className="text-center">
             <div className="text-2xl font-black text-indigo-400">{followers}</div>
             <div className="text-xs text-slate-500 uppercase tracking-wider">Follower</div>

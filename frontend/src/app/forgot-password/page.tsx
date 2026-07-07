@@ -77,21 +77,21 @@ export default function ForgotPasswordPage() {
 
   const tabBase = 'flex-1 py-2 text-sm font-medium rounded-full transition-all';
   const tabActive = 'bg-indigo-600 text-white';
-  const tabInactive = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800';
+  const tabInactive = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800';
 
   const pageBg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const cardBg = isDark
-    ? 'bg-[#0A0E1A] lg:bg-[#0d1224]/40 border-0 lg:border lg:border-white/5'
-    : 'bg-white border border-gray-200 shadow-xl';
-  const headTextMain = isDark ? 'text-white' : 'text-gray-900';
-  const headTextMuted = isDark ? 'text-gray-400' : 'text-gray-600';
-  const tabsBg = isDark ? 'bg-white/5' : 'bg-gray-100';
-  const labelCls = isDark ? 'text-gray-300' : 'text-gray-700';
+    ? 'bg-[#0A0E1A] lg:bg-[#111726]/40 border-0 lg:border lg:border-white/5'
+    : 'bg-white border border-slate-200 shadow-xl';
+  const headTextMain = isDark ? 'text-white' : 'text-slate-900';
+  const headTextMuted = isDark ? 'text-slate-400' : 'text-slate-600';
+  const tabsBg = isDark ? 'bg-white/5' : 'bg-slate-100';
+  const labelCls = isDark ? 'text-slate-300' : 'text-slate-700';
   const inputCls = isDark
-    ? 'bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
-    : 'bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
-  const hintCls = isDark ? 'text-gray-500' : 'text-gray-500';
-  const backLinkCls = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
+    ? 'bg-white/5 text-white placeholder-slate-500 border border-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30'
+    : 'bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+  const hintCls = isDark ? 'text-slate-500' : 'text-slate-500';
+  const backLinkCls = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900';
 
   return (
     <div className={`min-h-screen flex font-sans selection:bg-indigo-500/30 ${pageBg} ${headTextMain}`}>

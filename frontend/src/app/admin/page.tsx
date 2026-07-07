@@ -35,7 +35,7 @@ type AnalyticsData = {
 
 function StatCardSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#111726] p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-3 flex-1">
           <div className="h-2.5 w-24 animate-pulse rounded bg-white/5" />
@@ -231,7 +231,7 @@ export default function AdminDashboardPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06, duration: 0.35 }}
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl"
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl"
             >
               <div className={`absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br ${card.gradient} opacity-20 blur-2xl transition group-hover:opacity-35`} />
               <div className="relative flex items-start justify-between gap-3">
@@ -254,7 +254,7 @@ export default function AdminDashboardPage() {
 
       {/* Summary bar */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#0f121c] p-6 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#111726] p-6 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="h-8 w-8 animate-pulse rounded-lg bg-white/5" />
@@ -266,7 +266,7 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       ) : stats && (
-        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#0f121c] p-6 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#111726] p-6 md:grid-cols-4">
           <div className="flex items-center gap-3">
             <FiLayers className="h-8 w-8 shrink-0 text-amber-400/90" />
             <div>
@@ -308,7 +308,7 @@ export default function AdminDashboardPage() {
       {/* Analytics charts */}
       {analytics && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
             <div className="mb-3 flex items-center gap-2">
               <FiBarChart2 className="text-amber-400" />
               <h3 className="font-display text-base font-bold text-white">Daromad (6 oy, UZS)</h3>
@@ -319,7 +319,7 @@ export default function AdminDashboardPage() {
               <LineChart data={analytics.revenue} color="#f59e0b" />
             )}
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
             <div className="mb-3 flex items-center gap-2">
               <FiUsers className="text-sky-400" />
               <h3 className="font-display text-base font-bold text-white">Yangi a'zolar (6 oy)</h3>
@@ -330,7 +330,7 @@ export default function AdminDashboardPage() {
               <LineChart data={analytics.signups} color="#38bdf8" />
             )}
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
             <div className="mb-3 flex items-center gap-2">
               <FiBookOpen className="text-emerald-400" />
               <h3 className="font-display text-base font-bold text-white">Top kurslar (enrollment)</h3>
@@ -349,7 +349,7 @@ export default function AdminDashboardPage() {
 
       {/* Tables */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-bold text-white">Top o'quvchilar (XP)</h3>
             <Link href="/admin/users" className="text-xs font-medium text-amber-400 hover:text-amber-300">
@@ -400,7 +400,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-base font-bold text-white">Eng ko'p ko'rilgan kurslar</h3>
             <Link href="/admin/courses" className="text-xs font-medium text-amber-400 hover:text-amber-300">

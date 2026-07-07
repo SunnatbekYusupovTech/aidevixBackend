@@ -80,7 +80,7 @@ export default function BetaWelcomeModal() {
             exit={{ scale: 0.94, opacity: 0, y: 16 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-[1] w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/12 bg-[#0a0d18] p-8 sm:p-10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_25px_80px_-12px_rgba(0,0,0,0.65)]"
+            className="relative z-[1] w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/12 bg-[#0A0E1A] p-8 sm:p-10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_25px_80px_-12px_rgba(0,0,0,0.65)]"
           >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(99,102,241,0.35),transparent_55%)]" />
             <div className="pointer-events-none absolute -right-24 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-violet-500/15 blur-3xl" />

@@ -94,14 +94,14 @@ export default function ProfilePage() {
   const AI_TOOLS = [
     { name: 'Claude Code', icon: '🤖', color: 'from-orange-500/10 to-amber-500/10 border-orange-500/20 text-orange-300' },
     { name: 'Cursor', icon: '⚡', color: 'from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-300' },
-    { name: 'GitHub Copilot', icon: '🐙', color: 'from-slate-500/10 to-gray-500/10 border-slate-500/20 text-slate-300' },
+    { name: 'GitHub Copilot', icon: '🐙', color: 'from-slate-500/10 to-slate-500/10 border-slate-500/20 text-slate-300' },
     { name: 'ChatGPT', icon: '💬', color: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300' },
     { name: 'Gemini', icon: '✨', color: 'from-violet-500/10 to-purple-500/10 border-violet-500/20 text-violet-300' },
     { name: 'Windsurf', icon: '🌊', color: 'from-sky-500/10 to-blue-500/10 border-sky-500/20 text-sky-300' },
     { name: 'Devin', icon: '🦾', color: 'from-red-500/10 to-rose-500/10 border-red-500/20 text-red-300' },
     { name: 'Replit AI', icon: '🔁', color: 'from-pink-500/10 to-fuchsia-500/10 border-pink-500/20 text-pink-300' },
     { name: 'Codeium', icon: '🔮', color: 'from-indigo-500/10 to-blue-500/10 border-indigo-500/20 text-indigo-300' },
-    { name: 'Other', icon: '🛠️', color: 'from-zinc-500/10 to-neutral-500/10 border-zinc-500/20 text-zinc-300' },
+    { name: 'Other', icon: '🛠️', color: 'from-slate-500/10 to-slate-500/10 border-slate-500/20 text-slate-300' },
   ];
 
   const TABS = [
@@ -288,13 +288,13 @@ export default function ProfilePage() {
         <div className="relative mb-8 sm:mb-12">
           <div className="absolute inset-0 -z-10 translate-y-[-20%] rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl"></div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-[#0d101a] p-5 shadow-2xl sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12">
+          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-[#111726] p-5 shadow-2xl sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12">
             <div className="flex flex-col items-center gap-6 md:flex-row md:gap-8 lg:gap-10">
 
               {/* Avatar Section */}
               <div className="group relative shrink-0">
                 <div className="h-28 w-28 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:h-32 sm:w-32 md:h-40 md:w-40">
-                  <div className="h-full w-full overflow-hidden rounded-full bg-[#0d101a] p-1">
+                  <div className="h-full w-full overflow-hidden rounded-full bg-[#111726] p-1">
                     <img
                       src={avatarPreview || avatar || user?.avatar || `https://ui-avatars.com/api/?name=${user?.username || 'U'}&background=312e81&color=fff&size=200`}
                       alt="Profile"
@@ -306,7 +306,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
-                  className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-[#0d101a] bg-indigo-500 text-white shadow-lg transition-all hover:scale-110 hover:bg-indigo-400 active:scale-95 disabled:opacity-50 sm:bottom-2 sm:right-2 sm:h-10 sm:w-10"
+                  className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-[#111726] bg-indigo-500 text-white shadow-lg transition-all hover:scale-110 hover:bg-indigo-400 active:scale-95 disabled:opacity-50 sm:bottom-2 sm:right-2 sm:h-10 sm:w-10"
                   aria-label="Change avatar"
                 >
                   <FiCamera size={16} className="sm:hidden" />
@@ -399,7 +399,7 @@ export default function ProfilePage() {
             >
               {/* Left Details */}
               <div className="space-y-6 sm:space-y-8 lg:col-span-2">
-                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                <div className="rounded-2xl border border-white/5 bg-[#111726] p-5 shadow-xl sm:rounded-3xl sm:p-8">
                   <h3 className="mb-6 flex items-center gap-3 text-lg font-bold text-white sm:mb-8 sm:text-xl">
                     <FiUser className="text-indigo-500" />
                     {t('profile.section.info')}
@@ -430,7 +430,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Skills Section */}
-                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                <div className="rounded-2xl border border-white/5 bg-[#111726] p-5 shadow-xl sm:rounded-3xl sm:p-8">
                   <h3 className="mb-6 flex items-center gap-3 text-lg font-bold text-white sm:mb-8 sm:text-xl">
                     <FiAward className="text-indigo-500" />
                     {t('profile.section.skills')}
@@ -449,7 +449,7 @@ export default function ProfilePage() {
 
               {/* Right Side Info */}
               <div className="space-y-6 sm:space-y-8">
-                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+                <div className="rounded-2xl border border-white/5 bg-[#111726] p-5 shadow-xl sm:rounded-3xl sm:p-8">
                   <h3 className="mb-6 text-lg font-bold text-white sm:mb-8 sm:text-xl">{t('profile.section.contact')}</h3>
                   <div className="space-y-5 sm:space-y-6">
                     <div className="flex min-w-0 items-center gap-3 sm:gap-4">
@@ -488,7 +488,7 @@ export default function ProfilePage() {
           )}
 
           {activeTab === t('profile.tab.subs') && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-20 text-center bg-[#0d101a] border border-white/5 rounded-3xl text-slate-500 font-medium">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-20 text-center bg-[#111726] border border-white/5 rounded-3xl text-slate-500 font-medium">
                {t('profile.subs.soon')}
             </motion.div>
           )}
@@ -500,7 +500,7 @@ export default function ProfilePage() {
           {activeTab === t('profile.tab.achievements') && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 sm:space-y-8">
               {/* Streak Shield Card */}
-              <div className="rounded-2xl border border-indigo-500/20 bg-[#0d101a] p-5 sm:rounded-3xl sm:p-8">
+              <div className="rounded-2xl border border-indigo-500/20 bg-[#111726] p-5 sm:rounded-3xl sm:p-8">
                 <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
                   <div className="flex w-full min-w-0 flex-1 items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-2xl sm:h-14 sm:w-14 sm:text-3xl">
@@ -545,7 +545,7 @@ export default function ProfilePage() {
               {/* Badges Grid */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 md:gap-6">
                 {badges?.length > 0 ? badges.map((badge, i) => (
-                  <div key={i} className="rounded-2xl border border-white/5 bg-[#0d101a] p-4 text-center sm:rounded-3xl sm:p-6">
+                  <div key={i} className="rounded-2xl border border-white/5 bg-[#111726] p-4 text-center sm:rounded-3xl sm:p-6">
                     <div className="mb-2 text-3xl sm:mb-3 sm:text-4xl">{badge.icon || '🏆'}</div>
                     <h5 className="break-words text-sm font-bold text-white">{badge.name}</h5>
                     <p className="mt-1 text-[10px] uppercase text-slate-500">{new Date(badge.earnedAt).toLocaleDateString()}</p>
@@ -559,7 +559,7 @@ export default function ProfilePage() {
 
           {activeTab === 'AI Stack' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 sm:space-y-8">
-              <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 shadow-xl sm:rounded-3xl sm:p-8">
+              <div className="rounded-2xl border border-white/5 bg-[#111726] p-5 shadow-xl sm:rounded-3xl sm:p-8">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="flex items-center gap-2 text-lg font-bold text-white sm:gap-3 sm:text-xl">
                     <span className="text-2xl">⚡</span> {profileLocalText.aiStackTitle}
@@ -603,7 +603,7 @@ export default function ProfilePage() {
               </div>
 
               {selectedTools.length > 0 && (
-                <div className="rounded-2xl border border-white/5 bg-[#0d101a] p-5 sm:rounded-3xl sm:p-8">
+                <div className="rounded-2xl border border-white/5 bg-[#111726] p-5 sm:rounded-3xl sm:p-8">
                   <h4 className="mb-5 text-xs font-bold uppercase tracking-widest text-slate-400 sm:mb-6 sm:text-sm">{profileLocalText.yourStack}</h4>
                   <div className="flex flex-wrap gap-2 sm:gap-3">
                     {selectedTools.map(tool => {
@@ -641,7 +641,7 @@ export default function ProfilePage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0d101a] p-5 shadow-2xl sm:max-h-[88vh] sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12"
+              className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#111726] p-5 shadow-2xl sm:max-h-[88vh] sm:rounded-[2rem] sm:p-8 md:rounded-[2.5rem] md:p-12"
             >
               {/* Decoration */}
               <div className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 bg-indigo-500/5 blur-3xl"></div>

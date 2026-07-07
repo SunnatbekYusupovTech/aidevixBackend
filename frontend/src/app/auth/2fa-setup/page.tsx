@@ -113,11 +113,11 @@ export default function TwoFactorSetupPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-[480px] bg-[#0d1224]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
+      <div className="w-full max-w-[480px] bg-[#111726]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
         {step === 'loading' && (
           <div className="flex flex-col items-center gap-3 py-12">
             <span className="loading loading-spinner loading-lg text-indigo-500" />
-            <p className="text-gray-400 text-sm">Tayyorlanmoqda...</p>
+            <p className="text-slate-400 text-sm">Tayyorlanmoqda...</p>
           </div>
         )}
 
@@ -128,7 +128,7 @@ export default function TwoFactorSetupPage() {
                 <span className="text-2xl">🔐</span>
               </div>
               <h1 className="text-2xl font-bold mb-2">Ikki bosqichli himoya</h1>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-sm leading-relaxed">
                 Telefoningizdagi <strong>Google Authenticator</strong>, <strong>Authy</strong> yoki shunga o&apos;xshash ilovada QR kodni skanerlang.
               </p>
             </div>
@@ -139,7 +139,7 @@ export default function TwoFactorSetupPage() {
             </div>
 
             <div className="mb-6">
-              <p className="text-xs text-gray-500 mb-2">Yoki qo&apos;lda kiriting:</p>
+              <p className="text-xs text-slate-500 mb-2">Yoki qo&apos;lda kiriting:</p>
               <button
                 onClick={copySecret}
                 className="w-full text-left bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-sm break-all hover:bg-white/10 transition-colors"
@@ -151,7 +151,7 @@ export default function TwoFactorSetupPage() {
 
             <form onSubmit={onVerify} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Ilova bergan 6-raqamli kodni kiriting
                 </label>
                 <input
@@ -175,7 +175,7 @@ export default function TwoFactorSetupPage() {
 
               <Link
                 href={user?.role === 'admin' ? '/login' : '/profile'}
-                className="block text-center text-sm text-gray-400 hover:text-white py-2"
+                className="block text-center text-sm text-slate-400 hover:text-white py-2"
               >
                 Bekor qilish
               </Link>

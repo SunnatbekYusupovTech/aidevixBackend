@@ -180,7 +180,7 @@ export default function SavedPromptsSection() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="rounded-3xl border border-white/5 bg-[#0d101a] p-6 shadow-xl sm:p-8">
+      <div className="rounded-3xl border border-white/5 bg-[#111726] p-6 shadow-xl sm:p-8">
         <h3 className="mb-2 flex items-center gap-3 text-xl font-bold text-white">
           <FiBookmark className="text-indigo-400" />
           {t('profile.savedPrompts.title')}

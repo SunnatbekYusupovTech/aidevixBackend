@@ -172,7 +172,7 @@ export default function ProjectsClient() {
   const copy = CONTENT[lang as 'uz' | 'ru' | 'en'] || CONTENT.uz;
 
   const bgClass = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
-  const cardBg = isDark ? 'bg-[#0d1224]/70 border-white/5' : 'bg-white border-slate-200';
+  const cardBg = isDark ? 'bg-[#111726]/70 border-white/5' : 'bg-white border-slate-200';
   const muted = isDark ? 'text-slate-400' : 'text-slate-600';
 
   return (

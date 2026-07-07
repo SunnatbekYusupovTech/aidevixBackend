@@ -35,7 +35,7 @@ export default function StarRating({ value = 0, count = 0, editable = false, onR
         className={clsx(
           'transition-all duration-150',
           sizes[size],
-          filled || half ? 'text-yellow-400' : 'text-zinc-600',
+          filled || half ? 'text-yellow-400' : 'text-slate-600',
           editable && 'cursor-pointer hover:scale-110',
           !editable && 'cursor-default',
           editable && index <= hovered && 'text-yellow-300',
@@ -52,7 +52,7 @@ export default function StarRating({ value = 0, count = 0, editable = false, onR
         {[1, 2, 3, 4, 5].map(renderStar)}
       </div>
       {count > 0 && (
-        <span className="text-xs text-zinc-400 ml-1">
+        <span className="text-xs text-slate-400 ml-1">
           {value.toFixed(1)} ({count})
         </span>
       )}

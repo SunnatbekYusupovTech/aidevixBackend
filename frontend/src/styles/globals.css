@@ -498,45 +498,18 @@ canvas {
 html.light-mode,
 html[data-theme='light'] {
   /* === Hardcoded dark backgrounds → white cards ===
-     Attribute selector catches base + opacity variants like bg-[#0A0E1A]/40 */
+     Attribute selector catches base + opacity variants like bg-[#0A0E1A]/40.
+     2026-07-07 unifikatsiya: barcha dark fonlar 3 kanon tokenga tushirildi
+     (#0A0E1A base / #111726 surface / #161D31 card). */
   [class*="bg-[#0A0E1A]"],
-  [class*="bg-[#08090d]"],
-  [class*="bg-[#050507]"],
-  [class*="bg-[#060a12]"],
-  [class*="bg-[#070a10]"],
-  [class*="bg-[#080914]"],
-  [class*="bg-[#080b10]"],
-  [class*="bg-[#090b10]"],
-  [class*="bg-[#0a0c14]"],
-  [class*="bg-[#0c1018]"],
-  [class*="bg-[#0d0f1a]"],
-  [class*="bg-[#0d1017]"],
-  [class*="bg-[#0d101a]"],
-  [class*="bg-[#0d1224]"],
-  [class*="bg-[#0f121c]"],
-  [class*="bg-[#10121f]"],
-  [class*="bg-[#10131a]"],
-  [class*="bg-[#11131a]"],
-  [class*="bg-[#11141b]"],
-  [class*="bg-[#111318]"],
-  [class*="bg-[#12141c]"],
-  [class*="bg-[#13152a]"],
-  [class*="bg-[#131B31]"],
-  [class*="bg-[#1a1218]"],
-  [class*="bg-[#1a1c26]"],
-  [class*="bg-[#1a1c2e]"],
-  [class*="bg-[#1A2234]"],
-  [class*="bg-[#1c1500]"],
-  [class*="bg-[#130e00]"] {
+  [class*="bg-[#111726]"],
+  [class*="bg-[#161D31]"] {
     background-color: #ffffff;
   }
 
   /* Page wrappers (min-h-screen) get a soft neutral instead of stark white */
   .min-h-screen[class*="bg-[#0A0E1A]"],
-  .min-h-screen[class*="bg-[#050507]"],
-  .min-h-screen[class*="bg-[#060a12]"],
-  .min-h-screen[class*="bg-[#08090d]"],
-  .min-h-screen[class*="bg-[#090b10]"] {
+  .min-h-screen[class*="bg-[#111726]"] {
     background-color: #f8fafc;
   }
 
@@ -686,201 +659,6 @@ html[data-theme='light'] .border-dark-base   { border-color: #e2e8f0 !important;
 
 /* === SVG Draw Animation on Hover === */
 .svg-draw-container svg {
-  width: 100%;
-  height: 100%;
-}
-.svg-draw-container svg :is(path, circle, rect, line, polyline, polygon, ellipse) {
-  /* Default state: faint stroke outline with a soft semi-transparent fill for instant recognizability */
-  stroke: var(--svg-draw-stroke-default, rgba(255, 255, 255, 0.15));
-  stroke-width: 0.8px;
-  fill: var(--svg-draw-fill-default, rgba(255, 255, 255, 0.15));
-  /* Smooth transition when mouse leaves */
-  transition: fill 0.6s ease-in-out, stroke 0.3s ease-in-out;
-}
-.group:hover .svg-draw-container svg :is(path, circle, rect, line, polyline, polygon, ellipse) {
-  stroke: var(--svg-draw-stroke-hover, #ffffff);
-  stroke-dasharray: var(--path-length, 1500);
-  /* Optimization: Promote to GPU compositor layer only when hovered/animating */
-  will-change: stroke-dashoffset, fill, stroke;
-  /* Unified keyframe animation to clear fill, draw outline, and then fill solid */
-  animation: drawAndFill 4.0s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
-}
-
-@keyframes drawAndFill {
-  0% {
-    stroke-dashoffset: var(--path-length, 1500);
-    fill: rgba(255, 255, 255, 0); /* Instantly empty fill to show drawing from scratch */
-  }
-  75% {
-    stroke-dashoffset: 0;
-    fill: rgba(255, 255, 255, 0); /* Keep it empty while stroke draws */
-  }
-  100% {
-    stroke-dashoffset: 0;
-    fill: var(--svg-draw-fill-hover, #ffffff); /* Complete the logo beautifully based on theme */
-  }
-}
-
-/* === Replace harsh white borders with smooth, soft shadows in dark mode === */
-html:not(.light-mode):not([data-theme='light']) .border:is(
-  .border-white\/5,
-  .border-white\/8,
-  .border-white\/10,
-  .border-white\/12,
-  .border-white\/15,
-  .border-white\/20,
-  .border-white\/30,
-  .border-white\/\[0\.07\],
-  .border-white\/\[0\.08\],
-  .border-white\/\[0\.10\]
-):not(.border-t):not(.border-b):not(.border-l):not(.border-r) {
-  border-color: transparent !important;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* =========================================================================
-   👑 LEADERBOARD PAGE - CUSTOM PALETTE & LUXURY STYLE OVERRIDES
-   ========================================================================= */
-
-@font-face {
-  font-family: 'Anek Devanagari';
-  src: url('/Anek_Devanagari/AnekDevanagari-VariableFont_wdth,wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-stretch: 50% 125%;
-  font-style: normal;
-  font-display: swap;
-}
-
-.leaderboard-page-container {
-  font-family: 'Anek Devanagari', sans-serif !important;
-  background-color: #000204 !important; /* ink_black.100 */
-  color: #a5d1ff !important; /* prussian_blue.900 */
-}
-
-/* Remove all borders and replace with luxury shadows */
-.leaderboard-page-container :is(
-  .border,
-  [class*="border-"],
-  .divide-y > *,
-  .divide-x > *
-) {
-  border: none !important;
-  border-width: 0px !important;
-  border-color: transparent !important;
-}
-
-/* Base Panel / Card Styling using ink_black and prussian_blue */
-.leaderboard-page-container .bg-base-200,
-.leaderboard-page-container .bg-base-300,
-.leaderboard-page-container .bg-white\/5,
-.leaderboard-page-container .bg-white\/\[0\.02\],
-.leaderboard-page-container .bg-white\/\[0\.03\],
-.leaderboard-page-container .bg-white\/\[0\.04\] {
-  background-color: #00050c !important; /* ink_black.300 */
-}
-
-/* Main page layout wrappers and items */
-.leaderboard-page-container div[style*="linear-gradient"] {
-  background: linear-gradient(135deg, #00060c 0%, #001225 50%, #000308 100%) !important; /* prussian_blue & ink_black */
-  box-shadow: 0 20px 50px -15px rgba(0, 73, 151, 0.25), 0 30px 100px -25px rgba(0, 2, 4, 0.8) !important;
-}
-
-/* Table containers get a luxury shadow */
-.leaderboard-page-container .rounded-xl {
-  background-color: #00050c !important; /* ink_black.300 */
-  box-shadow: 0 15px 45px -10px rgba(0, 0, 0, 0.85), 0 20px 80px -20px rgba(0, 47, 118, 0.25) !important;
-}
-
-/* Desktop and Mobile Table Rows */
-.leaderboard-page-container .hover\:bg-base-300\/30:hover {
-  background-color: #001225 !important; /* prussian_blue.300 */
-}
-
-.leaderboard-page-container .bg-primary\/10 {
-  background-color: #001831 !important; /* prussian_blue.400 as active/highlight user */
-}
-
-/* Headings and Titles */
-.leaderboard-page-container h1,
-.leaderboard-page-container h2,
-.leaderboard-page-container h3,
-.leaderboard-page-container h4,
-.leaderboard-page-container .text-white {
-  color: #a5d1ff !important; /* prussian_blue.900 */
-}
-
-.leaderboard-page-container .text-primary {
-  color: #3b89ff !important; /* ink_black.800 */
-}
-
-.leaderboard-page-container .text-orange-400 {
-  color: #ffc300 !important; /* school_bus_yellow.500 */
-}
-
-.leaderboard-page-container .text-yellow-400 {
-  color: #ffd60a !important; /* gold.500 */
-}
-
-/* Podium styling */
-.leaderboard-page-container .border-yellow-500\/60 {
-  background: linear-gradient(180deg, #1c1500 0%, #352c00 100%) !important; /* gold.100 */
-  box-shadow: 0 20px 60px -10px rgba(255, 214, 10, 0.2), 
-              0 30px 100px -20px rgba(255, 195, 0, 0.1) !important;
-}
-
-.leaderboard-page-container .border-gray-500\/30,
-.leaderboard-page-container .border-amber-600\/30 {
-  background-color: #000c18 !important; /* prussian_blue.200 */
-  box-shadow: 0 15px 45px -10px rgba(0, 8, 20, 0.9), 
-              0 20px 80px -20px rgba(0, 47, 118, 0.15) !important;
-}
-
-.leaderboard-page-container .bg-yellow-500 {
-  background-color: #ffd60a !important; /* gold.500 */
-}
-
-.leaderboard-page-container .bg-gray-400 {
-  background-color: #5cb0ff !important; /* regal_navy.800 as silver */
-}
-
-.leaderboard-page-container .bg-amber-600 {
-  background-color: #005fb8 !important; /* regal_navy.600 as bronze */
-}
-
-/* Badges */
-.leaderboard-page-container .badge-ghost {
-  background-color: #001225 !important;
-  color: #a5d1ff !important;
-}
-
-/* Tab button styling */
-.leaderboard-page-container .btn-ghost {
-  background-color: #000710 !important; /* ink_black.400 */
-  color: #a5d1ff !important;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5) !important;
-}
-
-.leaderboard-page-container .btn-primary {
-  background: linear-gradient(135deg, #0056d8 0%, #0074f1 100%) !important; /* prussian_blue.700 */
-  color: #ffffff !important;
-  box-shadow: 0 8px 24px -6px rgba(0, 116, 241, 0.6) !important;
-}
-
-/* Countdowns and Weekly elements */
-.leaderboard-page-container .bg-yellow-500\/5 {
-  background-color: #00050c !important; /* ink_black.300 */
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8), 0 20px 80px -20px rgba(0, 47, 118, 0.25) !important;
-}
-
-.leaderboard-page-container .border-yellow-500\/20 {
-  border: none !important;
-}
-
-.leaderboard-page-container .border-yellow-500\/10 {
-  border-bottom: 1px solid #001225 !important; /* prussian_blue.300 as header border */
-}
-
-.leaderboard-page-container .bg-base-300\/20 {
   width: 100%;
   height: 100%;
 }

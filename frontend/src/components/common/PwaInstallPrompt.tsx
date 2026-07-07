@@ -92,7 +92,7 @@ export default function PWAInstallPrompt() {
             role="dialog"
             aria-label="Aidevix ilovasini o'rnatish"
           >
-            <div className="bg-[#0d1224] border border-white/10 rounded-3xl p-5 shadow-2xl flex items-center gap-4">
+            <div className="bg-[#111726] border border-white/10 rounded-3xl p-5 shadow-2xl flex items-center gap-4">
               <SiteLogoMark size={48} className="flex-shrink-0 border border-indigo-500/20 shadow-md shadow-indigo-500/10" />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm">Aidevix ilovasi</p>

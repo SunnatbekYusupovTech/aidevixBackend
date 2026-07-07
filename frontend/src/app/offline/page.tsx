@@ -8,8 +8,8 @@ export default function OfflinePage() {
   const { isDark } = useTheme();
 
   const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
-  const titleCls = isDark ? 'text-white' : 'text-gray-900';
-  const descCls = isDark ? 'text-slate-400' : 'text-gray-600';
+  const titleCls = isDark ? 'text-white' : 'text-slate-900';
+  const descCls = isDark ? 'text-slate-400' : 'text-slate-600';
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${bg}`}>

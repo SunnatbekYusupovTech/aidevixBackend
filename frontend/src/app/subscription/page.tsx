@@ -33,20 +33,20 @@ export default function SubscriptionPage() {
           <h1 className="mb-3 max-w-full text-balance text-2xl font-black leading-tight tracking-tight text-white sm:mb-4 sm:text-3xl md:text-4xl">
             {t('sub.title')}
           </h1>
-          <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">
+          <p className="text-slate-400 text-lg max-w-md mx-auto leading-relaxed">
             {t('sub.desc')}
           </p>
         </motion.div>
 
         <div className="mb-16">
           <ul className="steps w-full">
-            <li className={`step ${telegram?.subscribed ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>Telegram</li>
-            <li className={`step ${telegram?.subscribed && instagram?.subscribed ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>Instagram</li>
-            <li className={`step ${allVerified ? 'step-primary font-bold text-white' : 'text-gray-500'}`}>{t('nav.ready')}</li>
+            <li className={`step ${telegram?.subscribed ? 'step-primary font-bold text-white' : 'text-slate-500'}`}>Telegram</li>
+            <li className={`step ${telegram?.subscribed && instagram?.subscribed ? 'step-primary font-bold text-white' : 'text-slate-500'}`}>Instagram</li>
+            <li className={`step ${allVerified ? 'step-primary font-bold text-white' : 'text-slate-500'}`}>{t('nav.ready')}</li>
           </ul>
         </div>
 
-        <div className="bg-[#0d1224]/60 border border-white/5 rounded-[2.5rem] p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+        <div className="bg-[#111726]/60 border border-white/5 rounded-[2.5rem] p-8 sm:p-12 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl -z-10"></div>
 
           <AnimatePresence mode="wait">
@@ -72,7 +72,7 @@ export default function SubscriptionPage() {
                   <IoCheckmarkCircle size={64} className="text-emerald-400" />
                 </div>
                 <h2 className="text-3xl font-black text-white mb-2 italic">{t('sub.successTitle')}</h2>
-                <p className="text-gray-400 text-lg mb-10 leading-relaxed">
+                <p className="text-slate-400 text-lg mb-10 leading-relaxed">
                   {t('sub.successDesc')}
                 </p>
                 <Link
@@ -89,12 +89,12 @@ export default function SubscriptionPage() {
           </AnimatePresence>
 
           <div className="mt-10 pt-8 border-t border-white/5 flex items-center justify-between gap-4 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
               {t('sub.hint')}
             </p>
             <button
               onClick={() => refetch()}
-              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all active:rotate-180 duration-500"
+              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all active:rotate-180 duration-500"
             >
               <IoRefreshOutline size={20} />
             </button>

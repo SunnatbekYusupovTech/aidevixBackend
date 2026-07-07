@@ -330,7 +330,7 @@ export default function EditCoursePage() {
     <div className="space-y-8 pb-20">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/10 bg-[#0f121c] p-5 shadow-xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/10 bg-[#111726] p-5 shadow-xl">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/courses"
@@ -357,7 +357,7 @@ export default function EditCoursePage() {
 
         {/* ── Kurs ma'lumotlari ───────────────────────────────────────────── */}
         <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
             <p className="mb-5 border-b border-white/10 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
               Kurs ma'lumotlari
             </p>
@@ -403,7 +403,7 @@ export default function EditCoursePage() {
           </div>
 
           {/* Thumbnail */}
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-5 shadow-xl">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-5 shadow-xl">
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Muqova (Thumbnail)</p>
             <div className="flex items-center gap-4">
               <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
@@ -446,7 +446,7 @@ export default function EditCoursePage() {
         <div className="space-y-5 lg:col-span-3">
 
           {/* Upload panel */}
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
                 Yangi dars yuklash
@@ -588,7 +588,7 @@ export default function EditCoursePage() {
           </div>
 
           {/* Video list */}
-          <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-xl">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
             <p className="mb-5 border-b border-white/10 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
               Darslar ({videos.length})
             </p>
@@ -670,7 +670,7 @@ export default function EditCoursePage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl"
+              className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-2xl"
             >
               <h3 className="mb-5 font-display text-lg font-bold text-white">
                 Darsni tahrirlash

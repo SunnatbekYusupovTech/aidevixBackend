@@ -24,7 +24,7 @@ export default function AdminSettingsPage() {
           href={DOC}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex flex-col rounded-2xl border border-white/10 bg-[#0f121c] p-6 transition hover:border-amber-500/35 hover:shadow-lg hover:shadow-amber-500/10"
+          className="group flex flex-col rounded-2xl border border-white/10 bg-[#111726] p-6 transition hover:border-amber-500/35 hover:shadow-lg hover:shadow-amber-500/10"
         >
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-300">
             <FiBook className="h-5 w-5" />
@@ -43,7 +43,7 @@ export default function AdminSettingsPage() {
           href={ADMIN_DOC}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex flex-col rounded-2xl border border-white/10 bg-[#0f121c] p-6 transition hover:border-amber-500/35"
+          className="group flex flex-col rounded-2xl border border-white/10 bg-[#111726] p-6 transition hover:border-amber-500/35"
         >
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200">
             <FiKey className="h-5 w-5" />
@@ -59,7 +59,7 @@ export default function AdminSettingsPage() {
           <code className="mt-2 truncate rounded bg-slate-950 px-2 py-1 text-[11px] text-slate-500">{ADMIN_DOC}</code>
         </a>
 
-        <div className="rounded-2xl border border-white/10 bg-[#0f121c] p-6 md:col-span-2">
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 md:col-span-2">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300">
               <FiVideo className="h-5 w-5" />

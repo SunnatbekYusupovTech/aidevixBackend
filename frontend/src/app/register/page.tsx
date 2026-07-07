@@ -33,9 +33,9 @@ export default function RegisterPage() {
 
   const bg = isDark ? 'bg-[#0A0E1A]' : 'bg-slate-50';
   const panelBg = isDark ? 'bg-[#0A0E1A]' : 'bg-indigo-600';
-  const cardBg = isDark ? 'bg-[#0d1224]/60 border-white/5' : 'bg-white border-gray-200 shadow-xl';
-  const textMain = isDark ? 'text-white' : 'text-gray-900';
-  const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
+  const cardBg = isDark ? 'bg-[#111726]/60 border-white/5' : 'bg-white border-slate-200 shadow-xl';
+  const textMain = isDark ? 'text-white' : 'text-slate-900';
+  const textMuted = isDark ? 'text-slate-400' : 'text-slate-500';
 
   const steps = [
     { id: 1, title: t('auth.register.title'), description: t('auth.register.subtitle'), icon: <FiUserPlus className="w-5 h-5" />, active: true },
@@ -56,7 +56,7 @@ export default function RegisterPage() {
           <h1 className="mb-3 max-w-full text-balance text-2xl font-extrabold leading-tight tracking-tight text-white sm:mb-4 sm:text-4xl md:text-5xl">
             {t('auth.login.welcome')}
           </h1>
-          <p className={`text-lg mb-12 ${isDark ? 'text-gray-400' : 'text-white/70'}`}>{t('auth.register.subtitle')}</p>
+          <p className={`text-lg mb-12 ${isDark ? 'text-slate-400' : 'text-white/70'}`}>{t('auth.register.subtitle')}</p>
 
           <div className="space-y-8 relative">
             <div className={`absolute left-6 top-6 bottom-6 w-px ${isDark ? 'bg-white/10' : 'bg-white/30'} z-0`}></div>
@@ -65,13 +65,13 @@ export default function RegisterPage() {
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border transition-all duration-300 ${
                   step.active
                     ? isDark ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]' : 'bg-white border-white text-indigo-600 shadow-lg'
-                    : isDark ? 'bg-[#131B31] border-white/10 text-gray-400' : 'bg-white/20 border-white/30 text-white/60'
+                    : isDark ? 'bg-[#161D31] border-white/10 text-slate-400' : 'bg-white/20 border-white/30 text-white/60'
                 }`}>
                   {step.icon}
                 </div>
                 <div className="pt-2">
-                  <h3 className={`font-semibold text-lg ${step.active ? (isDark ? 'text-indigo-400' : 'text-white') : (isDark ? 'text-gray-300' : 'text-white/70')}`}>{step.title}</h3>
-                  <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-white/50'}`}>{step.description}</p>
+                  <h3 className={`font-semibold text-lg ${step.active ? (isDark ? 'text-indigo-400' : 'text-white') : (isDark ? 'text-slate-300' : 'text-white/70')}`}>{step.title}</h3>
+                  <p className={`text-sm mt-1 ${isDark ? 'text-slate-500' : 'text-white/50'}`}>{step.description}</p>
                 </div>
               </div>
             ))}
@@ -81,14 +81,14 @@ export default function RegisterPage() {
 
       <div className={`relative flex w-full min-w-0 flex-col items-center justify-start p-3 pt-16 sm:p-12 sm:pt-20 lg:w-1/2 lg:justify-center ${bg}`}>
         <div className="absolute top-4 right-3 z-20 sm:top-6 sm:right-6 flex items-center gap-1.5 sm:gap-2">
-          <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-gray-400 hover:text-yellow-400' : 'text-gray-500 hover:text-indigo-600'}`}>
+          <button onClick={toggleTheme} className={`p-2 rounded-lg ${isDark ? 'text-slate-400 hover:text-yellow-400' : 'text-slate-500 hover:text-indigo-600'}`}>
             {isDark ? '☀' : '☾'}
           </button>
           {(['uz', 'ru', 'en'] as Lang[]).map((l) => (
             <button
               key={l}
               onClick={() => setLang(l)}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-600 text-white' : isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${lang === l ? 'bg-indigo-600 text-white' : isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}
             >
               {LANG_BADGES[l]}
             </button>

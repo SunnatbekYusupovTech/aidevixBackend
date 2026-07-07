@@ -61,7 +61,7 @@ export default function InstallAppFab() {
             <button
               onClick={handleDismiss}
               aria-label="Yopish"
-              className="-ml-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d1224] text-slate-400 shadow-lg transition-colors hover:text-white"
+              className="-ml-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#111726] text-slate-400 shadow-lg transition-colors hover:text-white"
             >
               <IoClose size={13} />
             </button>
@@ -88,7 +88,7 @@ export default function InstallAppFab() {
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 260, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d1224] p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#111726] p-6 shadow-2xl"
             >
               <div className="flex items-center gap-3">
                 <SiteLogoMark size={44} className="flex-shrink-0 border border-indigo-500/20" />

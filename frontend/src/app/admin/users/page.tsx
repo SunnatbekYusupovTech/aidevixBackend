@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0f121c] p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#111726] p-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
@@ -158,7 +158,7 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-xl">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726] shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-white/10 bg-slate-950/80 text-[11px] font-semibold uppercase tracking-wide text-slate-500">

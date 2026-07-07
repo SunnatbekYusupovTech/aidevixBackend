@@ -244,7 +244,7 @@ export default function VideoPage() {
           : isBusy ? localText.videoNotReady
           :          localText.videoNotFound}
         </h2>
-        <p className="text-gray-400 mb-8 max-w-sm">
+        <p className="text-slate-400 mb-8 max-w-sm">
           {isAuth ? localText.loginDesc
           : isSub  ? localText.subDesc
           : isPro  ? localText.proDesc
@@ -299,7 +299,7 @@ export default function VideoPage() {
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           onClick={() => router.back()} 
-          className="mb-6 flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white sm:mb-8 sm:text-base group"
+          className="mb-6 flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white sm:mb-8 sm:text-base group"
         >
           <IoArrowBack className="group-hover:-translate-x-1 transition-transform" />
           <span>{localText.back}</span>
@@ -309,7 +309,7 @@ export default function VideoPage() {
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mb-8 rounded-2xl border border-white/5 bg-[#0d1224]/60 p-4 shadow-2xl backdrop-blur-md sm:mb-10 sm:rounded-3xl sm:p-10"
+          className="mb-8 rounded-2xl border border-white/5 bg-[#111726]/60 p-4 shadow-2xl backdrop-blur-md sm:mb-10 sm:rounded-3xl sm:p-10"
         >
           <div className="flex flex-wrap gap-3 mb-6">
             <span className="badge badge-primary badge-outline px-2 sm:px-3 font-bold text-[10px] uppercase tracking-wider">
@@ -321,22 +321,22 @@ export default function VideoPage() {
             {video.title}
           </h1>
 
-          <p className="mb-6 max-w-2xl text-sm leading-relaxed text-gray-400 sm:mb-8 sm:text-lg">
+          <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400 sm:mb-8 sm:text-lg">
             {video.description || localText.noDescription}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-5 sm:pt-6 border-t border-white/5">
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-slate-400">
               <IoTime className="text-indigo-400" />
               <span className="text-sm font-medium">{formatDuration(video.duration)}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-slate-400">
               <IoEye className="text-indigo-400" />
               <span className="text-sm font-medium">
                 {(video.viewCount ?? video.views ?? 0).toLocaleString()} {localText.viewsLabel}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-slate-400">
               <IoStar className="text-yellow-400" />
               <span className="text-sm font-medium">{video.rating?.average?.toFixed(1) || '0.0'}</span>
             </div>
@@ -373,14 +373,14 @@ export default function VideoPage() {
           >
           {!isLoggedIn ? (
             /* Not logged in */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] px-3 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31] px-3 text-center">
               <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 rounded-full border border-indigo-500/30 bg-indigo-600/20 items-center justify-center shadow-2xl">
                 <div className="flex h-10 w-10 sm:h-16 sm:w-16 rounded-full bg-indigo-500 items-center justify-center text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
               <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.loginToWatch}</h2>
-              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-slate-400">
                 {localText.needLoginWatch}
               </p>
               <Link href="/login" className="btn btn-primary border-none bg-indigo-500 hover:bg-indigo-600 rounded-full px-5 sm:px-10 h-11 sm:h-14 font-bold text-sm sm:text-lg shadow-xl shadow-indigo-500/20">
@@ -389,14 +389,14 @@ export default function VideoPage() {
             </div>
           ) : !isSubscribed ? (
             /* Logged in but not subscribed */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] group px-3 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31] group px-3 text-center">
               <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 rounded-full border border-indigo-500/30 bg-indigo-600/20 items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-500">
                 <div className="flex h-10 w-10 sm:h-16 sm:w-16 rounded-full bg-indigo-500 items-center justify-center text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
               <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.needSubWatch}</h2>
-              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-slate-400">
                 {localText.needSubWatchDesc}
               </p>
               <button
@@ -417,14 +417,14 @@ export default function VideoPage() {
             />
           ) : (videoLink as any)?.telegramLink ? (
             /* Subscribed + Telegram link */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e] px-3 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31] px-3 text-center">
               <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-600/20 shadow-2xl transition-transform duration-500 group-hover:scale-110">
                 <div className="flex h-10 w-10 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/40">
                   <IoPlay size={32} className="ml-1" />
                 </div>
               </div>
               <h2 className="mb-2 text-xl sm:text-2xl font-bold text-white">{localText.tgHosted}</h2>
-              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-gray-400">
+              <p className="mb-5 sm:mb-8 max-w-md px-2 sm:px-8 text-sm sm:text-base text-slate-400">
                 {localText.tgHostedDesc}
               </p>
               <a
@@ -438,12 +438,12 @@ export default function VideoPage() {
             </div>
           ) : (
             /* Subscribed but no link — video processing */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#0d1224] to-[#1a1c2e]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31]">
               <div className="w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mb-6">
                 <span className="text-3xl">⏳</span>
               </div>
               <h2 className="text-xl font-bold text-white mb-2">{localText.processingTitle}</h2>
-              <p className="text-gray-400 text-center px-8 max-w-md mb-6">
+              <p className="text-slate-400 text-center px-8 max-w-md mb-6">
                 {localText.processingDesc}
               </p>
               <button
@@ -486,7 +486,7 @@ export default function VideoPage() {
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-8"
+              className="bg-[#111726]/60 border border-white/5 rounded-3xl p-6 sm:p-8"
             >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <IoDocumentText className="text-indigo-400" />
@@ -504,7 +504,7 @@ export default function VideoPage() {
                     <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/20 transition-colors">
                       <IoDocumentText className="text-indigo-400" size={18} />
                     </div>
-                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors truncate">
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors truncate">
                       {mat.name}
                     </span>
                   </a>
@@ -518,7 +518,7 @@ export default function VideoPage() {
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-8"
+            className="bg-[#111726]/60 border border-white/5 rounded-3xl p-6 sm:p-8"
           >
             <h3 className="text-lg font-bold text-white mb-6">{localText.qaTitle}</h3>
             <div className="flex gap-3 items-start">
@@ -527,7 +527,7 @@ export default function VideoPage() {
                 <textarea
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 px-4 py-3 resize-none focus:outline-none focus:border-indigo-500/50 transition-colors"
+                  className="w-full bg-black/30 border border-white/10 rounded-2xl text-sm text-white placeholder-slate-600 px-4 py-3 resize-none focus:outline-none focus:border-indigo-500/50 transition-colors"
                   rows={3}
                   placeholder={localText.qaPlaceholder}
                 />

@@ -123,7 +123,7 @@ export default function AdminChallengesPage() {
         <p className="mt-1 text-sm text-slate-400">Jami: {total} ta vazifa</p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726]">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <span className="loading loading-spinner loading-lg text-amber-400" />
@@ -227,7 +227,7 @@ export default function AdminChallengesPage() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !saving && setEditing(null)}>
           <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f121c] p-6 shadow-2xl"
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -243,7 +243,7 @@ export default function AdminChallengesPage() {
                 <input
                   value={editing.title}
                   onChange={e => setEditing({ ...editing, title: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                 />
               </div>
               <div>
@@ -252,7 +252,7 @@ export default function AdminChallengesPage() {
                   value={editing.description}
                   onChange={e => setEditing({ ...editing, description: e.target.value })}
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                  className="w-full resize-none rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -261,7 +261,7 @@ export default function AdminChallengesPage() {
                   <select
                     value={editing.type}
                     onChange={e => setEditing({ ...editing, type: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                   >
                     {TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                   </select>
@@ -273,7 +273,7 @@ export default function AdminChallengesPage() {
                     min={1}
                     value={editing.targetCount}
                     onChange={e => setEditing({ ...editing, targetCount: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -283,7 +283,7 @@ export default function AdminChallengesPage() {
                     min={0}
                     value={editing.xpReward}
                     onChange={e => setEditing({ ...editing, xpReward: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
                   />
                 </div>
               </div>
@@ -292,7 +292,7 @@ export default function AdminChallengesPage() {
                   type="checkbox"
                   checked={editing.isActive}
                   onChange={e => setEditing({ ...editing, isActive: e.target.checked })}
-                  className="h-4 w-4 rounded border-white/20 bg-[#0b0e16]"
+                  className="h-4 w-4 rounded border-white/20 bg-[#0A0E1A]"
                 />
                 Faol
               </label>

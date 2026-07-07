@@ -59,7 +59,7 @@ export default function Footer() {
   ]
 
   const shell = isDark 
-    ? 'bg-gradient-to-br from-[#0a0c10] via-[#141720] to-[#0a0c10] text-slate-100 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)]' 
+    ? 'bg-gradient-to-br from-[#0A0E1A] via-[#111726] to-[#0A0E1A] text-slate-100 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)]' 
     : 'bg-gradient-to-br from-platinum-50 via-platinum-100 to-platinum-200/50 text-[#1e293b] shadow-[0_-20px_50px_-20px_rgba(111,127,144,0.05)]'
   
   const borderClr = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
@@ -121,7 +121,7 @@ export default function Footer() {
                   href="/courses"
                   onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
                   className={`flex h-12 sm:h-14 items-center justify-center rounded-none border px-8 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-center ${
-                    isDark ? 'border-zinc-800 text-white bg-white/5 hover:bg-white/10 hover:border-zinc-700' : 'border-slate-200 text-slate-800 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
+                    isDark ? 'border-slate-800 text-white bg-white/5 hover:bg-white/10 hover:border-slate-700' : 'border-slate-200 text-slate-800 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
                   {t('cta.allCourses')}

@@ -103,16 +103,16 @@ export default function SecuritySettingsPage() {
 
   // Theme classes
   const pageBg = isDark ? 'bg-[#0A0E1A] text-white' : 'bg-slate-50 text-slate-900';
-  const linkBack = isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900';
-  const subTxt = isDark ? 'text-gray-400' : 'text-gray-600';
-  const sectionCls = isDark ? 'bg-[#0d1224]/40 border-white/5' : 'bg-white border-gray-200 shadow-sm';
-  const ghostBtn = isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-gray-100 hover:bg-gray-200 border-gray-200';
+  const linkBack = isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900';
+  const subTxt = isDark ? 'text-slate-400' : 'text-slate-600';
+  const sectionCls = isDark ? 'bg-[#111726]/40 border-white/5' : 'bg-white border-slate-200 shadow-sm';
+  const ghostBtn = isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-slate-100 hover:bg-slate-200 border-slate-200';
   const inputCls = isDark
-    ? 'bg-[#0A0E1A]/50 border-white/10 text-white placeholder-gray-500'
-    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400';
-  const modalBg = isDark ? 'bg-[#0d1224] border-white/10' : 'bg-white border-gray-200 shadow-2xl';
-  const codeBoxBg = isDark ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200';
-  const codeCellBg = isDark ? 'bg-white/5 text-white' : 'bg-white text-gray-900 border border-gray-200';
+    ? 'bg-[#0A0E1A]/50 border-white/10 text-white placeholder-slate-500'
+    : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400';
+  const modalBg = isDark ? 'bg-[#111726] border-white/10' : 'bg-white border-slate-200 shadow-2xl';
+  const codeBoxBg = isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200';
+  const codeCellBg = isDark ? 'bg-white/5 text-white' : 'bg-white text-slate-900 border border-slate-200';
 
   return (
     <div className={`min-h-screen py-10 px-4 ${pageBg}`}>
@@ -187,7 +187,7 @@ export default function SecuritySettingsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold">{t('security.twofa.title')}</h2>
                 {totpOn && <span className="text-xs bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">{t('security.twofa.on')}</span>}
-                {!totpOn && <span className="text-xs bg-zinc-500/20 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full">{t('security.twofa.off')}</span>}
+                {!totpOn && <span className="text-xs bg-slate-500/20 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">{t('security.twofa.off')}</span>}
               </div>
               <p className={`text-sm mt-1 ${subTxt}`}>
                 {isAdmin

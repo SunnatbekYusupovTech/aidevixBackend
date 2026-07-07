@@ -150,11 +150,11 @@ export default function DailyRewardModal() {
     >
       <div
         ref={contentRef}
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-[#1c2331] to-[#0A0E1A] p-8 text-center shadow-[0_0_50px_rgba(79,70,229,0.3)]"
+        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-[#161D31] to-[#0A0E1A] p-8 text-center shadow-[0_0_50px_rgba(79,70,229,0.3)]"
       >
         <button
           onClick={closeModal}
-          className="absolute right-4 top-4 rounded-full bg-white/5 p-1 text-gray-400 transition-colors hover:text-white"
+          className="absolute right-4 top-4 rounded-full bg-white/5 p-1 text-slate-400 transition-colors hover:text-white"
         >
           <FiX size={20} />
         </button>
@@ -166,7 +166,7 @@ export default function DailyRewardModal() {
         </div>
 
         <h2 className="mb-2 text-2xl font-black text-white">{t('daily.title')}</h2>
-        <p className="mb-8 text-sm leading-relaxed text-gray-400">{t('daily.sub')}</p>
+        <p className="mb-8 text-sm leading-relaxed text-slate-400">{t('daily.sub')}</p>
 
         {rewardClaimed ? (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/20 px-6 py-3 font-bold text-emerald-400">

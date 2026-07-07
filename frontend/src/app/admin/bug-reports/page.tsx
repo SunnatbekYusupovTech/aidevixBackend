@@ -94,7 +94,7 @@ export default function AdminBugReportsPage() {
         <select
           value={status}
           onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="rounded-xl border border-white/10 bg-[#0f121c] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
+          className="rounded-xl border border-white/10 bg-[#111726] px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none"
         >
           {STATUS_FILTERS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
@@ -102,11 +102,11 @@ export default function AdminBugReportsPage() {
 
       <div className="space-y-3">
         {loading ? (
-          <div className="flex h-48 items-center justify-center rounded-2xl border border-white/10 bg-[#0f121c]">
+          <div className="flex h-48 items-center justify-center rounded-2xl border border-white/10 bg-[#111726]">
             <span className="loading loading-spinner loading-lg text-amber-400" />
           </div>
         ) : reports.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#0f121c] text-slate-500">
+          <div className="flex h-48 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#111726] text-slate-500">
             <FiAlertTriangle className="h-8 w-8" />
             <p className="text-sm">Xabarlar topilmadi</p>
           </div>
@@ -116,7 +116,7 @@ export default function AdminBugReportsPage() {
             const isOpen = expanded === r._id;
             const busy = actingId === r._id;
             return (
-              <div key={r._id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c]">
+              <div key={r._id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726]">
                 <button
                   onClick={() => setExpanded(isOpen ? null : r._id)}
                   className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
@@ -167,7 +167,7 @@ export default function AdminBugReportsPage() {
                           value={notes[r._id] || ''}
                           onChange={e => setNotes(n => ({ ...n, [r._id]: e.target.value }))}
                           placeholder="Admin izohi (ixtiyoriy)"
-                          className="w-full rounded-xl border border-white/10 bg-[#0b0e16] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
+                          className="w-full rounded-xl border border-white/10 bg-[#0A0E1A] px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-500/50 focus:outline-none"
                         />
                         <div className="flex flex-wrap gap-2">
                           {r.status === 'pending' && (

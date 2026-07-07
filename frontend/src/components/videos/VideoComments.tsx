@@ -78,7 +78,7 @@ export default function VideoComments({ videoId }: { videoId: string }) {
   };
 
   return (
-    <div className="mt-12 bg-[#0d1224]/60 border border-white/5 rounded-3xl p-6 sm:p-10">
+    <div className="mt-12 bg-[#111726]/60 border border-white/5 rounded-3xl p-6 sm:p-10">
       <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
         <IoChatbubbleEllipses className="text-indigo-400 text-2xl" />
         Savol-Javoblar

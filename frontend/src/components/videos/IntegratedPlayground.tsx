@@ -25,7 +25,7 @@ function getDefaultCodeForCategory(category: string): string {
 <html>
 <head>
 <style>
-  body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
+  body { font-family: sans-serif; background: #111726; color: white; padding: 20px; }
   h1 { color: #6366f1; }
 </style>
 </head>
@@ -177,7 +177,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
   const language = category === 'html' || category === 'css' ? 'html' : category === 'javascript' || category === 'nodejs' ? 'javascript' : 'python';
 
   return (
-    <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/5 bg-[#0d1224] shadow-2xl">
+    <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/5 bg-[#111726] shadow-2xl">
       <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-indigo-500/10 p-2 text-indigo-400" aria-hidden>
@@ -185,7 +185,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
           </div>
           <div>
             <h3 className="text-sm font-bold uppercase tracking-widest text-white">{t('playground.integratedTitle')}</h3>
-            <p className="text-[10px] font-medium text-zinc-500">{t('playground.integratedSubtitle')}</p>
+            <p className="text-[10px] font-medium text-slate-500">{t('playground.integratedSubtitle')}</p>
           </div>
         </div>
 
@@ -201,7 +201,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5"
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/5"
             aria-expanded={isExpanded}
             aria-label={isExpanded ? t('playground.collapsePanel') : t('playground.expandPanel')}
           >
@@ -220,7 +220,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
           >
             <div className="grid h-[500px] grid-cols-1 lg:grid-cols-2">
               <div className="flex h-full flex-col border-r border-white/5">
-                <div className="flex h-10 items-center border-b border-white/5 bg-[#080914] px-4" role="toolbar" aria-label={t('playground.editorToolbar')}>
+                <div className="flex h-10 items-center border-b border-white/5 bg-[#0A0E1A] px-4" role="toolbar" aria-label={t('playground.editorToolbar')}>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{t('playground.tabEditor')}</span>
                 </div>
                 <div className="min-h-0 flex-1">
@@ -236,17 +236,17 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                       lineNumbers: 'on',
                       scrollBeyondLastLine: false,
                       padding: { top: 10 },
-                      backgroundColor: '#0d1224',
+                      backgroundColor: '#111726',
                       accessibilitySupport: 'on',
                       automaticLayout: true,
                     }}
                   />
                 </div>
-                <div className="flex items-center justify-between gap-4 bg-[#080914] p-4">
+                <div className="flex items-center justify-between gap-4 bg-[#0A0E1A] p-4">
                   <button
                     type="button"
                     onClick={resetCode}
-                    className="p-2 text-zinc-500 transition-colors hover:text-white"
+                    className="p-2 text-slate-500 transition-colors hover:text-white"
                     aria-label={t('playground.reset')}
                   >
                     <IoRefresh size={20} />
@@ -264,17 +264,17 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                     </button>
                     <Link
                       href={`/videos/${videoId}/playground`}
-                      className="flex w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 py-3 text-zinc-400 transition-all hover:bg-white/10 hover:text-white"
+                      className="flex w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 py-3 text-slate-400 transition-all hover:bg-white/10 hover:text-white"
                       aria-label={t('playground.fullScreen')}
                     >
                       <IoExpand size={18} />
                     </Link>
                   </div>
                 </div>
-                <p className="bg-[#080914] px-4 pb-2 text-center text-[10px] text-zinc-500">{t('playground.runShortcut')}</p>
+                <p className="bg-[#0A0E1A] px-4 pb-2 text-center text-[10px] text-slate-500">{t('playground.runShortcut')}</p>
               </div>
 
-              <div className="flex h-full flex-col bg-[#080914]">
+              <div className="flex h-full flex-col bg-[#0A0E1A]">
                 <div className="h-10 border-b border-white/5 px-2">
                   <div className="flex" role="tablist" aria-label={t('playground.outputRegion')}>
                     <button
@@ -284,7 +284,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                       aria-selected={viewTab === 'terminal'}
                       onClick={() => setViewTab('terminal')}
                       className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                        viewTab === 'terminal' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-zinc-500'
+                        viewTab === 'terminal' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-slate-500'
                       }`}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -300,7 +300,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                         aria-selected={viewTab === 'preview'}
                         onClick={() => setViewTab('preview')}
                         className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                          viewTab === 'preview' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-zinc-500'
+                          viewTab === 'preview' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-slate-500'
                         }`}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -319,7 +319,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                 >
                   {viewTab === 'terminal' ? (
                     <div className="space-y-1" role="log" aria-live="polite" aria-relevant="additions">
-                      {output.length === 0 && <p className="italic text-zinc-600">{t('playground.outputEmpty')}</p>}
+                      {output.length === 0 && <p className="italic text-slate-600">{t('playground.outputEmpty')}</p>}
                       {output.map((line, i) => (
                         <div
                           key={i}
@@ -327,7 +327,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                             line.type === 'error' ? 'text-red-400' : line.type === 'info' ? 'text-indigo-400' : 'text-green-400'
                           }
                         >
-                          {line.type === 'log' && <span className="mr-2 text-zinc-600">»</span>}
+                          {line.type === 'log' && <span className="mr-2 text-slate-600">»</span>}
                           {line.content}
                         </div>
                       ))}

@@ -46,21 +46,21 @@ function VideoRow({ video, index }) {
   return (
     <Link
       href={`/videos/${video._id}`}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-none hover:bg-zinc-800/40 transition-colors group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-none hover:bg-slate-800/40 transition-colors group"
     >
-      <div className="w-7 h-7 rounded-none bg-zinc-800 flex items-center justify-center flex-shrink-0 text-xs font-mono font-bold text-zinc-500 group-hover:bg-platinum-800 group-hover:text-white transition-colors">
+      <div className="w-7 h-7 rounded-none bg-slate-800 flex items-center justify-center flex-shrink-0 text-xs font-mono font-bold text-slate-500 group-hover:bg-platinum-800 group-hover:text-white transition-colors">
         {String(index + 1).padStart(2, '0')}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs sm:text-sm text-white line-clamp-1 group-hover:text-platinum-300 transition-colors">{video.title}</p>
         {video.duration > 0 && (
-          <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
+          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
             <IoTime className="text-xs" />{formatDuration(video.duration)}
           </p>
         )}
       </div>
       <div className="flex-shrink-0">
-        <IoPlay className="text-zinc-600 group-hover:text-platinum-300 text-sm transition-colors" />
+        <IoPlay className="text-slate-600 group-hover:text-platinum-300 text-sm transition-colors" />
       </div>
     </Link>
   )
@@ -70,17 +70,17 @@ function VideoRow({ video, index }) {
 function Accordion({ title, subtitle, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-zinc-800 rounded-none overflow-hidden">
+    <div className="border border-slate-800 rounded-none overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 bg-zinc-900/60 hover:bg-zinc-900/80 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 bg-slate-900/60 hover:bg-slate-900/80 transition-colors text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-semibold text-sm truncate text-white">{title}</span>
-          {subtitle && <span className="text-xs text-zinc-500 flex-shrink-0">{subtitle}</span>}
+          {subtitle && <span className="text-xs text-slate-500 flex-shrink-0">{subtitle}</span>}
         </div>
-        {open ? <IoChevronUp className="text-zinc-500 flex-shrink-0 ml-2" />
-               : <IoChevronDown className="text-zinc-500 flex-shrink-0 ml-2" />}
+        {open ? <IoChevronUp className="text-slate-500 flex-shrink-0 ml-2" />
+               : <IoChevronDown className="text-slate-500 flex-shrink-0 ml-2" />}
       </button>
       {open && <div className="bg-slate-950/20 p-2">{children}</div>}
     </div>
@@ -91,7 +91,7 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
 function StatRow({ icon, label, value }) {
   return (
     <div className="flex items-center justify-between text-sm py-1">
-      <span className="flex items-center gap-2 text-zinc-400 font-mono">{icon}{label}</span>
+      <span className="flex items-center gap-2 text-slate-400 font-mono">{icon}{label}</span>
       <span className="font-semibold text-white text-right font-mono">{value}</span>
     </div>
   )
@@ -101,16 +101,16 @@ function StatRow({ icon, label, value }) {
 function Skeleton() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 animate-pulse">
-      <div className="h-3 bg-zinc-900 rounded-none w-48 mb-6" />
+      <div className="h-3 bg-slate-900 rounded-none w-48 mb-6" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex gap-2"><div className="h-5 bg-zinc-900 rounded-none w-16" /><div className="h-5 bg-zinc-900 rounded-none w-20" /></div>
-          <div className="h-8 bg-zinc-900 rounded-none w-3/4" />
-          <div className="h-4 bg-zinc-900 rounded-none w-full" />
-          <div className="h-4 bg-zinc-900 rounded-none w-4/5" />
-          <div className="h-14 bg-zinc-900 rounded-none mt-2" />
+          <div className="flex gap-2"><div className="h-5 bg-slate-900 rounded-none w-16" /><div className="h-5 bg-slate-900 rounded-none w-20" /></div>
+          <div className="h-8 bg-slate-900 rounded-none w-3/4" />
+          <div className="h-4 bg-slate-900 rounded-none w-full" />
+          <div className="h-4 bg-slate-900 rounded-none w-4/5" />
+          <div className="h-14 bg-slate-900 rounded-none mt-2" />
         </div>
-        <div className="h-80 bg-zinc-900 rounded-none" />
+        <div className="h-80 bg-slate-900 rounded-none" />
       </div>
     </div>
   )
@@ -233,12 +233,12 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 relative z-10">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1 text-xs text-zinc-500 mb-6 flex-wrap font-mono">
+        <nav className="flex items-center gap-1 text-xs text-slate-500 mb-6 flex-wrap font-mono">
           <Link href={ROUTES.HOME} className="hover:text-white transition-colors">{localText.home}</Link>
-          <IoChevronForward className="text-xs opacity-50 text-zinc-600" />
+          <IoChevronForward className="text-xs opacity-50 text-slate-600" />
           <Link href={ROUTES.COURSES} className="hover:text-white transition-colors">{localText.courses}</Link>
-          <IoChevronForward className="text-xs opacity-50 text-zinc-600" />
-          <span className="text-zinc-400 line-clamp-1 max-w-[160px] sm:max-w-xs">{localizedCourse.title}</span>
+          <IoChevronForward className="text-xs opacity-50 text-slate-600" />
+          <span className="text-slate-400 line-clamp-1 max-w-[160px] sm:max-w-xs">{localizedCourse.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
@@ -252,11 +252,11 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
             {/* Badges */}
             <div className="flex flex-wrap gap-2">
               {course.category && (
-                <span className={'badge badge-outline text-xs font-bold capitalize rounded-none border-zinc-800 px-3 ' + catColor}>
+                <span className={'badge badge-outline text-xs font-bold capitalize rounded-none border-slate-800 px-3 ' + catColor}>
                   {t(`cat.${course.category}`)}
                 </span>
               )}
-              <span className={'badge text-xs font-semibold rounded-none border-zinc-850 px-3 ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
+              <span className={'badge text-xs font-semibold rounded-none border-slate-850 px-3 ' + (LEVEL_COLORS[level] || 'badge-ghost')}>
                 {levelLabels[level] || level}
               </span>
             </div>
@@ -267,29 +267,29 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                 {localizedCourse.title}
               </h1>
               {localizedCourse.description && (
-                <p className="text-zinc-400 leading-relaxed text-sm sm:text-base font-light">
+                <p className="text-slate-400 leading-relaxed text-sm sm:text-base font-light">
                   {localizedCourse.description}
                 </p>
               )}
             </div>
 
             {/* Meta */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 font-mono text-zinc-500">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 font-mono text-slate-500">
               <StarRating value={rating} count={ratingCount} size="sm" />
               {course.studentsCount > 0 && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-slate-500">
                   <IoPeople className="text-platinum-400 text-sm" />
                   {course.studentsCount.toLocaleString()} {localText.students}
                 </span>
               )}
               {course.updatedAt && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-slate-500">
                   <IoCalendar className="text-platinum-400 text-sm" />
                   {new Date(course.updatedAt).toLocaleDateString(localText.dateLocale)}
                 </span>
               )}
               {course.language && (
-                <span className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-slate-500">
                   <IoLanguage className="text-platinum-400 text-sm" />
                   {course.language}
                 </span>
@@ -298,13 +298,13 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
 
             {/* Instructor */}
             {instructorName && (
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-none bg-[#111726]/50 border border-zinc-800 backdrop-blur-md">
+              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-none bg-[#111726]/50 border border-slate-800 backdrop-blur-md">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none bg-platinum-900/60 border border-platinum-800 flex items-center justify-center text-white font-black text-base sm:text-lg flex-shrink-0">
                   {instructorName[0]?.toUpperCase()}
                 </div>
                 <div>
                   <p className="font-bold text-sm text-white">{instructorName}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{instructorTitle || t('courses.instructorFallback')}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{instructorTitle || t('courses.instructorFallback')}</p>
                 </div>
               </div>
             )}
@@ -336,9 +336,9 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                   <IoCheckmarkCircle className="text-emerald-400" />
                   {localText.whatYouLearn}
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-none bg-[#111726]/20 border border-zinc-850">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-none bg-[#111726]/20 border border-slate-850">
                   {course.requirements.map((req, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-400">
+                    <div key={i} className="flex items-start gap-2 text-xs sm:text-sm text-slate-400">
                       <IoCheckmarkCircle className="text-emerald-500 text-sm flex-shrink-0 mt-0.5" />
                       {req}
                     </div>
@@ -355,7 +355,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                   {localText.courseProgram}
                 </h2>
                 {courseVideos.length > 0 && (
-                  <span className="text-xs text-zinc-500 font-mono">
+                  <span className="text-xs text-slate-500 font-mono">
                     {courseVideos.length} {localText.lessonsSuffix}{totalSecs > 0 && ' · ' + formatDurationText(totalSecs)}
                   </span>
                 )}
@@ -364,7 +364,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
               {vLoad ? (
                 <div className="space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-12 bg-zinc-900 rounded-none animate-pulse" />
+                    <div key={i} className="h-12 bg-slate-900 rounded-none animate-pulse" />
                   ))}
                 </div>
               ) : courseVideos.length > 0 ? (
@@ -378,7 +378,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                   </div>
                 </Accordion>
               ) : (
-                <div className="py-8 text-center text-sm text-zinc-500 rounded-none bg-[#111726]/20 border border-zinc-850">
+                <div className="py-8 text-center text-sm text-slate-500 rounded-none bg-[#111726]/20 border border-slate-850">
                   {localText.lessonsNotAdded}
                 </div>
               )}
@@ -393,11 +393,11 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                 </h2>
                 <div className="space-y-3">
                   {projects.map((p) => (
-                    <div key={p._id} className="p-4 rounded-none bg-[#111726]/40 border border-zinc-800 space-y-2">
+                    <div key={p._id} className="p-4 rounded-none bg-[#111726]/40 border border-slate-800 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-semibold text-sm text-white">{p.title}</p>
                         <div className="flex gap-1 flex-shrink-0">
-                          <span className={'badge badge-sm rounded-none border-zinc-850 ' + (LEVEL_COLORS[p.level] || 'badge-ghost')}>
+                          <span className={'badge badge-sm rounded-none border-slate-850 ' + (LEVEL_COLORS[p.level] || 'badge-ghost')}>
                             {levelLabels[p.level] || p.level}
                           </span>
                           {p.xpReward > 0 && (
@@ -407,11 +407,11 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
                           )}
                         </div>
                       </div>
-                      {p.description && <p className="text-xs text-zinc-400 line-clamp-2">{p.description}</p>}
+                      {p.description && <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>}
                       {p.technologies?.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-1">
                           {p.technologies.map((tech, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-none text-xs bg-[#111726]/60 border border-zinc-850 text-zinc-400">{tech}</span>
+                            <span key={i} className="px-2 py-0.5 rounded-none text-xs bg-[#111726]/60 border border-slate-850 text-slate-400">{tech}</span>
                           ))}
                         </div>
                       )}
@@ -556,7 +556,7 @@ function PriceCardContent({
           onClick={onWatch}
           className={`btn btn-block rounded-none font-bold gap-2 ${
             isPaid
-              ? 'bg-transparent hover:bg-zinc-900 border border-zinc-800 text-zinc-300'
+              ? 'bg-transparent hover:bg-slate-900 border border-slate-800 text-slate-300'
               : 'bg-platinum-600 hover:bg-platinum-500 border-none text-white'
           }`}
         >
@@ -583,7 +583,7 @@ function DesktopPriceCard(props) {
   const localizedTitle = localizeCourseText(currentLang, course.title).title
 
   return (
-    <div className="rounded-none border border-zinc-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-2xl">
+    <div className="rounded-none border border-slate-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-2xl">
       <div className="relative aspect-video overflow-hidden" style={{ backgroundColor: 'var(--course-thumbnail-bg, #0f1115)' }}>
         {course.thumbnail ? (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -612,7 +612,7 @@ function DesktopPriceCard(props) {
 function MobilePriceCard(props) {
   const { isSubscribed, onWatch, uiText } = props
   return (
-    <div className="rounded-none border border-zinc-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-lg">
+    <div className="rounded-none border border-slate-800 bg-[#111726]/90 backdrop-blur-xl overflow-hidden shadow-lg">
       <div className="flex items-center justify-center px-4 py-3">
         <button onClick={onWatch} className="btn bg-platinum-600 hover:bg-platinum-500 border-none text-white btn-sm rounded-none gap-1">
           {isSubscribed ? <IoPlay className="text-sm" /> : <IoLockClosed className="text-sm" />}

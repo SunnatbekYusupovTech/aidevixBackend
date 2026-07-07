@@ -69,13 +69,13 @@ export default function TwoFactorVerifyPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-[420px] bg-[#0d1224]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
+      <div className="w-full max-w-[420px] bg-[#111726]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
         <div className="text-center mb-7">
           <div className="inline-flex w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 items-center justify-center mb-4">
             <span className="text-2xl">🔐</span>
           </div>
           <h1 className="text-2xl font-bold mb-2">Tasdiqlash kodi</h1>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <p className="text-slate-400 text-sm leading-relaxed">
             {useBackup
               ? 'Backup kodlardan birini kiriting'
               : 'Authenticator ilovangizdagi 6-raqamli kodni kiriting'}
@@ -124,7 +124,7 @@ export default function TwoFactorVerifyPage() {
           <button
             type="button"
             onClick={cancel}
-            className="w-full text-sm text-gray-400 hover:text-white py-2"
+            className="w-full text-sm text-slate-400 hover:text-white py-2"
           >
             Bekor qilish
           </button>

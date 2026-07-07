@@ -138,7 +138,7 @@ export default function AdminCoursesPage() {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22 }}
             onSubmit={handleCreate}
-            className="overflow-hidden rounded-2xl border border-amber-500/20 bg-[#0f121c] p-6"
+            className="overflow-hidden rounded-2xl border border-amber-500/20 bg-[#111726] p-6"
           >
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Yangi kurs</p>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -164,7 +164,7 @@ export default function AdminCoursesPage() {
         )}
       </AnimatePresence>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-xl">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726] shadow-xl">
         <div className="border-b border-white/10 px-5 py-4">
           <div className="relative max-w-sm">
             <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />

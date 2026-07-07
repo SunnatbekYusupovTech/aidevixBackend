@@ -116,7 +116,7 @@ export default function SubscriptionGate({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute -top-4 -right-4 z-10 w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+          className="absolute -top-4 -right-4 z-10 w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
         >
           <IoClose className="text-lg" />
         </button>
@@ -127,12 +127,12 @@ export default function SubscriptionGate({
             <>
               <div className={`w-3 h-3 rounded-full transition-colors ${
                 currentStep === 'instagram' ? 'bg-pink-500' :
-                !needsInstagram ? 'bg-green-500' : 'bg-zinc-600'
+                !needsInstagram ? 'bg-green-500' : 'bg-slate-600'
               }`} />
-              <div className="w-8 h-0.5 bg-zinc-600" />
+              <div className="w-8 h-0.5 bg-slate-600" />
               <div className={`w-3 h-3 rounded-full transition-colors ${
                 currentStep === 'telegram' ? 'bg-blue-500' :
-                !needsTelegram ? 'bg-green-500' : 'bg-zinc-600'
+                !needsTelegram ? 'bg-green-500' : 'bg-slate-600'
               }`} />
             </>
           ) : (
@@ -147,7 +147,7 @@ export default function SubscriptionGate({
           <p className="text-lg font-semibold text-white">
             {currentStepNumber}/{totalSteps} - {stepLabel}
           </p>
-          <p className="text-sm text-zinc-400 mt-2">
+          <p className="text-sm text-slate-400 mt-2">
             {stepDesc}
           </p>
         </div>

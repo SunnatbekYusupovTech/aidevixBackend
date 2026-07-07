@@ -77,13 +77,13 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0E1A] text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-[420px] bg-[#0d1224]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
+      <div className="w-full max-w-[420px] bg-[#111726]/40 border border-white/5 rounded-3xl p-6 sm:p-10">
         <div className="text-center mb-7">
           <div className="inline-flex w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 items-center justify-center mb-4">
             <span className="text-2xl">📧</span>
           </div>
           <h1 className="text-2xl font-bold mb-2">Emailni tasdiqlang</h1>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <p className="text-slate-400 text-sm leading-relaxed">
             <strong className="text-white">{email}</strong> ga 6-raqamli kod yuborildi
           </p>
         </div>
@@ -119,7 +119,7 @@ export default function VerifyEmailPage() {
 
           <Link
             href="/login"
-            className="block text-center text-sm text-gray-400 hover:text-white py-2"
+            className="block text-center text-sm text-slate-400 hover:text-white py-2"
           >
             Boshqa email bilan kirish
           </Link>

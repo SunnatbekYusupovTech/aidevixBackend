@@ -89,7 +89,7 @@ export default function AdminPaymentsPage() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f121c] shadow-xl">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726] shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-white/10 bg-slate-950/80 text-xs uppercase text-slate-500">

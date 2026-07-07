@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   IoCheckmarkCircle, IoOpenOutline, IoRocket, IoArrowForward, IoWater, IoConstruct,
@@ -148,6 +149,7 @@ const PROJECTS = [
     name: 'Eco Nur',
     domain: 'econur.uz',
     url: 'https://econur.uz',
+    image: '/projects/econur.jpg',
     icon: <IoWater />,
     accent: 'from-emerald-500 to-teal-500',
     glow: 'from-emerald-500/10 via-transparent to-teal-500/10',
@@ -157,6 +159,7 @@ const PROJECTS = [
     name: 'AUTOKRAN.UZ',
     domain: 'autokran.uz',
     url: 'https://autokran.uz',
+    image: '/projects/autokran.jpg',
     icon: <IoConstruct />,
     accent: 'from-amber-500 to-orange-500',
     glow: 'from-amber-500/10 via-transparent to-orange-500/10',
@@ -207,6 +210,27 @@ export default function ProjectsClient() {
                 className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 flex flex-col ${cardBg}`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br pointer-events-none ${p.glow}`} />
+
+                {/* Sayt screenshot — bosilganda jonli saytga o'tadi */}
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener"
+                  className={`group relative block mb-5 overflow-hidden rounded-2xl border ${
+                    isDark ? 'border-white/10' : 'border-slate-200'
+                  }`}
+                >
+                  <Image
+                    src={p.image}
+                    alt={`${p.name} — ${pc.category}`}
+                    width={1280}
+                    height={800}
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.03]"
+                    priority={i === 0}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
 
                 <div className="relative flex items-start justify-between gap-3 mb-5">
                   <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white bg-gradient-to-br ${p.accent} text-2xl`}>

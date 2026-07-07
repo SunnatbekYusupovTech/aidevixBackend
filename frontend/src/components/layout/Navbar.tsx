@@ -62,20 +62,18 @@ export default function Navbar() {
     projects: lang === 'en' ? 'Projects' : lang === 'ru' ? 'Проекты' : 'Loyihalar',
   }), [lang])
 
-  /** Chiptada gorizontal skrollsiz: asosiy 4 + qolganlari “Yana” menyusida. */
+  /** Chiptada gorizontal skrollsiz: asosiy 3 + qolganlari “Yana” menyusida.
+   *  2026-07-07: Bug Report / Careers / Mentorship / Challenges nav'dan olindi
+   *  (sahifalar ishlaydi, footer/sitemap'da qoladi) — menyu asosiy safarlarga toraytirildi. */
   const navPrimary = useMemo<{ label: string; to: string }[]>(() => [
     { label: t('nav.courses'), to: ROUTES.COURSES },
     { label: `⚡ ${navLocalText.prompts}`, to: ROUTES.PROMPTS },
-    { label: t('nav.challenges'), to: ROUTES.CHALLENGES },
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
   ], [t, navLocalText])
   const navMore = useMemo<{ label: string; to: string }[]>(() => [
-    { label: t('nav.bugReport'), to: ROUTES.BUG_REPORT },
-    { label: 'Mentorship', to: ROUTES.MENTORSHIP },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },
-    { label: t('nav.careers'), to: ROUTES.CAREERS },
   ], [t, navLocalText])
   const allNavMobile = [...navPrimary, ...navMore]
   const isMoreGroupActive = navMore.some((l) => l.to === pathname)

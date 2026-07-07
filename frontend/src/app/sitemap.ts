@@ -12,7 +12,10 @@ type RankedUser = { user?: { username?: string; createdAt?: string }; xp?: numbe
 // Profil sahifalari SEO sifatini ushlab turish uchun filtrlanadi. /ranking/users
 // limit=500 bilan XP=0 va test/throwaway akkauntlarni ham qaytaradi — ularni
 // sitemap'ga kiritish thin-content sifatida butun domen reytingini pasaytiradi.
-const MIN_PROFILE_XP = 50; // kamida bitta real faollik (1 video = +50 XP)
+// 2026-07-07: 50→200 — XP=50-150 profillar sitemap'ning ~40%ini tashkil qilib,
+// thin-content ulushini oshirayotgan edi. 200+ = kamida 4 video yoki quiz+video.
+// Sitemap'dan chiqarish deindex qilmaydi — leaderboard'dan link saqlanadi.
+const MIN_PROFILE_XP = 200;
 
 // Aniq test/throwaway username prefikslari (register/e2e smoke testlardan qolgan).
 const JUNK_PREFIX = /^(test|debug|prod|final|accept|pro|playwright|emailtest|auth|qa|e2e|smoke|demo)([_\d]|$)/i;
@@ -92,7 +95,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
     .filter((entry) => Boolean(entry.user?.username) && !isJunkUsername(entry.user?.username ?? ''))
     .map((entry) => ({
-      url: `${BASE}/u/${entry.user!.username!}`,
+      // encodeURIComponent — non-ASCII username'lar (ğ, ō...) sitemap spec bo'yicha
+      // <loc>da percent-encoded bo'lishi shart
+      url: `${BASE}/u/${encodeURIComponent(entry.user!.username!)}`,
       // createdAt mavjud bo'lsa ishlatiladi, aks holda lastModified tashlab yuboriladi
       ...(entry.user?.createdAt ? { lastModified: new Date(entry.user.createdAt) } : {}),
       changeFrequency: 'weekly' as const,

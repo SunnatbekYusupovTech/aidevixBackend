@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: { params: { username: string 
   if (!profile) return { title: 'Foydalanuvchi topilmadi', robots: { index: false, follow: false } };
   const url = `https://aidevix.uz/u/${params.username}`;
   return {
-    title: `${profile.user.username} — Aidevix`,
+    // Brandsiz — root template "| Aidevix" qo'shadi (aks holda "X — Aidevix | Aidevix")
+    title: profile.user.username,
     description: profile.stats.bio || `${profile.user.username} — Level ${profile.stats.level}, ${profile.stats.xp.toLocaleString()} XP`,
     alternates: {
       canonical: url,

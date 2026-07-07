@@ -105,6 +105,7 @@ export const ROUTES = {
   PROMPTS:        '/prompts',
   TEAM:           '/team',
   ROADMAP:        '/roadmap',
+  PROJECTS:       '/projects',
   PUBLIC_PROFILE: (username: string) => `/u/${username}`,
   BUG_REPORT:     '/bug-report',
   ABOUT:          '/about',

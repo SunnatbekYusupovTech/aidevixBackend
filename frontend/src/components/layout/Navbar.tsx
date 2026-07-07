@@ -59,6 +59,7 @@ export default function Navbar() {
     prompts: lang === 'en' ? 'Prompts' : lang === 'ru' ? 'Промпты' : 'Prompts',
     roadmap: lang === 'en' ? 'Roadmap' : lang === 'ru' ? 'Роадмап' : 'Roadmap',
     adminPanel: lang === 'en' ? 'Admin Panel' : lang === 'ru' ? 'Админ панель' : 'Admin Panel',
+    projects: lang === 'en' ? 'Projects' : lang === 'ru' ? 'Проекты' : 'Loyihalar',
   }), [lang])
 
   /** Chiptada gorizontal skrollsiz: asosiy 4 + qolganlari “Yana” menyusida. */
@@ -73,6 +74,7 @@ export default function Navbar() {
     { label: 'Mentorship', to: ROUTES.MENTORSHIP },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
+    { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },
     { label: t('nav.careers'), to: ROUTES.CAREERS },
   ], [t, navLocalText])
   const allNavMobile = [...navPrimary, ...navMore]

@@ -20,7 +20,7 @@ const SOCIAL = [
 type FooterLinkItem = { label: string; to: string }
 
 export default function Footer() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const { isDark } = useTheme()
   const { playSound } = useSound()
   const pathname = usePathname()
@@ -41,6 +41,7 @@ export default function Footer() {
       title: t('footer.company'),
       links: [
         { label: t('footer.fAbout'), to: ROUTES.ABOUT },
+        { label: lang === 'ru' ? 'Проекты' : lang === 'en' ? 'Projects' : 'Loyihalar', to: ROUTES.PROJECTS },
         { label: t('footer.fBlog'), to: ROUTES.BLOG },
         { label: t('footer.fCareers'), to: ROUTES.CAREERS },
         { label: t('footer.fContact'), to: ROUTES.CONTACT },

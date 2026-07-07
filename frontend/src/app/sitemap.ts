@@ -112,6 +112,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/prompts`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE}/playground`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/roadmap`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'weekly',  priority: 0.6 },
+    { url: `${BASE}/projects`,    lastModified: new Date('2026-07-07'), changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/mentorship`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/careers`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.6 },
     { url: `${BASE}/pricing`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },

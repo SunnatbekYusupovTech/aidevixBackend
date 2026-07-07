@@ -868,14 +868,14 @@ export default function HomeClient({
                       <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
                     </span>
                   </div>
-                  {/* Overlapping avatars stack */}
+                  {/* Overlapping avatars stack — dekorativ (soxta stock-foto o'rniga lokal gradient) */}
                   <div className="mt-4 flex items-center justify-between gap-1">
-                    <div className="flex -space-x-1.5 overflow-hidden">
-                      <Image aria-hidden="true" width={20} height={20} className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                      <Image aria-hidden="true" width={20} height={20} className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
-                      <Image aria-hidden="true" width={20} height={20} className="inline-block h-5 w-5 rounded-none ring-1 ring-zinc-800" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&h=50&q=80" alt="" />
+                    <div className="flex -space-x-1.5 overflow-hidden" aria-hidden="true">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-indigo-500 to-purple-500 text-[8px] font-black text-white">A</span>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-emerald-500 to-teal-500 text-[8px] font-black text-white">S</span>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-none ring-1 ring-zinc-800 bg-gradient-to-br from-amber-500 to-orange-500 text-[8px] font-black text-white">D</span>
                     </div>
-                    <span className="text-[9px] font-mono font-bold text-emerald-400">{isDark ? '124 faol' : '124 active'}</span>
+                    <span className="text-[9px] font-mono font-bold text-emerald-400">{isDark ? 'faol jamiyat' : 'active community'}</span>
                   </div>
 
                   {/* Dropdown Expansion */}
@@ -888,18 +888,19 @@ export default function HomeClient({
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
+                    {/* Soxta raqamlar (+24%, 3.2s/kun, 412+) o'rniga real platforma faktlari */}
                     <div className="pt-3 border-t border-zinc-800/80 mt-3 text-[10px] font-mono text-zinc-400 space-y-1">
                       <div className="flex justify-between">
-                        <span>Haftalik o'sish:</span>
-                        <span className="text-emerald-400 font-bold">+24%</span>
+                        <span>Kunlik challenge:</span>
+                        <span className="text-emerald-400 font-bold">+XP</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>O'rtacha faollik:</span>
-                        <span className="text-white">3.2s/kun</span>
+                        <span>AI Coach:</span>
+                        <span className="text-white">24/7</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Tamomlaganlar:</span>
-                        <span className="text-platinum-400 font-semibold">412+</span>
+                        <span>Kurs yakuni:</span>
+                        <span className="text-platinum-400 font-semibold">Sertifikat</span>
                       </div>
                     </div>
                   </m.div>

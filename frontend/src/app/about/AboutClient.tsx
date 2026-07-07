@@ -35,7 +35,14 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
   const cardBg = isDark ? 'bg-[#0d1224]/70 border-white/5' : 'bg-white border-slate-200';
   const muted = isDark ? 'text-slate-400' : 'text-slate-600';
 
-  const getStatVal = (val?: number, fallback: number = 0) => { return (val || fallback).toLocaleString(); };
+  // Faqat API'dan kelgan REAL qiymatlar ko'rsatiladi — soxta fallback (1240/180/12/4.9)
+  // olib tashlandi: backend javob bermasa raqam o'ylab topilmaydi, karta yashirinadi.
+  const statCards = [
+    { label: t('about.stats.students'), value: stats?.students ? stats.students.toLocaleString() : null, color: 'text-indigo-400' },
+    { label: t('about.stats.videos'), value: stats?.videos ? stats.videos.toLocaleString() : null, color: 'text-cyan-400' },
+    { label: t('about.stats.mentors'), value: stats?.mentors ? stats.mentors.toLocaleString() : null, color: 'text-pink-400' },
+    { label: t('about.stats.rating'), value: stats?.rating ? `${stats.rating}/5` : null, color: 'text-yellow-400' },
+  ].filter((s): s is { label: string; value: string; color: string } => Boolean(s.value));
 
   const VALUES = VALUE_ICONS.map((v, i) => ({
     ...v,
@@ -73,19 +80,14 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
         </motion.section>
 
         {/* Stats */}
-        {stats && (
+        {statCards.length > 0 && (
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-20"
           >
-            {[
-              { label: t('about.stats.students'), value: getStatVal(stats.students, 1240), color: 'text-indigo-400' },
-              { label: t('about.stats.videos'), value: getStatVal(stats.videos, 180), color: 'text-cyan-400' },
-              { label: t('about.stats.mentors'), value: getStatVal(stats.mentors, 12), color: 'text-pink-400' },
-              { label: t('about.stats.rating'), value: `${stats.rating || 4.9}/5`, color: 'text-yellow-400' },
-            ].map((s, i) => (
+            {statCards.map((s, i) => (
               <div key={i} className={`rounded-none border p-5 sm:p-6 text-center ${cardBg}`}>
                 <div className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.value}</div>
                 <div className={`text-xs mt-1 uppercase tracking-wider ${muted}`}>{s.label}</div>

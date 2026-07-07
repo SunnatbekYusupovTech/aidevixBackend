@@ -104,7 +104,11 @@ export default function ClientLayoutWrapper({
 
   return (
     <>
-      {isMounted && !hideLayout && <Navbar />}
+      {/* SSR muhim (2026-07-07): Navbar/Footer isMounted'siz render qilinadi —
+          barcha ichki linklar (12 kategoriya, footer bo'limlari) boshlang'ich
+          HTML'da Google'ga ko'rinishi kerak. Theme/Lang/Sound contextlar
+          deterministik boshlanadi (dark/uz/true), hydration mismatch yo'q. */}
+      {!hideLayout && <Navbar />}
       {showEnhancements && <DailyRewardModal />}
       
       <main className="relative w-full min-w-0 max-w-full overflow-x-clip">
@@ -117,7 +121,7 @@ export default function ClientLayoutWrapper({
       {showDeferredPrompts && <ExitIntentModal />}
       {showDeferredPrompts && <PWAInstallPrompt />}
       {showDeferredPrompts && <InstallAppFab />}
-      {isMounted && !hideLayout && <Footer />}
+      {!hideLayout && <Footer />}
       {isMounted && <ScrollToTop />}
       {isMounted && <CookieConsent />}
       {isMounted && <TelegramMiniAppBridge />}

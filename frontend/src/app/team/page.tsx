@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { FaInstagram, FaTelegram, FaLinkedin } from 'react-icons/fa';
+import { FaInstagram, FaTelegram, FaLinkedin, FaGithub, FaFacebook } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
+import { useTheme } from '@/context/ThemeContext';
 
 type TeamMember = {
   id: string;
@@ -19,6 +20,8 @@ type TeamMember = {
   telegram?: string;
   instagram?: string;
   linkedin?: string;
+  github?: string;
+  facebook?: string;
   portfolio?: string;
 };
 
@@ -35,8 +38,10 @@ const TEAM_MEMBERS: TeamMember[] = [
     cursorColor: 'bg-yellow-500',
     textColor: 'text-yellow-400',
     telegram: 'https://t.me/SUNNATBEE',
-    instagram: 'https://www.instagram.com/sunnatbee',
-    linkedin: 'https://www.linkedin.com/in/sunnatbee/',
+    instagram: 'https://www.instagram.com/sunnatbekyusupov.tech',
+    linkedin: 'https://www.linkedin.com/in/sunnatbekyusupov/',
+    github: 'https://github.com/SunnatbekYusupovTech',
+    facebook: 'https://www.facebook.com/sunnatbek.yusupov.7',
   },
   {
     id: 'sardor',
@@ -195,12 +200,27 @@ function TeamCard({
   const flipped = flippedId === member.id;
   const isCEO = member.id === 'sunnatbek';
   const isMystery = member.id === 'mystery';
+  const { isDark } = useTheme();
+
+  // Neutral surface/text/border tokens adapt to light/dark; accent colors stay.
+  const cardBg = isDark ? 'bg-zinc-950/40' : 'bg-white/80';
+  const textLayerBg = isDark ? 'bg-zinc-950/95' : 'bg-white/95';
+  const gradientFrom = isDark ? 'from-zinc-950' : 'from-white';
+  const chipBg = isDark ? 'bg-zinc-900/20' : 'bg-slate-100';
+  const socialBg = isDark ? 'bg-zinc-900/10' : 'bg-slate-100';
+  const dividerBorder = isDark ? 'border-zinc-900' : 'border-slate-200';
+  const mutedText = isDark ? 'text-zinc-500' : 'text-slate-500';
+  const faintText = isDark ? 'text-zinc-600' : 'text-slate-400';
+  const bodyText = isDark ? 'text-zinc-300' : 'text-slate-700';
+  const quoteText = isDark ? 'text-zinc-200' : 'text-slate-800';
+  const mysteryImgBg = isDark ? 'bg-black/75' : 'bg-slate-100';
+  const neutralBorder = isDark ? 'border-zinc-800' : 'border-slate-300';
 
   const borderBase = isCEO
     ? 'border-yellow-500/20 hover:border-yellow-500/70'
     : isMystery
     ? 'border-red-500/20 hover:border-red-500/70'
-    : 'border-zinc-800 hover:border-emerald-500/60';
+    : `${neutralBorder} hover:border-emerald-500/60`;
 
   const cornerColor = isCEO
     ? 'border-yellow-500'
@@ -209,30 +229,44 @@ function TeamCard({
     : 'border-emerald-500';
 
   const nameColor = isCEO
-    ? 'text-yellow-400'
+    ? (isDark ? 'text-yellow-400' : 'text-yellow-600')
     : isMystery
-    ? 'text-red-400'
-    : 'text-emerald-400';
+    ? (isDark ? 'text-red-400' : 'text-red-600')
+    : (isDark ? 'text-emerald-400' : 'text-emerald-600');
 
   const badgeClass = isCEO
-    ? 'bg-yellow-950/85 border border-yellow-500/40 text-yellow-400'
+    ? (isDark
+        ? 'bg-yellow-950/85 border border-yellow-500/40 text-yellow-400'
+        : 'bg-yellow-50 border border-yellow-500/40 text-yellow-700')
     : isMystery
-    ? 'bg-red-950/90 border border-red-500/50 text-red-400 animate-pulse'
-    : 'bg-emerald-950/85 border border-emerald-500/40 text-emerald-400';
+    ? (isDark
+        ? 'bg-red-950/90 border border-red-500/50 text-red-400 animate-pulse'
+        : 'bg-red-50 border border-red-500/50 text-red-600 animate-pulse')
+    : (isDark
+        ? 'bg-emerald-950/85 border border-emerald-500/40 text-emerald-400'
+        : 'bg-emerald-50 border border-emerald-500/40 text-emerald-700');
 
   const techClass = isCEO
-    ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/35 hover:text-yellow-300'
+    ? (isDark
+        ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/35 hover:text-yellow-300'
+        : 'border-slate-300 text-slate-600 hover:border-yellow-500/50 hover:text-yellow-600')
     : isMystery
     ? 'border-red-500/30 text-red-400/90 font-bold italic'
-    : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/20 hover:text-emerald-300';
+    : (isDark
+        ? 'border-zinc-800 text-zinc-400 hover:border-emerald-500/20 hover:text-emerald-300'
+        : 'border-slate-300 text-slate-600 hover:border-emerald-500/40 hover:text-emerald-600');
 
   const socialClass = isCEO
-    ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
-    : 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5';
+    ? (isDark
+        ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
+        : 'border-slate-300 text-slate-600 hover:border-yellow-500/40 hover:text-yellow-600 hover:bg-yellow-500/5')
+    : (isDark
+        ? 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
+        : 'border-slate-300 text-slate-600 hover:border-emerald-500/40 hover:text-emerald-600 hover:bg-emerald-500/5');
 
   return (
     <div
-      className={`group relative border bg-zinc-950/40 transition-all duration-300 rounded-none w-full overflow-hidden cursor-pointer ${borderBase}`}
+      className={`group relative border ${cardBg} transition-all duration-300 rounded-none w-full overflow-hidden cursor-pointer ${borderBase}`}
       style={{ pointerEvents: 'auto', height: '380px' }}
       onClick={() => onFlip(flipped ? null : member.id)}
     >
@@ -262,7 +296,7 @@ function TeamCard({
         style={{ opacity: flipped ? 0 : 1, pointerEvents: flipped ? 'none' : 'auto' }}
       >
         {isMystery ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-black/75 relative overflow-hidden">
+          <div className={`w-full h-full flex flex-col items-center justify-center ${mysteryImgBg} relative overflow-hidden`}>
             <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(239,68,68,0.08)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_8px] pointer-events-none" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(239,68,68,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(239,68,68,0.03)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
             <div className="absolute top-1/4 w-[120%] text-center transform -rotate-12 bg-red-600/90 border-y-2 border-red-500 py-2 z-10">
@@ -287,7 +321,7 @@ function TeamCard({
         )}
 
         {/* Bottom gradient + name */}
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none" />
+        <div className={`absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t ${gradientFrom} to-transparent pointer-events-none`} />
         <div className="absolute bottom-0 inset-x-0 p-3 z-10">
           <div className="mb-1">
             <span className={`px-2 py-0.5 text-[9px] tracking-wider uppercase font-bold rounded-none ${badgeClass}`}>
@@ -297,7 +331,7 @@ function TeamCard({
           <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>
             {member.name}
           </h3>
-          <p className="text-[9px] text-zinc-500 font-mono mt-0.5">
+          <p className={`text-[9px] ${mutedText} font-mono mt-0.5`}>
             {isMystery ? '// ID: ANOMALY_NODE' : `// ID: DEV_NODE_0${index + 1}`}
           </p>
         </div>
@@ -305,7 +339,7 @@ function TeamCard({
 
       {/* ── TEXT LAYER ── */}
       <div
-        className="absolute inset-0 bg-zinc-950/95 transition-opacity duration-300 p-4 flex flex-col justify-between"
+        className={`absolute inset-0 ${textLayerBg} transition-opacity duration-300 p-4 flex flex-col justify-between`}
         style={{ opacity: flipped ? 1 : 0, pointerEvents: flipped ? 'auto' : 'none' }}
       >
         <div className="space-y-3">
@@ -319,19 +353,19 @@ function TeamCard({
                 {member.name}
               </h3>
               {!member.hideAge && (
-                <span className="text-[9px] text-zinc-500 font-mono">
+                <span className={`text-[9px] ${mutedText} font-mono`}>
                   [{member.age} {c.years}]
                 </span>
               )}
             </div>
-            <p className="text-[9px] text-zinc-600 font-mono">
+            <p className={`text-[9px] ${faintText} font-mono`}>
               {isMystery ? '// ID: ANOMALY_NODE' : `// ID: DEV_NODE_0${index + 1}`}
             </p>
           </div>
 
           {/* Details */}
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase block">
+            <span className={`text-[9px] font-bold ${mutedText} tracking-wider uppercase block`}>
               {'// '}{c.experience}
             </span>
             {isMystery ? (
@@ -346,7 +380,7 @@ function TeamCard({
                     </span>
                   ))}
                 </div>
-                <p className="text-[10px] text-zinc-200 leading-relaxed italic border-l-2 border-red-500/40 pl-2 py-0.5 bg-red-950/10 font-serif">
+                <p className={`text-[10px] ${quoteText} leading-relaxed italic border-l-2 border-red-500/40 pl-2 py-0.5 ${isDark ? 'bg-red-950/10' : 'bg-red-50'} font-serif`}>
                   Bizga kreativ va nostandart fikrlaydigan dev kerak!
                 </p>
                 <p className="text-[9px] text-red-500/40 font-mono">
@@ -354,7 +388,7 @@ function TeamCard({
                 </p>
               </div>
             ) : (
-              <p className="text-[10px] text-zinc-300 leading-relaxed font-sans font-light italic">
+              <p className={`text-[10px] ${bodyText} leading-relaxed font-sans font-light italic`}>
                 {member.details}
               </p>
             )}
@@ -362,14 +396,14 @@ function TeamCard({
 
           {/* Stack */}
           <div className="space-y-1">
-            <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase block">
+            <span className={`text-[9px] font-bold ${mutedText} tracking-wider uppercase block`}>
               {'// '}{c.stack}
             </span>
             <div className="flex flex-wrap gap-1">
               {member.stack.map((tech) => (
                 <span
                   key={tech}
-                  className={`px-1.5 py-0.5 border text-[9px] font-bold bg-zinc-900/20 rounded-none transition-colors duration-300 ${techClass}`}
+                  className={`px-1.5 py-0.5 border text-[9px] font-bold ${chipBg} rounded-none transition-colors duration-300 ${techClass}`}
                 >
                   {tech}
                 </span>
@@ -381,7 +415,7 @@ function TeamCard({
         {/* Socials pinned to bottom */}
         {isMystery ? (
           <a
-            href="https://t.me/SUNNATBEE"
+            href="https://t.me/aidevix"
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -390,8 +424,8 @@ function TeamCard({
             <span className="w-1.5 h-1.5 bg-red-500 animate-ping rounded-none" />
             JOIN_US_NODE // CONNECT
           </a>
-        ) : member.telegram || member.instagram || member.linkedin ? (
-          <div className="flex gap-2 pt-2 border-t border-zinc-900">
+        ) : member.telegram || member.instagram || member.linkedin || member.github || member.facebook ? (
+          <div className={`flex gap-2 pt-2 border-t ${dividerBorder}`}>
             {member.linkedin && (
               <a
                 href={member.linkedin}
@@ -399,7 +433,7 @@ function TeamCard({
                 rel="noopener noreferrer"
                 aria-label={`${member.name} LinkedIn`}
                 onClick={(e) => e.stopPropagation()}
-                className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
               >
                 <FaLinkedin size={13} />
               </a>
@@ -411,7 +445,7 @@ function TeamCard({
                 rel="noopener noreferrer"
                 aria-label={`${member.name} Telegram`}
                 onClick={(e) => e.stopPropagation()}
-                className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
               >
                 <FaTelegram size={13} />
               </a>
@@ -423,9 +457,33 @@ function TeamCard({
                 rel="noopener noreferrer"
                 aria-label={`${member.name} Instagram`}
                 onClick={(e) => e.stopPropagation()}
-                className={`p-1.5 border bg-zinc-900/10 transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
               >
                 <FaInstagram size={13} />
+              </a>
+            )}
+            {member.github && (
+              <a
+                href={member.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${member.name} GitHub`}
+                onClick={(e) => e.stopPropagation()}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+              >
+                <FaGithub size={13} />
+              </a>
+            )}
+            {member.facebook && (
+              <a
+                href={member.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${member.name} Facebook`}
+                onClick={(e) => e.stopPropagation()}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+              >
+                <FaFacebook size={13} />
               </a>
             )}
           </div>
@@ -439,7 +497,20 @@ function TeamCard({
 
 export default function TeamPage() {
   const { lang } = useLang();
+  const { isDark } = useTheme();
   const c = LOCALIZED_CONTENT[lang as keyof typeof LOCALIZED_CONTENT] || LOCALIZED_CONTENT.uz;
+
+  // Theme-aware neutral tokens for the terminal shell (accent greens/reds stay).
+  const pageBg = isDark ? 'bg-black text-[#e2e6e9]' : 'bg-slate-50 text-slate-800';
+  const headerTerminalBg = isDark ? 'bg-emerald-950/5' : 'bg-emerald-50/60';
+  const mutedText = isDark ? 'text-zinc-500' : 'text-slate-500';
+  const faintText = isDark ? 'text-zinc-600' : 'text-slate-400';
+  const bodyText = isDark ? 'text-zinc-400' : 'text-slate-600';
+  const titleText = isDark ? 'text-white' : 'text-slate-900';
+  const metricSurface = isDark ? 'border-zinc-800 bg-zinc-950/60' : 'border-slate-200 bg-white/70';
+  const encChip = isDark ? 'border-zinc-800 text-zinc-400 bg-zinc-900/40' : 'border-slate-300 text-slate-600 bg-slate-100';
+  const hrLine = isDark ? 'bg-zinc-700' : 'bg-slate-300';
+  const edgeFrom = isDark ? 'from-black' : 'from-slate-50';
 
   const [flippedId, setFlippedId] = useState<string | null>(null);
 
@@ -560,7 +631,7 @@ export default function TeamPage() {
   }, [flippedId]);
 
   return (
-    <main className="relative min-h-screen w-full bg-black text-[#e2e6e9] overflow-hidden rounded-none select-none font-mono">
+    <main className={`relative min-h-screen w-full ${pageBg} overflow-hidden rounded-none select-none font-mono`}>
       {/* Matrix Grid */}
       <div
         className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]"
@@ -582,29 +653,29 @@ export default function TeamPage() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
 
         {/* Header Terminal */}
-        <div className="border border-emerald-500/20 bg-emerald-950/5 p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className={`border border-emerald-500/20 ${headerTerminalBg} p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
               <span className="h-2 w-2 animate-ping bg-emerald-500 rounded-none" />
               <span>{c.status}</span>
             </div>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">{c.systemLogs}</p>
+            <p className={`text-[10px] ${mutedText} uppercase tracking-widest leading-none`}>{c.systemLogs}</p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px] font-bold">
             <span className="border border-emerald-500/35 px-2.5 py-1 text-emerald-400 bg-emerald-950/20 rounded-none">GRID: COMPRESSED</span>
-            <span className="border border-zinc-800 px-2.5 py-1 text-zinc-400 bg-zinc-900/40 rounded-none">ENCRYPTION: AES-256</span>
+            <span className={`border px-2.5 py-1 rounded-none ${encChip}`}>ENCRYPTION: AES-256</span>
           </div>
         </div>
 
         {/* Title */}
         <div className="mb-14 border-b border-emerald-500/10 pb-8">
-          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold italic uppercase tracking-wider text-white">
+          <h1 className={`text-3xl sm:text-5xl lg:text-7xl font-extrabold italic uppercase tracking-wider ${titleText}`}>
             {c.title}
           </h1>
           <p className="mt-3 text-xs sm:text-sm text-emerald-500/70 font-semibold tracking-wider uppercase">
             {'// '}{c.subtitle}
           </p>
-          <p className="mt-4 max-w-2xl text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans font-light">
+          <p className={`mt-4 max-w-2xl text-xs sm:text-sm ${bodyText} leading-relaxed font-sans font-light`}>
             {c.heroDesc}
           </p>
         </div>
@@ -619,20 +690,20 @@ export default function TeamPage() {
           ].map((m, idx) => (
             <div
               key={idx}
-              className="border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 rounded-none flex flex-col justify-between hover:border-emerald-500/30 transition-colors duration-300"
+              className={`border ${metricSurface} p-4 sm:p-5 rounded-none flex flex-col justify-between hover:border-emerald-500/30 transition-colors duration-300`}
             >
-              <span className="text-[9px] sm:text-[10px] font-bold text-zinc-500 tracking-wider uppercase">{m.label}</span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-2 font-mono">{m.value}</span>
-              <span className="text-[9px] text-zinc-600 mt-1 font-sans">{m.desc}</span>
+              <span className={`text-[9px] sm:text-[10px] font-bold ${mutedText} tracking-wider uppercase`}>{m.label}</span>
+              <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'} mt-2 font-mono`}>{m.value}</span>
+              <span className={`text-[9px] ${faintText} mt-1 font-sans`}>{m.desc}</span>
             </div>
           ))}
         </div>
 
         {/* Drag hint */}
-        <div className="mb-6 flex items-center justify-center gap-3 text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
-          <span className="w-8 h-px bg-zinc-700" />
+        <div className={`mb-6 flex items-center justify-center gap-3 text-[10px] ${mutedText} font-bold tracking-widest uppercase`}>
+          <span className={`w-8 h-px ${hrLine}`} />
           <span>{c.dragHint}</span>
-          <span className="w-8 h-px bg-zinc-700" />
+          <span className={`w-8 h-px ${hrLine}`} />
         </div>
 
         {/* Carousel viewport */}
@@ -691,13 +762,13 @@ export default function TeamPage() {
           </div>
 
           {/* Edge fades */}
-          <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black to-transparent pointer-events-none z-20" />
-          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black to-transparent pointer-events-none z-20" />
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black to-transparent pointer-events-none z-20" />
+          <div className={`absolute inset-y-0 left-0 w-24 bg-gradient-to-r ${edgeFrom} to-transparent pointer-events-none z-20`} />
+          <div className={`absolute inset-y-0 right-0 w-24 bg-gradient-to-l ${edgeFrom} to-transparent pointer-events-none z-20`} />
+          <div className={`absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t ${edgeFrom} to-transparent pointer-events-none z-20`} />
         </div>
 
         {/* Footer */}
-        <div className="mt-30 border-t border-emerald-500/10 pt-8 text-center text-[10px] text-zinc-600 space-y-2">
+        <div className={`mt-30 border-t border-emerald-500/10 pt-8 text-center text-[10px] ${faintText} space-y-2`}>
           <p className="font-mono">{'// END_OF_FILE // SYSTEM_ACTIVE // ALL_NODES_OPERATIONAL: TRUE'}</p>
           <p className="font-mono text-emerald-500/40 animate-pulse">AIDEVIX PLATFORM CORE HUMAN ASSETS V2.06</p>
         </div>

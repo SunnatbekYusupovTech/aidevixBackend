@@ -29,11 +29,33 @@ const founderSchema = {
     name: 'Sunnatbek Yusupov',
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',
+    alternateName: 'Sunnatbek Yusupov | Aidevix Founder',
     jobTitle: 'Founder & CEO',
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     description:
-      "Aidevix asoschisi va bosh direktori. Aidevix strategiyasi, mahsulot yo'nalishi va frontend arxitekturasi.",
-    knowsAbout: ['Software Engineering', 'React', 'Next.js', 'TypeScript', 'AI', 'EdTech'],
+      "Aidevix asoschisi va bosh direktori (Founder & CEO). Frontend Engineer — React, " +
+      "Next.js, TypeScript. O'zbekistonda AI-first dasturlash ta'limini rivojlantirmoqda.",
+    knowsAbout: [
+      'Artificial Intelligence',
+      'Software Engineering',
+      'Frontend Development',
+      'React',
+      'Next.js',
+      'TypeScript',
+      'Programming Education',
+      'EdTech',
+      'Startups',
+    ],
+    knowsLanguage: ['uz', 'ru', 'en'],
+    nationality: { '@type': 'Country', name: 'Uzbekistan' },
+    homeLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Toshkent',
+        addressCountry: 'UZ',
+      },
+    },
     worksFor: {
       '@type': 'EducationalOrganization',
       '@id': 'https://aidevix.uz/#organization',
@@ -41,10 +63,13 @@ const founderSchema = {
       url: 'https://aidevix.uz',
     },
     url: 'https://aidevix.uz/team',
+    mainEntityOfPage: 'https://aidevix.uz/team',
     sameAs: [
-      'https://www.linkedin.com/in/sunnatbee/',
+      'https://www.linkedin.com/in/sunnatbekyusupov/',
+      'https://github.com/SunnatbekYusupovTech',
+      'https://www.instagram.com/sunnatbekyusupov.tech',
+      'https://www.facebook.com/sunnatbek.yusupov.7',
       'https://t.me/SUNNATBEE',
-      'https://www.instagram.com/sunnatbee',
     ],
   },
 };

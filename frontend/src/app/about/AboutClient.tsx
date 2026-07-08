@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   IoRocket, IoHeart, IoGlobe, IoSchool, IoCode, IoShieldCheckmark,
@@ -122,6 +123,43 @@ export default function AboutClient({ stats }: { stats: Stats | null }) {
                   <div className={muted}>{t('about.mission.year')}</div>
                 </footer>
               </blockquote>
+            </div>
+          </div>
+        </section>
+
+        {/* Founder */}
+        <section className="mb-20">
+          <div className="grid lg:grid-cols-[0.9fr_1.5fr] gap-10 items-center">
+            <div className="relative mx-auto lg:mx-0 w-full max-w-xs">
+              <div className="absolute -inset-3 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-pink-500/20 blur-2xl" />
+              <div className={`relative rounded-3xl border overflow-hidden ${cardBg}`}>
+                <Image
+                  src="/team/sunnatbee.jpg"
+                  alt="Sunnatbek Yusupov — Aidevix asoschisi va CEO"
+                  width={480}
+                  height={560}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400 mb-3">
+                {t('about.founder.kicker')}
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight mb-2">
+                {t('about.founder.title')}
+              </h2>
+              <div className="text-lg font-bold mb-1">Sunnatbek Yusupov</div>
+              <div className={`text-sm font-medium mb-5 ${muted}`}>{t('about.founder.role')}</div>
+              <p className={`text-base leading-7 ${muted}`}>{t('about.founder.bio')}</p>
+              <Link
+                href="/team"
+                className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-indigo-500/30 transition-shadow"
+              >
+                {t('about.founder.cta')} <IoArrowForward />
+              </Link>
             </div>
           </div>
         </section>

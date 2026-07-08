@@ -44,6 +44,10 @@ async function fetchJson<T>(url: string, key: string): Promise<T[]> {
 // `new Date()` o'rniga qo'yiladi — haqiqatan o'zgarmaydigan statik sahifalar uchun.
 const STATIC_LAST_MODIFIED = new Date('2026-06-24');
 
+// Asoschi identifikatsiyasi sahifalari (Person schema + sameAs) 2026-07-08da
+// yangilandi — yangi lastmod Google'ni /team va /about'ni qayta indekslashga undaydi.
+const FOUNDER_PAGES_UPDATED = new Date('2026-07-08');
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all dynamic content types in parallel — sitemap render must stay fast.
   // Only endpoints that are PUBLIC (no auth) are usable here:
@@ -116,8 +120,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/mentorship`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/careers`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.6 },
     { url: `${BASE}/pricing`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/about`,       lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${BASE}/team`,        lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/about`,       lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE}/team`,        lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/blog`,        lastModified: now,                    changeFrequency: 'weekly',  priority: 0.5 },
     { url: `${BASE}/help`,        lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE}/contact`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },

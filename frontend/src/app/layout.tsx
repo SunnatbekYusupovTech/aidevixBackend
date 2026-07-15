@@ -135,6 +135,13 @@ const organizationSchema = {
     addressCountry: 'UZ',
   },
   telephone: '+998909712160',
+  // Yandex Business kartochka pin koordinatalari (oid=241990440902) — NAP mosligi.
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 41.366762,
+    longitude: 69.286465,
+  },
+  hasMap: 'https://yandex.uz/maps/org/aidevix/241990440902/',
   openingHoursSpecification: {
     '@type': 'OpeningHoursSpecification',
     dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -191,6 +198,8 @@ const organizationSchema = {
     'https://t.me/aidevix',
     'https://instagram.com/aidevix',
     'https://www.linkedin.com/company/aidevix',
+    'https://www.youtube.com/@aidevix',
+    'https://yandex.uz/maps/org/aidevix/241990440902/',
   ],
 };
 

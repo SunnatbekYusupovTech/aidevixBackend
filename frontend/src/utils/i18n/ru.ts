@@ -585,8 +585,8 @@ const ru: Record<string, string> = {
     'sort.views': 'Популярные просмотры',
 
     // ─── Courses Page ───
-    'courses.allTitle': 'Все Курсы',
-    'courses.allSubtitle': 'Откройте для себя профессиональные курсы',
+    'courses.allTitle': 'Курсы программирования',
+    'courses.allSubtitle': 'Курсы программирования и IT-курсы — React, Python, AI и другие направления, профессиональное онлайн-обучение',
     'courses.search': 'Поиск курсов...',
     'courses.count': 'курс',
     'courses.notFound': 'по запросу курсов не найдено',

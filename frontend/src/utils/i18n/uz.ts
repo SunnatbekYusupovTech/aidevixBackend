@@ -608,8 +608,8 @@ const uz: Record<string, string> = {
     'sort.views': "Ko'p ko'rilgan",
 
     // ─── Courses Page ───
-    'courses.allTitle': 'Barcha Kurslar',
-    'courses.allSubtitle': 'Professional dasturlash kurslarini kashf eting',
+    'courses.allTitle': 'Dasturlash kurslari',
+    'courses.allSubtitle': 'Dasturlash va IT kurslari — React, Python, AI va boshqa yo\'nalishlar bo\'yicha o\'zbek tilidagi professional onlayn ta\'lim',
     'courses.search': 'Kurs qidirish...',
     'courses.count': 'kurs',
     'courses.notFound': "bo'yicha kurs topilmadi",

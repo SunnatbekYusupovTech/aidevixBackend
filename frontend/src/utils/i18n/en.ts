@@ -585,8 +585,8 @@ const en: Record<string, string> = {
     'sort.views': 'Most Viewed',
 
     // ─── Courses Page ───
-    'courses.allTitle': 'All Courses',
-    'courses.allSubtitle': 'Discover professional programming courses',
+    'courses.allTitle': 'Programming courses',
+    'courses.allSubtitle': 'Programming and IT courses — professional online learning in React, Python, AI and more',
     'courses.search': 'Search courses...',
     'courses.count': 'courses',
     'courses.notFound': 'No courses found for',

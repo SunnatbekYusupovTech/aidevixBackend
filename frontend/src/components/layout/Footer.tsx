@@ -220,6 +220,17 @@ export default function Footer() {
               </Link>
             ))}
           </div>
+          {/* Ruscha landing'ga doimiy ichki link — crawl discovery + hreflang juftligi. */}
+          <div className="mt-4">
+            <Link
+              href="/ru/courses"
+              onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
+              hrefLang="ru"
+              className={`inline-flex items-center gap-1 text-xs font-semibold transition-colors ${linkText}`}
+            >
+              Курсы программирования на русском →
+            </Link>
+          </div>
         </div>
 
         {/* 3. Bottom Bar */}

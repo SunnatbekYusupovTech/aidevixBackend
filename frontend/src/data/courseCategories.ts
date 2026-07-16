@@ -137,3 +137,25 @@ export const COURSE_CATEGORIES: CourseCategoryMeta[] = [
 
 export const getCategory = (slug: string): CourseCategoryMeta | undefined =>
   COURSE_CATEGORIES.find((c) => c.slug === slug);
+
+// Har kategoriya sahifasi uchun FAQ — savol-javob o'sha yo'nalishga xos (label bilan),
+// shuning uchun har sahifa o'ziga xos kontent oladi (thin/duplicate emas). Ham UI'da,
+// ham FAQPage JSON-LD sifatida ishlatiladi.
+export const buildCategoryFaq = (cat: CourseCategoryMeta): { q: string; a: string }[] => [
+  {
+    q: `${cat.label} kurslari o'zbek tilidami?`,
+    a: `Ha, ${cat.label} bo'yicha barcha darslar, amaliy topshiriqlar va izohlar to'liq o'zbek tilida. ${cat.intro}`,
+  },
+  {
+    q: `${cat.label}ni noldan o'rgansam bo'ladimi?`,
+    a: `Ha. ${cat.label} kurslari boshlang'ich darajadan boshlab, bosqichma-bosqich murakkablashib boradi. Oldindan tajriba shart emas — asoslardan boshlab amaliy loyihalargacha olib boramiz.`,
+  },
+  {
+    q: `${cat.label} kursini tugatgach sertifikat beriladimi?`,
+    a: `Ha, kursni yakunlab, topshiriq va testlardan o'tganingizdan so'ng tekshiriladigan raqamli sertifikat olasiz va uni portfolio yoki rezyumeda ishlatishingiz mumkin.`,
+  },
+  {
+    q: `${cat.label}ni o'rganish nimaga kerak?`,
+    a: `${cat.description}`,
+  },
+];

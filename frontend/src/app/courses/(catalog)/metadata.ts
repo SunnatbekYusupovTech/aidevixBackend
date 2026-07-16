@@ -1,22 +1,29 @@
 import { Metadata } from 'next';
 
 export const coursesMetadata: Metadata = {
-  // "Dasturlash kurslari" — asosiy target query'ni title boshiga olib chiqildi.
-  title: "Dasturlash kurslari — O'zbek tilida onlayn ta'lim",
+  // "Dasturlash kurslari" + "IT kurslari" — ikkala asosiy target query title boshida.
+  title: "Dasturlash va IT kurslari — O'zbek tilida onlayn ta'lim",
   description:
-    "Aidevix dasturlash kurslari: React, Node.js, Python, TypeScript, AI va kiberxavfsizlik bo'yicha O'zbek tilidagi professional onlayn kurslar. Boshlang'ichdan senior darajagacha amaliy ta'lim.",
+    "Aidevix dasturlash va IT kurslari: React, Node.js, Python, TypeScript, AI va kiberxavfsizlik bo'yicha O'zbek tilidagi professional onlayn kurslar. Boshlang'ichdan senior darajagacha amaliy ta'lim.",
   keywords: [
-    'dasturlash kurslari', 'onlayn dasturlash kurslari', 'o\'zbek tilida dasturlash',
-    'react kurslari', 'python kurslari', 'javascript kurslari', 'frontend kurslari',
-    'backend kurslari', 'AI kurslari', 'it kurslar', 'kodlashni o\'rganish', 'aidevix kurslar',
+    'dasturlash kurslari', 'it kurslari', 'onlayn dasturlash kurslari', 'it kurslari toshkent',
+    'o\'zbek tilida dasturlash', 'react kurslari', 'python kurslari', 'javascript kurslari',
+    'frontend kurslari', 'backend kurslari', 'AI kurslari', 'it kurslar toshkent',
+    'kodlashni o\'rganish', 'aidevix kurslar',
   ],
   alternates: {
     canonical: 'https://aidevix.uz/courses',
+    // hreflang reciprocal: узбекская ↔ русская версия страницы курсов.
+    languages: {
+      'uz-UZ': 'https://aidevix.uz/courses',
+      'ru-RU': 'https://aidevix.uz/ru/courses',
+      'x-default': 'https://aidevix.uz/courses',
+    },
   },
   openGraph: {
     type: 'website',
     url: 'https://aidevix.uz/courses',
-    title: "Dasturlash kurslari — Aidevix",
+    title: "Dasturlash va IT kurslari — Aidevix",
     description: "O'zbek tilidagi eng keng dasturlash kurs kutubxonasi. React, Python, AI va boshqalar.",
     siteName: 'Aidevix',
     locale: 'uz_UZ',
@@ -31,7 +38,7 @@ export const coursesMetadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Dasturlash kurslari — Aidevix",
+    title: "Dasturlash va IT kurslari — Aidevix",
     description: "O'zbek tilidagi professional dasturlash kurslari.",
     images: ['https://aidevix.uz/Logo.jpg'],
   },

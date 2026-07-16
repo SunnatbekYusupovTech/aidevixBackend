@@ -93,7 +93,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: now,
     changeFrequency: 'weekly' as const,
     priority: 0.7,
+    alternates: {
+      languages: {
+        'uz-UZ': `${BASE}/courses/category/${c.slug}`,
+        'ru-RU': `${BASE}/ru/courses/category/${c.slug}`,
+      },
+    },
   }));
+
+  // Ruscha marshrutlar — "курсы программирования" va yo'nalish so'rovlari uchun.
+  // hreflang alternate'lari uz ↔ ru juftligini bildiradi.
+  const ruUrls = [
+    {
+      url: `${BASE}/ru/courses`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.9,
+      alternates: {
+        languages: {
+          'uz-UZ': `${BASE}/courses`,
+          'ru-RU': `${BASE}/ru/courses`,
+        },
+      },
+    },
+    ...COURSE_CATEGORIES.map((c) => ({
+      url: `${BASE}/ru/courses/category/${c.slug}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+      alternates: {
+        languages: {
+          'uz-UZ': `${BASE}/courses/category/${c.slug}`,
+          'ru-RU': `${BASE}/ru/courses/category/${c.slug}`,
+        },
+      },
+    })),
+  ];
 
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
@@ -110,7 +145,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: BASE,                  lastModified: now,                    changeFrequency: 'daily',   priority: 1   },
-    { url: `${BASE}/courses`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.9 },
+    { url: `${BASE}/courses`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.9,
+      alternates: { languages: { 'uz-UZ': `${BASE}/courses`, 'ru-RU': `${BASE}/ru/courses` } } },
     { url: `${BASE}/leaderboard`, lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
     { url: `${BASE}/challenges`,  lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
     { url: `${BASE}/prompts`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.8 },
@@ -128,6 +164,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/privacy`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${BASE}/terms`,       lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
     ...categoryUrls,
+    ...ruUrls,
     ...blogUrls,
     ...courseUrls,
     ...profileUrls,

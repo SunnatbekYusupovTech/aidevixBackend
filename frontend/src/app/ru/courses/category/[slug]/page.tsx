@@ -4,41 +4,41 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { safeJsonLd } from '@/utils/jsonLd';
 import { SSR_API_BASE_URL } from '@/utils/constants';
-import { COURSE_CATEGORIES, getCategory, buildCategoryFaq } from '@/data/courseCategories';
+import { COURSE_CATEGORIES_RU, getCategoryRu, buildCategoryFaqRu } from '@/data/courseCategoriesRu';
 
 const BASE = 'https://aidevix.uz';
 
 type Course = {
   _id: string;
+  slug?: string;
   title?: string;
   description?: string;
   thumbnail?: string;
-  category?: string;
 };
 
-// Barcha kategoriya sahifalari build vaqtida generatsiya qilinadi (SSG).
+// Все русскоязычные страницы категорий генерируются на этапе сборки (SSG).
 export function generateStaticParams() {
-  return COURSE_CATEGORIES.map((c) => ({ slug: c.slug }));
+  return COURSE_CATEGORIES_RU.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata(
   { params }: { params: { slug: string } },
 ): Promise<Metadata> {
-  const cat = getCategory(params.slug);
-  if (!cat) return { title: 'Kategoriya topilmadi' };
+  const cat = getCategoryRu(params.slug);
+  if (!cat) return { title: 'Категория не найдена' };
 
-  const url = `${BASE}/courses/category/${cat.slug}`;
+  const url = `${BASE}/ru/courses/category/${cat.slug}`;
   return {
     title: cat.title,
     description: cat.description,
     keywords: cat.keywords,
     alternates: {
       canonical: url,
-      // hreflang reciprocal: узбекская ↔ русская версия категории (одинаковый slug).
+      // hreflang reciprocal: русская ↔ узбекская версия той же категории (одинаковый slug).
       languages: {
-        'uz-UZ': url,
-        'ru-RU': `${BASE}/ru/courses/category/${cat.slug}`,
-        'x-default': url,
+        'uz-UZ': `${BASE}/courses/category/${cat.slug}`,
+        'ru-RU': url,
+        'x-default': `${BASE}/courses/category/${cat.slug}`,
       },
     },
     openGraph: {
@@ -47,7 +47,7 @@ export async function generateMetadata(
       title: `${cat.title} — Aidevix`,
       description: cat.description,
       siteName: 'Aidevix',
-      locale: 'uz_UZ',
+      locale: 'ru_RU',
       images: [{ url: `${BASE}/Logo.jpg`, width: 1200, height: 630, alt: cat.title }],
     },
     twitter: {
@@ -74,20 +74,21 @@ async function getCoursesByCategory(slug: string): Promise<Course[]> {
   }
 }
 
-export default async function CategoryPage(
+export default async function RuCategoryPage(
   { params }: { params: { slug: string } },
 ) {
-  const cat = getCategory(params.slug);
+  const cat = getCategoryRu(params.slug);
   if (!cat) notFound();
 
   const courses = await getCoursesByCategory(params.slug);
-  const url = `${BASE}/courses/category/${cat.slug}`;
-  const faq = buildCategoryFaq(cat);
+  const url = `${BASE}/ru/courses/category/${cat.slug}`;
+  const faq = buildCategoryFaqRu(cat);
 
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     '@id': `${url}#faq`,
+    inLanguage: 'ru-RU',
     mainEntity: faq.map((f) => ({
       '@type': 'Question',
       name: f.q,
@@ -102,7 +103,7 @@ export default async function CategoryPage(
     url,
     name: cat.title,
     description: cat.description,
-    inLanguage: 'uz-UZ',
+    inLanguage: 'ru-RU',
     isPartOf: { '@id': `${BASE}/#organization` },
     breadcrumb: { '@id': `${url}#breadcrumb` },
   };
@@ -112,13 +113,12 @@ export default async function CategoryPage(
     '@type': 'BreadcrumbList',
     '@id': `${url}#breadcrumb`,
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Bosh sahifa', item: BASE },
-      { '@type': 'ListItem', position: 2, name: 'Dasturlash kurslari', item: `${BASE}/courses` },
+      { '@type': 'ListItem', position: 1, name: 'Главная', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Курсы программирования', item: `${BASE}/ru/courses` },
       { '@type': 'ListItem', position: 3, name: cat.label, item: url },
     ],
   };
 
-  // Real kurslardan ItemList — bo'sh bo'lsa schema chiqarilmaydi (soxta data yo'q).
   const itemListSchema =
     courses.length > 0
       ? {
@@ -129,8 +129,8 @@ export default async function CategoryPage(
           itemListElement: courses.map((c, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            url: `${BASE}/courses/${c._id}`,
-            name: c.title || 'Aidevix kurs',
+            url: `${BASE}/courses/${c.slug || c._id}`,
+            name: c.title || 'Курс Aidevix',
           })),
         }
       : null;
@@ -147,9 +147,9 @@ export default async function CategoryPage(
       <div className="mx-auto max-w-7xl px-4">
         {/* Breadcrumb */}
         <nav className="text-xs text-base-content/50 mb-6 flex flex-wrap gap-1.5" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-primary">Bosh sahifa</Link>
+          <Link href="/" className="hover:text-primary">Главная</Link>
           <span>/</span>
-          <Link href="/courses" className="hover:text-primary">Kurslar</Link>
+          <Link href="/ru/courses" className="hover:text-primary">Курсы</Link>
           <span>/</span>
           <span className="text-base-content/70">{cat.label}</span>
         </nav>
@@ -162,20 +162,20 @@ export default async function CategoryPage(
           <p className="text-base-content/60 text-base sm:text-lg leading-relaxed">{cat.intro}</p>
         </header>
 
-        {/* Kurslar */}
+        {/* Курсы */}
         {courses.length > 0 ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
             {courses.map((c) => (
               <Link
                 key={c._id}
-                href={`/courses/${c._id}`}
+                href={`/courses/${c.slug || c._id}`}
                 className="group rounded-2xl border border-base-content/10 bg-base-200/40 overflow-hidden hover:border-primary/30 hover:-translate-y-0.5 transition-all flex flex-col"
               >
                 <div className="relative aspect-[16/9] bg-base-300">
                   {c.thumbnail ? (
                     <Image
                       src={c.thumbnail}
-                      alt={c.title || 'Kurs'}
+                      alt={c.title || 'Курс'}
                       fill
                       sizes="(max-width: 640px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -198,32 +198,20 @@ export default async function CategoryPage(
         ) : (
           <div className="rounded-3xl border border-base-content/10 bg-base-200/40 p-12 text-center">
             <p className="text-base-content/60 mb-4">
-              Bu yo&apos;nalishda kurslar tez orada qo&apos;shiladi. Barcha kurslarni ko&apos;ring:
+              Курсы по этому направлению скоро появятся. Посмотрите все курсы:
             </p>
             <Link
               href="/courses"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-content font-bold text-sm hover:opacity-90 transition-opacity"
             >
-              Barcha kurslar →
+              Все курсы →
             </Link>
           </div>
         )}
 
-        {/* Interaktiv filtr CTA */}
-        {courses.length > 0 && (
-          <div className="mt-10 text-center">
-            <Link
-              href={`/courses?category=${cat.slug}`}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-primary/30 bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors"
-            >
-              {cat.label} bo&apos;yicha barcha kurslarni filtrlash →
-            </Link>
-          </div>
-        )}
-
-        {/* FAQ — kategoriyaga xos savol-javob (FAQPage schema yuqorida) */}
+        {/* FAQ */}
         <section className="mt-16 pt-8 border-t border-base-content/10 max-w-3xl">
-          <h2 className="font-display text-2xl font-black mb-6">Ko&apos;p so&apos;raladigan savollar</h2>
+          <h2 className="font-display text-2xl font-black mb-6">Часто задаваемые вопросы</h2>
           <div className="space-y-4">
             {faq.map((item, i) => (
               <details key={i} className="group rounded-2xl border border-base-content/10 bg-base-200/40 p-5">
@@ -237,19 +225,24 @@ export default async function CategoryPage(
           </div>
         </section>
 
-        {/* Boshqa kategoriyalar — ichki linklar (internal linking) */}
+        {/* Другие направления — внутренние ссылки */}
         <section className="mt-16 pt-8 border-t border-base-content/10">
-          <h2 className="font-display text-lg font-bold mb-4">Boshqa yo&apos;nalishlar</h2>
+          <h2 className="font-display text-lg font-bold mb-4">Другие направления</h2>
           <div className="flex flex-wrap gap-2">
-            {COURSE_CATEGORIES.filter((c) => c.slug !== cat.slug).map((c) => (
+            {COURSE_CATEGORIES_RU.filter((c) => c.slug !== cat.slug).map((c) => (
               <Link
                 key={c.slug}
-                href={`/courses/category/${c.slug}`}
+                href={`/ru/courses/category/${c.slug}`}
                 className="px-4 py-2 rounded-xl border border-base-content/10 bg-base-200/40 text-sm font-medium hover:border-primary/30 hover:text-primary transition-colors"
               >
                 {c.label}
               </Link>
             ))}
+          </div>
+          <div className="mt-6">
+            <Link href="/courses" className="text-sm text-primary font-semibold hover:underline">
+              Все курсы на узбекском →
+            </Link>
           </div>
         </section>
       </div>

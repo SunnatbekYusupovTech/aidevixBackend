@@ -1,6 +1,8 @@
 import { safeJsonLd } from '@/utils/jsonLd';
 import { SSR_API_BASE_URL } from '@/utils/constants';
 import { coursesMetadata } from './metadata';
+import { COURSES_FAQ } from '@/data/coursesFaq';
+import SeoContent from './SeoContent';
 
 // `/courses` — "dasturlash kurslari" uchun asosiy landing. Bu sahifa client
 // component bo'lgani uchun metadata shu layout orqali qo'llanadi (eski `head.tsx`
@@ -74,6 +76,18 @@ export default async function CoursesLayout({
     ],
   };
 
+  // FAQPage — Google'da "savol-javob" rich natijasi. Kontent SeoContent bilan bir manba.
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    '@id': 'https://aidevix.uz/courses#faq',
+    mainEntity: COURSES_FAQ.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  };
+
   // Real kurslardan ItemList — bo'sh bo'lsa schema chiqarilmaydi (soxta data yo'q).
   const itemListSchema =
     courses.length > 0
@@ -108,7 +122,12 @@ export default async function CoursesLayout({
           dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListSchema) }}
         />
       )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }}
+      />
       {children}
+      <SeoContent />
     </>
   );
 }

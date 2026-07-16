@@ -71,6 +71,17 @@ const nextConfig = {
       // va menyu uchun kurslar katalogiga 301 yo'naltiramiz. `/videos/:id` (alohida
       // video) bundan ta'sirlanmaydi — u o'z route'ida qoladi.
       { source: '/videos', destination: '/courses', permanent: true },
+      // GSC audit (2026-07-16): `www.aidevix.uz` "Failed to fetch" berardi —
+      // canonical host apex (`aidevix.uz`). www bilan kelgan har qanday so'rov
+      // apex'ga 301 qilinadi (duplicate-host indekslash/redirect-error oldini oladi).
+      // ⚠️ Bu qoida faqat `www` Vercel domeni sifatida qo'shilib, deployment'ga
+      // yetib kelgandagina ishlaydi — DNS/Vercel dashboard'da www domenini qo'shish shart.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.aidevix.uz' }],
+        destination: 'https://aidevix.uz/:path*',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

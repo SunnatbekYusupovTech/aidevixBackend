@@ -42,9 +42,12 @@ const REAUTH_TOKEN_SECRET = process.env.REAUTH_TOKEN_SECRET
 
 if (process.env.NODE_ENV === 'production') {
   const secrets = [ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET];
+  // Agar REAUTH uchun alohida secret berilgan bo'lsa, u ham boshqalardan farqli
+  // bo'lishi shart — aks holda step-up token boshqa maqsad bilan to'qnashadi.
+  if (process.env.REAUTH_TOKEN_SECRET) secrets.push(REAUTH_TOKEN_SECRET);
   const unique = new Set(secrets);
   if (unique.size !== secrets.length) {
-    throw new Error('FATAL: ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET must all be unique.');
+    throw new Error('FATAL: ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, RESET_TOKEN_SECRET, CSRF_SECRET (va berilgan bo\'lsa REAUTH_TOKEN_SECRET) must all be unique.');
   }
 }
 

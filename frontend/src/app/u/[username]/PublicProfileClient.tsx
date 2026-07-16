@@ -35,7 +35,7 @@ export default function PublicProfileClient({ profile }: { profile: any }) {
     const url = window.location.href;
     const text = `🎓 ${user.username} — Level ${stats.level}, ${stats.xp.toLocaleString()} XP\nAidevix da ko'ring: ${url}`;
     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-    window.open(tgUrl, '_blank');
+    window.open(tgUrl, '_blank', 'noopener,noreferrer');
   };
 
   const rankColor = RANK_COLORS[ranking.rankTitle] || 'text-slate-400';

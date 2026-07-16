@@ -348,17 +348,50 @@ function rateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT;
 }
 
+// Backend /auth/me ga cookie forward qilib session tekshiradi. Xato/timeout bo'lsa
+// fail-closed (false) — pullik AI shubhali holatda chaqirilmaydi.
+async function isAuthenticated(cookieHeader: string): Promise<boolean> {
+  if (!cookieHeader) return false;
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${BACKEND_URL.replace(/\/$/, '')}/auth/me`, {
+      headers: { cookie: cookieHeader },
+      signal: controller.signal,
+    });
+    clearTimeout(t);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // ------- Main POST handler -------
 
 export async function POST(request: Request) {
+  // XFF ning BIRINCHI qiymati client tomonidan soxtalashtirilishi mumkin (har
+  // so'rovda tasodifiy IP → rate-limit bypass). Vercel platform qo'shgan ishonchli
+  // manbalarni afzal ko'ramiz; XFF faqat oxirgi chora sifatida.
   const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
+    request.headers.get('x-vercel-forwarded-for')?.trim() ||
+    request.headers.get('x-real-ip')?.trim() ||
+    request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() ||
     'unknown';
   if (rateLimited(ip)) {
     return NextResponse.json(
       { success: false, message: 'Juda ko\'p so\'rov. Bir oz kuting.' },
       { status: 429 },
+    );
+  }
+
+  // Session gate: coach pullik AI provayderlarni chaqiradi — anonim drain'ni oldini
+  // olish uchun foydalanuvchi login bo'lganini backend orqali tekshiramiz. /api/coach
+  // same-origin bo'lgani uchun brauzer httpOnly cookie'ni avtomatik yuboradi.
+  const cookieHeader = request.headers.get('cookie') || '';
+  if (!(await isAuthenticated(cookieHeader))) {
+    return NextResponse.json(
+      { success: false, message: 'AI Coach uchun tizimga kiring.' },
+      { status: 401 },
     );
   }
 
@@ -375,9 +408,12 @@ export async function POST(request: Request) {
   if (message.length > MAX_MESSAGE_LEN) {
     message = message.slice(0, MAX_MESSAGE_LEN);
   }
-  // History'ni cheklash — token abuse va katta payloadlardan himoya
+  // History'ni cheklash — token abuse va katta payloadlardan himoya.
+  // Role WHITELIST: client hech qachon 'system' rol yubora olmasligi kerak — aks
+  // holda fallback provayderlar (OpenAI/Groq) system prompt qoidalarini bekor
+  // qiladigan xabar qabul qiladi (prompt injection). Faqat user/assistant ruxsat.
   const history: ChatMessage[] = rawHistory.slice(-MAX_HISTORY).map((m) => ({
-    ...m,
+    role: m?.role === 'assistant' ? 'assistant' : 'user',
     content: typeof m?.content === 'string' ? m.content.slice(0, MAX_HISTORY_ITEM_LEN) : '',
   }));
 

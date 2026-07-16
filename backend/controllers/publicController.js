@@ -33,7 +33,8 @@ const getLiveActivity = async (_req, res) => {
 
     return res.json({ success: true, data: { activities } });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('[publicController]', err);
+    return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -68,7 +69,8 @@ const getTeamMembers = async (_req, res) => {
 
     return res.json({ success: true, data: { members } });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('[publicController]', err);
+    return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -106,7 +108,8 @@ const getRoadmap = async (_req, res) => {
 
     return res.json({ success: true, data: { paths } });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('[publicController]', err);
+    return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -187,7 +190,8 @@ const submitContact = async (req, res) => {
       message: 'Xabaringiz qabul qilindi. Tez orada javob beramiz.',
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('[publicController]', err);
+    return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 

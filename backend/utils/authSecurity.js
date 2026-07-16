@@ -9,6 +9,18 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
 const hashToken = (value) =>
   crypto.createHash('sha256').update(String(value)).digest('hex');
 
+// Past-entropiyali OTP kodlar (6-xonali email/reset kodlari, keyspace ~900k) uchun.
+// Oddiy SHA-256 DB leak'da millisekundlarda brute qilinadi. OTP_PEPPER (server-secret)
+// bilan HMAC — DB dump yolg'iz o'zi kodni tiklashga yetmaydi.
+// Backward-compatible: OTP_PEPPER o'rnatilmagan bo'lsa hashToken (plain SHA-256)'ga
+// tushadi → mavjud xatti-harakat o'zgarmaydi. Kodlar 10-15 daqiqada eskirgani uchun
+// pepper qo'shilganda migration kerak emas (eski kodlar o'z-o'zidan eskiradi).
+const hashCode = (value) => {
+  const pepper = process.env.OTP_PEPPER;
+  if (!pepper) return hashToken(value);
+  return crypto.createHmac('sha256', pepper).update(String(value)).digest('hex');
+};
+
 const safeEqual = (a = '', b = '') => {
   const bufA = Buffer.from(String(a));
   const bufB = Buffer.from(String(b));
@@ -30,7 +42,16 @@ const parseCookies = (cookieHeader = '') =>
       if (separatorIndex === -1) return acc;
 
       const key = part.slice(0, separatorIndex).trim();
-      const value = decodeURIComponent(part.slice(separatorIndex + 1).trim());
+      const raw = part.slice(separatorIndex + 1).trim();
+      // Malformed percent-encoding (e.g. "%E0%") throws URIError. Fall back to the
+      // raw value — csrfProtection runs sync and unguarded, so an attacker must not
+      // be able to turn a bad cookie into a 500. A raw value simply fails hash/safeEqual.
+      let value;
+      try {
+        value = decodeURIComponent(raw);
+      } catch {
+        value = raw;
+      }
       acc[key] = value;
       return acc;
     }, {});
@@ -136,6 +157,7 @@ module.exports = {
   refreshCsrfCookie,
   clearAuthCookies,
   hashToken,
+  hashCode,
   safeEqual,
   parseCookies,
   generateCsrfToken,

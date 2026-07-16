@@ -8,6 +8,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const ErrorResponse = require('../utils/errorResponse');
 const securityLogger = require('../utils/securityLogger');
 const { hashToken, safeEqual } = require('../utils/authSecurity');
+const { encryptSecret, decryptSecret } = require('../utils/totpCrypto');
 
 const ISSUER = 'Aidevix';
 const BACKUP_CODE_COUNT = 10;
@@ -21,13 +22,18 @@ const generateBackupCodes = () => {
   return codes;
 };
 
-const verifyTotpCode = (secret, code) =>
-  speakeasy.totp.verify({
-    secret,
+// Secret DB'da shifrlangan bo'lishi mumkin (enc:v1:...) — avval decrypt qilamiz.
+// Legacy plaintext secret'lar o'zgarishsiz o'tadi (decryptSecret prefiksni tekshiradi).
+const verifyTotpCode = (secret, code) => {
+  const plain = decryptSecret(secret);
+  if (!plain) return false;
+  return speakeasy.totp.verify({
+    secret: plain,
     encoding: 'base32',
     token: String(code).replace(/\s+/g, ''),
     window: 1, // ±30s clock drift
   });
+};
 
 // @desc    Begin 2FA enrollment — generate secret + QR code (NOT yet enabled)
 const setup2FA = asyncHandler(async (req, res, next) => {
@@ -44,9 +50,11 @@ const setup2FA = asyncHandler(async (req, res, next) => {
     length: 20,
   });
 
+  // At-rest shifrlash (TOTP_ENC_KEY bor bo'lsa). Client'ga qaytariladigan secret.base32
+  // plaintext qoladi (QR/manual entry uchun) — faqat DB'dagi nusxa shifrlanadi.
   await User.updateOne(
     { _id: user._id },
-    { $set: { totpPendingSecret: secret.base32 } }
+    { $set: { totpPendingSecret: encryptSecret(secret.base32) } }
   );
 
   const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
@@ -131,11 +139,9 @@ const disable2FA = asyncHandler(async (req, res, next) => {
 
   const totpOk = verifyTotpCode(user.totpSecret, code);
   let backupOk = false;
-  let usedBackupHash = null;
   if (!totpOk) {
     const codeHash = hashToken(String(code).toUpperCase().replace(/\s+/g, ''));
     backupOk = (user.totpBackupCodes || []).some((h) => safeEqual(h, codeHash));
-    if (backupOk) usedBackupHash = codeHash;
   }
   if (!totpOk && !backupOk) {
     securityLogger.suspicious(req, '2fa_disable_wrong_code', { userId: String(user._id) });

@@ -25,7 +25,7 @@ const LevelUpModal = ({ isOpen, level, levelName, xp, quizResult, onClose }: Lev
 
   const handleShare = () => {
     const text = `Aidevix platformasida ${level}-darajaga yetdim! "${levelName}" unvonini oldim! 🎉`
-    window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, '_blank')
+    window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
   }
 
   return (

@@ -30,8 +30,19 @@ import {
 } from 'react-icons/fi';
 import { userApi } from '@api/userApi';
 import api from '@api/axiosInstance';
-import SavedPromptsSection from '@components/profile/SavedPromptsSection';
+import dynamic from 'next/dynamic';
 import { ROUTES } from '@utils/constants';
+
+// Faqat "Saqlangan promptlar" tab'i ochilganda yuklanadi — 726-qatorlik profil
+// sahifasining initial bundle'ini yengillashtiradi (tab-level code splitting).
+const SavedPromptsSection = dynamic(() => import('@components/profile/SavedPromptsSection'), {
+  ssr: false,
+  loading: () => (
+    <div className="p-20 text-center bg-[#111726] border border-white/5 rounded-3xl text-slate-500 font-medium">
+      Yuklanmoqda…
+    </div>
+  ),
+});
 
 export default function ProfilePage() {
   const router = useRouter();

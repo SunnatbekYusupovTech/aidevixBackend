@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Root error boundary. Catches errors thrown in the root layout itself.
@@ -48,6 +49,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Root layout darajasidagi eng jiddiy xatolar — aynan shu signallar Sentry'ga
+    // yetib borishi shart (DSN yo'q bo'lsa no-op).
+    Sentry.captureException(error);
     console.error('[GlobalErrorBoundary]', error);
   }, [error]);
 

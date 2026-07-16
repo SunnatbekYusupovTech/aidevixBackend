@@ -81,6 +81,19 @@ const paymentLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
+// Payme/Click PROVIDER webhook'lari — provider bitta to'lov uchun bir nechta
+// JSON-RPC chaqiruv yuboradi (CheckPerform+Create+Perform+GetStatement) va hammasi
+// bir nechta sobit IP'dan keladi. paymentLimiter (20/soat) legit tasdiqlarni
+// bloklaydi. Webhook'lar allaqachon signature/Basic-auth bilan himoyalangan,
+// shuning uchun bu yerda faqat qo'pol flood himoyasi kerak.
+const webhookLimiter = rateLimit({
+  ...baseOpts('webhook'),
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  message: jsonMessage('Juda ko\'p so\'rov.'),
+  keyGenerator: ipKey,
+});
+
 const uploadLimiter = rateLimit({
   ...baseOpts('upload'),
   windowMs: 60 * 60 * 1000,
@@ -166,6 +179,17 @@ const reauthLimiter = rateLimit({
   keyGenerator: (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res)),
 });
 
+// Swagger docs Basic-auth — brute-force himoyasi.
+// /api-docs va /admin-docs apiLimiter'dan tashqarida (u faqat /api/ prefiksga
+// mount qilingan), shuning uchun bu yerda alohida limiter kerak.
+const docsLimiter = rateLimit({
+  ...baseOpts('docs'),
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: jsonMessage('Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
+  keyGenerator: ipKey,
+});
+
 // Bug / sayt xatoligi xabarlari — spam oldini olish
 const bugReportLimiter = rateLimit({
   ...baseOpts('bug'),
@@ -182,6 +206,7 @@ module.exports = {
   registerLimiter,
   refreshLimiter,
   paymentLimiter,
+  webhookLimiter,
   uploadLimiter,
   otpLimiter,
   dailyRewardLimiter,
@@ -191,5 +216,6 @@ module.exports = {
   totpLimiter,
   reauthLimiter,
   bugReportLimiter,
+  docsLimiter,
   _redisClient: getRedisClient,
 };

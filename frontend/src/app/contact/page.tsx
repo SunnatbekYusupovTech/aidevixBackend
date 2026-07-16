@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import ContactClient from './ContactClient';
 
 export const metadata: Metadata = {
@@ -12,5 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  return <ContactClient />;
+  // ContactClient useSearchParams() ishlatadi — Suspense boundary bo'lmasa statik
+  // prerender butun sahifani CSR'ga bailout qiladi (bo'sh HTML → SEO zarari).
+  return (
+    <Suspense fallback={null}>
+      <ContactClient />
+    </Suspense>
+  );
 }

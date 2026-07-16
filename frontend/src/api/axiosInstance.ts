@@ -146,6 +146,10 @@ api.interceptors.response.use(
       !String(original.url || '').includes('auth/reset-password')
     ) {
       if (isRefreshing) {
+        // Navbatga qo'shishdan oldin _retry belgilash — replay yana 401 qaytarsa
+        // darhol reject bo'ladi va yangi refresh sikli boshlanmaydi (ortiqcha
+        // round-trip oldini oladi; interceptor _retry'ni ikkinchi marta o'tkazmaydi).
+        original._retry = true
         return new Promise((resolve, reject) => {
           refreshQueue.push({ resolve, reject })
         }).then(() => api(original))

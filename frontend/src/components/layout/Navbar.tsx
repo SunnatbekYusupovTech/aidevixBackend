@@ -101,9 +101,16 @@ export default function Navbar() {
     playSound('/sounds/onlyclick.wav')
   }, [playSound])
 
+  // Birinchi render sahifa ochilishi (navigatsiya emas) — ovoz ijro etilmasin va
+  // audio fayl initial load'ga qo'shilmasin. Faqat keyingi pathname o'zgarishlarida.
+  const firstNav = useRef(true)
   useEffect(() => {
+    if (firstNav.current) {
+      firstNav.current = false
+      return
+    }
     playSound('/sounds/navchange.wav', 0.25)
-  }, [pathname])
+  }, [pathname, playSound])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

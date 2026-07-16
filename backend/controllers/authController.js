@@ -34,6 +34,7 @@ const {
   clearAuthCookies,
   refreshCsrfCookie,
   hashToken,
+  hashCode,
   safeEqual,
   parseCookies,
   verifyCsrfToken,
@@ -201,8 +202,16 @@ const issueTokens = async (user, req, existingSession = null) => {
  * buzilmasligi uchun FAQAT `X-Client-Type: mobile` header bo'lganda. Mobil axios bu
  * header'ni har so'rovda yuboradi (AidevixApp/src/api/axiosInstance.ts).
  */
-const mobileTokenBody = (req, accessToken, refreshToken) =>
-  req.headers['x-client-type'] === 'mobile' ? { accessToken, refreshToken } : {};
+const mobileTokenBody = (req, accessToken, refreshToken) => {
+  // Gate 1: bearer/token-body oqimini faqat ruxsat berilganda (auth.js bilan bir xil).
+  const bearerAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_BEARER_AUTH === 'true';
+  if (!bearerAllowed) return {};
+  // Gate 2: brauzer so'rovi (Origin header'li) hech qachon body'da raw token OLMAYDI —
+  // web uchun httpOnly cookie modeli yetarli. Native RN/Expo Origin yubormaydi.
+  // Bu XSS orqali `X-Client-Type: mobile` qo'yib token o'g'irlash yo'lini yopadi.
+  if (req.headers.origin) return {};
+  return req.headers['x-client-type'] === 'mobile' ? { accessToken, refreshToken } : {};
+};
 
 /**
  * Anomaly check + new-device email.
@@ -313,7 +322,7 @@ const register = asyncHandler(async (req, res, next) => {
       const resendCode = crypto.randomInt(100000, 1000000).toString();
       await User.updateOne({ _id: existingUser._id }, {
         $set: {
-          emailVerificationCode: hashToken(resendCode),
+          emailVerificationCode: hashCode(resendCode),
           emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
           emailVerificationAttempts: 0,
         },
@@ -364,7 +373,7 @@ const register = asyncHandler(async (req, res, next) => {
     xp: startingXp,
     rankTitle: calculateRank(startingXp),
     emailVerified: false,
-    emailVerificationCode: hashToken(verifyCode),
+    emailVerificationCode: hashCode(verifyCode),
     emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
     emailVerificationAttempts: 0,
   });
@@ -450,7 +459,7 @@ const login = asyncHandler(async (req, res, next) => {
     const code = crypto.randomInt(100000, 1000000).toString();
     await User.updateOne({ _id: user._id }, {
       $set: {
-        emailVerificationCode: hashToken(code),
+        emailVerificationCode: hashCode(code),
         emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
         emailVerificationAttempts: 0,
       },
@@ -598,7 +607,7 @@ const verifyEmailPublic = asyncHandler(async (req, res, next) => {
     });
     return next(new ErrorResponse('Juda ko\'p urinish. Yangi kod so\'rang.', 400));
   }
-  if (!safeEqual(user.emailVerificationCode, hashToken(code))) {
+  if (!safeEqual(user.emailVerificationCode, hashCode(code))) {
     await User.updateOne({ _id: user._id }, { $inc: { emailVerificationAttempts: 1 } });
     return next(new ErrorResponse('Kod noto\'g\'ri', 400));
   }
@@ -670,7 +679,7 @@ const resendVerificationPublic = asyncHandler(async (req, res) => {
     { _id: user._id },
     {
       $set: {
-        emailVerificationCode: hashToken(code),
+        emailVerificationCode: hashCode(code),
         emailVerificationExpire: new Date(Date.now() + 15 * 60 * 1000),
         emailVerificationAttempts: 0,
       },
@@ -985,7 +994,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   }
 
   const code = crypto.randomInt(100000, 1000000).toString();
-  user.resetPasswordCode = hashToken(code);
+  user.resetPasswordCode = hashCode(code);
   user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
   user.resetPasswordAttempts = 0;
   await user.save({ validateModifiedOnly: true });
@@ -1041,7 +1050,7 @@ const verifyCode = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Juda ko\'p noto\'g\'ri urinish. Yangi kod so\'rang.', 400));
   }
 
-  if (!safeEqual(user.resetPasswordCode, hashToken(code))) {
+  if (!safeEqual(user.resetPasswordCode, hashCode(code))) {
     await User.updateOne({ _id: user._id }, { $inc: { resetPasswordAttempts: 1 } });
     return next(new ErrorResponse('Invalid or expired code', 400));
   }
@@ -1227,7 +1236,7 @@ const verifyEmail = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Juda ko\'p noto\'g\'ri urinish. Yangi kod so\'rang.', 400));
   }
 
-  if (!safeEqual(user.emailVerificationCode, hashToken(code))) {
+  if (!safeEqual(user.emailVerificationCode, hashCode(code))) {
     user.emailVerificationAttempts = (user.emailVerificationAttempts || 0) + 1;
     await user.save({ validateModifiedOnly: true });
     securityLogger.emailVerificationFailed(req, user._id, 'wrong_code');
@@ -1254,7 +1263,7 @@ const resendVerification = asyncHandler(async (req, res, next) => {
   }
 
   const code = crypto.randomInt(100000, 1000000).toString();
-  user.emailVerificationCode = hashToken(code);
+  user.emailVerificationCode = hashCode(code);
   user.emailVerificationExpire = new Date(Date.now() + 15 * 60 * 1000);
   user.emailVerificationAttempts = 0;
   await user.save({ validateModifiedOnly: true });

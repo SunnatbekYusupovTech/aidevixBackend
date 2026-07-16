@@ -133,9 +133,10 @@ export default function AiNewsTabs({
                 </div>
 
                 <div className="mt-8">
-                  <Link 
+                  <Link
                     href={SOCIAL_LINKS.telegram}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-base font-semibold text-platinum-400 hover:text-platinum-300 transition-colors group"
                   >
                     <span>To'liq yangilik uchun Telegram</span>
@@ -169,9 +170,10 @@ export default function AiNewsTabs({
                 </div>
 
                 <div className="mt-8">
-                  <Link 
+                  <Link
                     href={SOCIAL_LINKS.instagram}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-base font-semibold text-platinum-400 hover:text-platinum-300 transition-colors group"
                   >
                     <span>Batafsil post Instagram'da</span>

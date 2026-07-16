@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoLockClosed, IoCheckmarkCircle, IoArrowForward, IoRefreshOutline } from 'react-icons/io5';
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import TelegramVerify from '@components/subscription/TelegramVerify';
 import InstagramVerify from '@components/subscription/InstagramVerify';
 import { useLang } from '@/context/LangContext';
 
-export default function SubscriptionPage() {
+function SubscriptionContent() {
   const { allVerified, telegram, instagram, refetch } = useSubscription();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/courses';
@@ -102,5 +103,15 @@ export default function SubscriptionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams Suspense boundary talab qiladi — aks holda statik prerender
+// butun sahifani CSR'ga bailout qiladi (Next 14 build ogohlantirishi/xatosi).
+export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0A0E1A]" />}>
+      <SubscriptionContent />
+    </Suspense>
   );
 }

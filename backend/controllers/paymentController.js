@@ -293,8 +293,14 @@ const getPaymentStatus = async (req, res) => {
 
 // ─── Payme metodlari ──────────────────────────────────────────────────────────
 
+// Yaroqsiz order_id (24-hex bo'lmagan) Mongoose CastError tashlaydi va handlePayme
+// uni -31008 (Internal error) qiladi. Payme spec/sandbox bunday holatda -31050
+// (account topilmadi) kutadi — shuning uchun format tekshiruvini oldinroq bajaramiz.
+const isValidOrderId = (v) => /^[0-9a-fA-F]{24}$/.test(String(v || ''));
+
 const checkPerformTransaction = async (params, id) => {
   const { account, amount } = params;
+  if (!isValidOrderId(account?.order_id)) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
   const payment = await Payment.findOne({ _id: account?.order_id, status: 'pending' });
   if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
   if (Math.round(payment.amount * 100) !== Number(amount)) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
@@ -303,6 +309,7 @@ const checkPerformTransaction = async (params, id) => {
 
 const createPaymeTransaction = async (params, id) => {
   const { id: providerTxId, time, amount, account } = params;
+  if (!isValidOrderId(account?.order_id)) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
   const payment = await Payment.findById(account?.order_id);
   if (!payment) return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
   if (Math.round(payment.amount * 100) !== Number(amount)) return { error: { code: -31001, message: 'Noto\'g\'ri summa' }, id };
@@ -502,6 +509,15 @@ const clickComplete = async (req, res) => {
     const { merchant_trans_id, click_trans_id, click_paydoc_id, error: clickError } = req.body;
     if (!/^[0-9a-fA-F]{24}$/.test(String(merchant_trans_id || ''))) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
 
+    // Defense-in-depth: complete bosqichida ham summani qayta tekshiramiz (prepare/complete
+    // orasida narx o'zgargan holatlar). Signature allaqachon tekshirilgan — bu qo'shimcha qatlam.
+    if (Number(clickError) >= 0) {
+      const expected = await Payment.findById(merchant_trans_id).select('amount').lean();
+      if (expected && Math.round(expected.amount * 100) !== Math.round(Number(req.body.amount) * 100)) {
+        return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
+      }
+    }
+
     if (Number(clickError) < 0) {
       // Guard: allaqachon completed bo'lgan to'lovni 'failed' ga overwrite qilmaymiz
       await Payment.findOneAndUpdate(
@@ -550,4 +566,4 @@ const clickComplete = async (req, res) => {
   }
 };
 
-module.exports = { initiatePayment, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete };
+module.exports = { initiatePayment, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete, ensurePaidSideEffects };

@@ -152,7 +152,11 @@ export default function HomeClient({
   const touchStartXRef = useRef<number | null>(null);
   const touchEndXRef = useRef<number | null>(null);
   const isLoggedIn = useSelector(selectIsLoggedIn);
-  const userStats = useSelector((state: any) => state.userStats);
+  // Faqat kerakli maydonlarni tanlaymiz — butun userStats slice'ini olsak,
+  // undagi HAR QANDAY o'zgarish (badge, streak, avatar...) bu og'ir sahifani
+  // qayta render qilardi.
+  const weeklyXpValue = useSelector((state: any) => state.userStats?.weeklyXp);
+  const totalXpValue = useSelector((state: any) => state.userStats?.xp);
   const statsRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -495,6 +499,14 @@ export default function HomeClient({
   const softSurface = isDark ? 'bg-platinum-900/50' : 'bg-platinum-100/50';
   const railSurface = isDark ? 'bg-platinum-900' : 'bg-platinum-200';
   const ctaBg = isDark ? 'bg-platinum-900/80 border-platinum-800' : 'bg-platinum-100/40 border-platinum-200';
+  // Hero "IDE dashboard" mockup surfaces — adapt to light so the panel isn't a dark block.
+  const heroCardBg = isDark ? 'bg-slate-950/70' : 'bg-white/85';
+  const heroFloatBg = isDark ? 'bg-slate-950/90' : 'bg-white/90';
+  const heroTopBg = isDark ? 'bg-slate-950/95' : 'bg-white/95';
+  const heroBorder = isDark ? 'border-slate-800' : 'border-slate-200';
+  const heroCountGradient = isDark
+    ? 'from-white via-platinum-200 to-platinum-400'
+    : 'from-platinum-900 via-platinum-800 to-platinum-600';
   const playHoverSound = () => {
     playSound('/sounds/onlyclick.wav');
   };
@@ -604,9 +616,9 @@ export default function HomeClient({
 
   const skillGrowthData = useMemo(() => {
     // 1. If user is logged in and has weekly XP or total XP, distribute it
-    if (isLoggedIn && userStats) {
-      const weeklyXp = Number(userStats.weeklyXp || 0);
-      const totalXp = Number(userStats.xp || 0);
+    if (isLoggedIn && (weeklyXpValue != null || totalXpValue != null)) {
+      const weeklyXp = Number(weeklyXpValue || 0);
+      const totalXp = Number(totalXpValue || 0);
       const xpToDistribute = weeklyXp > 0 ? weeklyXp : (totalXp > 0 ? Math.min(totalXp, 100) : 0);
       
       if (xpToDistribute > 0) {
@@ -654,7 +666,7 @@ export default function HomeClient({
       { day: 'Sat', xp: 410 },
       { day: 'Sun', xp: 300 },
     ];
-  }, [isLoggedIn, userStats?.weeklyXp, userStats?.xp, homeStats?.skillGrowth]);
+  }, [isLoggedIn, weeklyXpValue, totalXpValue, homeStats?.skillGrowth]);
 
   const activityTelemetryData = useMemo(() => {
     const rawTelemetry = homeStats?.activityTelemetry || [];
@@ -750,14 +762,14 @@ export default function HomeClient({
               <div className="relative w-full h-full md:[transform:rotateY(-12deg)_rotateX(8deg)_skewY(3deg)] md:[transform-style:preserve-3d] transition-all duration-700 ease-out hover:md:[transform:rotateY(-6deg)_rotateX(4deg)_skewY(1.5deg)] grid grid-cols-1 sm:grid-cols-2 md:block gap-6">
                 
                 {/* Component A - Main Base Card (Backplate) */}
-                <div className="col-span-1 sm:col-span-2 md:w-[94%] md:ml-auto border border-slate-800 bg-slate-950/70 p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl flex flex-col justify-between rounded-none md:[transform-style:preserve-3d] relative z-10">
+                <div className={`col-span-1 sm:col-span-2 md:w-[94%] md:ml-auto border ${heroBorder} ${heroCardBg} p-6 sm:p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl flex flex-col justify-between rounded-none md:[transform-style:preserve-3d] relative z-10`}>
                   {/* Ambient dashboard background glows */}
                   <div className="absolute top-0 right-0 w-[50%] h-[50%] blur-[90px] rounded-full pointer-events-none bg-platinum-500/10" />
                   <div className="absolute bottom-0 left-0 w-[40%] h-[40%] blur-[90px] rounded-full pointer-events-none bg-platinum-400/10" />
 
                   <div className="relative z-10 flex flex-col h-full justify-between gap-6">
                     {/* Telemetry Header */}
-                    <div className="flex items-center justify-between border-b pb-4 border-slate-800">
+                    <div className={`flex items-center justify-between border-b pb-4 ${heroBorder}`}>
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
@@ -792,7 +804,7 @@ export default function HomeClient({
                     </div>
 
                     {/* Integrated Base Metrics (Mentors & Rating) */}
-                    <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-4 mt-2">
+                    <div className={`grid grid-cols-2 gap-4 border-t ${heroBorder} pt-4 mt-2`}>
                       {/* Mentors */}
                       <div className="flex flex-col justify-between">
                         <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.mentors')}</span>
@@ -815,14 +827,14 @@ export default function HomeClient({
                     </div>
 
                     {/* Live Activity Telemetry (Contribution Map style) */}
-                    <div className="mt-2 border-t pt-4 border-slate-800">
+                    <div className={`mt-2 border-t pt-4 ${heroBorder}`}>
                       <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-semibold opacity-65 mb-2">
                         <span>{isDark ? 'Dars topshirish tahlili (oxirgi 24 soat)' : 'Lesson telemetry (last 24 hours)'}</span>
                         <span className="text-emerald-400">{isDark ? 'Yuqori faollik' : 'High activity'}</span>
                       </div>
                       <div className="flex gap-1 justify-between">
                         {activityTelemetryData.map((val: number, idx: number) => {
-                          let bgClass = 'bg-slate-800/40';
+                          let bgClass = isDark ? 'bg-slate-800/40' : 'bg-slate-200';
                           if (val > 0) {
                             if (val <= 1) bgClass = 'bg-emerald-500/20';
                             else if (val <= 3) bgClass = 'bg-emerald-500/45';
@@ -845,7 +857,7 @@ export default function HomeClient({
 
                 {/* Component B1 - Floating Student Card */}
                 <div 
-                  className="col-span-1 md:absolute md:top-[12%] md:-left-10 md:z-20 md:w-56 p-4 border border-slate-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(99,102,241,0.12)] transition-all duration-500 cursor-pointer"
+                  className={`col-span-1 md:absolute md:top-[12%] md:-left-10 md:z-20 md:w-56 p-4 border ${heroBorder} ${heroFloatBg} backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(99,102,241,0.12)] transition-all duration-500 cursor-pointer`}
                   onMouseEnter={() => setHoveredCard('b1')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -889,7 +901,7 @@ export default function HomeClient({
                     className="overflow-hidden"
                   >
                     {/* Soxta raqamlar (+24%, 3.2s/kun, 412+) o'rniga real platforma faktlari */}
-                    <div className="pt-3 border-t border-slate-800/80 mt-3 text-[10px] font-mono text-slate-400 space-y-1">
+                    <div className={`pt-3 border-t ${heroBorder} mt-3 text-[10px] font-mono text-slate-400 space-y-1`}>
                       <div className="flex justify-between">
                         <span>Kunlik challenge:</span>
                         <span className="text-emerald-400 font-bold">+XP</span>
@@ -908,7 +920,7 @@ export default function HomeClient({
 
                 {/* Component B2 - Floating Video Lesson Card */}
                 <div 
-                  className="col-span-1 md:absolute md:bottom-[15%] md:-right-10 md:z-20 md:w-52 p-4 border border-slate-800 bg-slate-950/90 backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(111,127,144,0.12)] transition-all duration-500 cursor-pointer"
+                  className={`col-span-1 md:absolute md:bottom-[15%] md:-right-10 md:z-20 md:w-52 p-4 border ${heroBorder} ${heroFloatBg} backdrop-blur-xl rounded-none shadow-[0_0_20px_rgba(111,127,144,0.12)] transition-all duration-500 cursor-pointer`}
                   onMouseEnter={() => setHoveredCard('b2')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -921,8 +933,8 @@ export default function HomeClient({
                   <div>
                     <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">{t('stats.videos')}</span>
                     <div className="mt-1 flex items-baseline gap-0.5 text-xl font-bold tracking-tight">
-                      <span className="font-mono font-bold bg-gradient-to-r from-white via-platinum-200 to-platinum-400 bg-clip-text text-transparent stat-value" data-value={String(homeStats.videos || 113)} data-decimals="0">{homeStats.videos || 113}</span>
-                      <span className="font-mono font-bold bg-gradient-to-r from-white via-platinum-200 to-platinum-400 bg-clip-text text-transparent">+</span>
+                      <span className={`font-mono font-bold bg-gradient-to-r ${heroCountGradient} bg-clip-text text-transparent stat-value`} data-value={String(homeStats.videos || 113)} data-decimals="0">{homeStats.videos || 113}</span>
+                      <span className={`font-mono font-bold bg-gradient-to-r ${heroCountGradient} bg-clip-text text-transparent`}>+</span>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between text-[9px] font-mono text-slate-400 leading-none">
@@ -940,7 +952,7 @@ export default function HomeClient({
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-3 border-t border-slate-800/80 mt-3 text-[10px] font-mono text-slate-400 space-y-1">
+                    <div className={`pt-3 border-t ${heroBorder} mt-3 text-[10px] font-mono text-slate-400 space-y-1`}>
                       <div className="flex justify-between">
                         <span>Yangi darslar:</span>
                         <span className="text-platinum-400 font-bold">+4 dars</span>
@@ -959,7 +971,7 @@ export default function HomeClient({
 
                 {/* Component C - Top Accent Overlay Widget */}
                 <div 
-                  className="col-span-1 sm:col-span-2 md:absolute md:-top-5 md:right-10 md:z-30 md:w-48 p-3 border border-slate-800 bg-slate-950/95 backdrop-blur-xl rounded-none shadow-[0_0_25px_rgba(111,127,144,0.2)] transition-all duration-500 cursor-pointer"
+                  className={`col-span-1 sm:col-span-2 md:absolute md:-top-5 md:right-10 md:z-30 md:w-48 p-3 border ${heroBorder} ${heroTopBg} backdrop-blur-xl rounded-none shadow-[0_0_25px_rgba(111,127,144,0.2)] transition-all duration-500 cursor-pointer`}
                   onMouseEnter={() => setHoveredCard('c')}
                   onMouseLeave={() => setHoveredCard(null)}
                   style={{
@@ -995,7 +1007,7 @@ export default function HomeClient({
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-2.5 border-t border-slate-800/80 mt-2.5 text-[9px] font-mono text-slate-400 space-y-1">
+                    <div className={`pt-2.5 border-t ${heroBorder} mt-2.5 text-[9px] font-mono text-slate-400 space-y-1`}>
                       <div className="flex justify-between">
                         <span>Tizim yuklamasi:</span>
                         <span className="text-white">12%</span>

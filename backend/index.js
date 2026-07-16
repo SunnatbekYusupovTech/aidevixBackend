@@ -20,7 +20,7 @@ const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
-const { apiLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter, docsLimiter } = require('./middleware/rateLimiter');
 const csrfProtection = require('./middleware/csrfProtection');
 
 // Initialize Express app
@@ -36,6 +36,12 @@ if (process.env.TRUST_PROXY !== undefined && !Number.isFinite(_trustProxyRaw)) {
   console.warn('⚠️  TRUST_PROXY env var yaroqsiz qiymat — 1 ga qaytarildi:', process.env.TRUST_PROXY);
 }
 app.set('trust proxy', _trustProxyVal);
+
+// NoSQL operator-injection himoyasi: 'simple' query parser nested obyekt yaratmaydi
+// (?field[$ne]=x → 'field[$ne]' flat kalit, obyekt emas). express-mongo-sanitize
+// Express 5'da read-only req.query'ni tozalay olmaydi — bu parser gap'ni yopadi.
+// Frontend nested query ishlatmaydi (tekshirildi), shuning uchun xavfsiz.
+app.set('query parser', 'simple');
 
 // Connect to database (async - won't block server start)
 connectDB().then(async () => {
@@ -248,27 +254,27 @@ app.use('/api/', apiLimiter);
 // ═══════════════════════════════════════════════════════════════════
 
 // API Docs — Parol bilan himoyalangan
-app.use('/api-docs', swaggerAuth, swaggerUi.serveFiles(swaggerSpec), swaggerUi.setup(swaggerSpec, {
+app.use('/api-docs', docsLimiter, swaggerAuth, swaggerUi.serveFiles(swaggerSpec), swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Aidevix API Documentation',
   customfavIcon: '/favicon.ico',
 }));
 
 // Swagger JSON endpoint
-app.get('/api-docs.json', swaggerAuth, (req, res) => {
+app.get('/api-docs.json', docsLimiter, swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
 
 // Admin Panel Swagger UI — Alohida serve instance
-app.use('/admin-docs', swaggerAuth, swaggerUi.serveFiles(swaggerAdminSpec), swaggerUi.setup(swaggerAdminSpec, {
+app.use('/admin-docs', docsLimiter, swaggerAuth, swaggerUi.serveFiles(swaggerAdminSpec), swaggerUi.setup(swaggerAdminSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Aidevix Admin Panel API',
   customfavIcon: '/favicon.ico',
 }));
 
 // Admin Panel Swagger JSON endpoint
-app.get('/admin-docs.json', swaggerAuth, (req, res) => {
+app.get('/admin-docs.json', docsLimiter, swaggerAuth, (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerAdminSpec);
 });

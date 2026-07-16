@@ -7,6 +7,7 @@ const Enrollment = require('../models/Enrollment');
 const Payment    = require('../models/Payment');
 const { DailyChallenge } = require('../models/DailyChallenge');
 const { awardXp } = require('../utils/awardXp');
+const { ensurePaidSideEffects } = require('./paymentController');
 const logger     = require('../utils/logger');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -210,7 +211,8 @@ const getUserDetail = async (req, res) => {
 
     res.json({ success: true, data: { user, stats, enrollments, payments } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -234,7 +236,8 @@ const globalSearch = async (req, res) => {
 
     res.json({ success: true, data: { users, courses, videos } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -285,7 +288,8 @@ const getAnalytics = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -358,7 +362,8 @@ const bulkLinkBunny = async (req, res) => {
 
     res.json({ success: true, data: { succeeded, failed, total: links.length } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -383,7 +388,8 @@ const reorderVideos = async (req, res) => {
     })));
     res.json({ success: true, message: 'Tartib yangilandi' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -403,7 +409,8 @@ const getCourseEnrollmentStats = async (req, res) => {
 
     res.json({ success: true, data: { enrollments, total, completed } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -469,7 +476,8 @@ const getAllEnrollments = async (req, res) => {
 
     res.json({ success: true, data: { enrollments, pagination: { total, page, limit } } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -505,6 +513,13 @@ const updatePayment = async (req, res) => {
     payment.markModified('providerResponse');
     await payment.save();
 
+    // Admin qo'lda 'completed' qilsa — webhook oqimidagi side-effect'larni ta'minlaymiz
+    // (enrollment + pro-subscription). ensurePaidSideEffects idempotent, qayta chaqirish xavfsiz.
+    if (status === 'completed' && oldStatus !== 'completed') {
+      const course = await Course.findById(payment.courseId);
+      await ensurePaidSideEffects(payment, course);
+    }
+
     // Agar refund qilingan bo'lsa — enrollment'ni o'chirish (manual)
     if (status === 'refunded' && oldStatus === 'completed') {
       await Enrollment.deleteOne({ userId: payment.userId, courseId: payment.courseId });
@@ -520,7 +535,8 @@ const updatePayment = async (req, res) => {
 
     res.json({ success: true, data: { payment } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -541,7 +557,8 @@ const adminListChallenges = async (req, res) => {
 
     res.json({ success: true, data: { challenges, pagination: { total, page, limit } } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -560,7 +577,8 @@ const adminUpdateChallenge = async (req, res) => {
 
     res.json({ success: true, data: { challenge } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -582,7 +600,8 @@ const adminDeleteChallenge = async (req, res) => {
 
     res.json({ success: true, message: 'Vazifa o\'chirildi' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -608,7 +627,8 @@ const adminAwardXp = async (req, res) => {
       data: { xp: result.xp, level: result.level, reason: reason || 'Admin tomonidan berildi' },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    logger.error('adminController error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 

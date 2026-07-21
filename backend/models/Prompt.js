@@ -44,5 +44,6 @@ promptSchema.index({ category: 1, createdAt: -1 });
 promptSchema.index({ likesCount: -1 });
 promptSchema.index({ tool: 1 });
 promptSchema.index({ isFeatured: 1 });
+promptSchema.index({ author: 1, isPublic: 1, likesCount: -1 });
 
 module.exports = mongoose.model('Prompt', promptSchema);

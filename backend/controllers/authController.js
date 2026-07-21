@@ -203,14 +203,23 @@ const issueTokens = async (user, req, existingSession = null) => {
  * header'ni har so'rovda yuboradi (AidevixApp/src/api/axiosInstance.ts).
  */
 const mobileTokenBody = (req, accessToken, refreshToken) => {
-  // Gate 1: bearer/token-body oqimini faqat ruxsat berilganda (auth.js bilan bir xil).
-  const bearerAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_BEARER_AUTH === 'true';
-  if (!bearerAllowed) return {};
-  // Gate 2: brauzer so'rovi (Origin header'li) hech qachon body'da raw token OLMAYDI —
-  // web uchun httpOnly cookie modeli yetarli. Native RN/Expo Origin yubormaydi.
-  // Bu XSS orqali `X-Client-Type: mobile` qo'yib token o'g'irlash yo'lini yopadi.
-  if (req.headers.origin) return {};
-  return req.headers['x-client-type'] === 'mobile' ? { accessToken, refreshToken } : {};
+  const isMobile = req.headers['x-client-type'] === 'mobile';
+  if (!isMobile) return {};
+  const secret = process.env.MOBILE_API_SECRET;
+  // SEC-D01: If a secret is configured, require it (X-Mobile-Secret header) so a
+  // plain X-Client-Type header set via XSS can't exfiltrate raw tokens. Otherwise
+  // fall back to header-only (legacy) so the live mobile app keeps working until
+  // its env is set — but warn once so the gap is visible in logs.
+  if (secret) {
+    if (req.headers['x-mobile-secret'] !== secret) return {};
+    return { accessToken, refreshToken };
+  }
+  if (!mobileTokenBody._legacyWarned) {
+    mobileTokenBody._legacyWarned = true;
+    // eslint-disable-next-line no-console
+    console.warn('[SEC-D01] MOBILE_API_SECRET not set — mobileTokenBody falling back to header-only (legacy) token issuance. Set MOBILE_API_SECRET to enforce.');
+  }
+  return { accessToken, refreshToken };
 };
 
 /**

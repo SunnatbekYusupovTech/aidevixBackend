@@ -94,10 +94,14 @@ export default async function CourseLayout({ params, children }: Props) {
     '@type': 'Course',
     name: course.title,
     description: course.description?.slice(0, 500) || course.title,
-    provider: {
-      '@type': 'Organization',
-      name: 'Aidevix',
-      sameAs: 'https://aidevix.uz',
+    provider: { '@id': 'https://aidevix.uz/#organization' },
+    offers: {
+      '@type': 'Offer',
+      category: course.price > 0 ? 'Paid' : 'Free',
+      price: course.price ?? 0,
+      priceCurrency: 'UZS',
+      availability: 'https://schema.org/InStock',
+      url,
     },
     url,
     image: course.thumbnail || 'https://aidevix.uz/Logo.jpg',

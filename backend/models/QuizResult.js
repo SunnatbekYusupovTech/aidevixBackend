@@ -62,5 +62,6 @@ const quizResultSchema = new mongoose.Schema({
 // Har bir user+quiz juftligi uchun faqat bitta natija (takror yechish mumkin emas)
 quizResultSchema.index({ userId: 1, quizId: 1 }, { unique: true });
 quizResultSchema.index({ userId: 1, createdAt: -1 });
+quizResultSchema.index({ completedAt: -1 });
 
 module.exports = mongoose.model('QuizResult', quizResultSchema);

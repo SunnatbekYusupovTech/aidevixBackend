@@ -8,8 +8,6 @@ export const metadata: Metadata = {
     canonical: 'https://aidevix.uz/prompts',
     languages: {
       'uz-UZ': 'https://aidevix.uz/prompts',
-      'ru-RU': 'https://aidevix.uz/prompts',
-      'en-US': 'https://aidevix.uz/prompts',
       'x-default': 'https://aidevix.uz/prompts',
     },
   },

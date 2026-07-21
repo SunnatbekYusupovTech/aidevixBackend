@@ -37,8 +37,10 @@ const userStatsSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  // XP allaqachon berilgan videolar — video XP idempotentligi (bir videodan bir marta +50).
-  // select:false — API javoblariga tushmaydi (o'sib boruvchi to'plam, faqat server-side guard uchun).
+  // @deprecated (PERF-001, FROZEN): endi YOZILMAYDI. Idempotentlik VideoXpAward
+  // kolleksiyasiga ko'chdi (UNIQUE userId+videoId). Faqat o'tish davri backward-read
+  // uchun saqlanadi — eski hujjatlardagi qiymatlar takror XP oldini oladi.
+  // select:false — API javoblariga tushmaydi.
   xpAwardedVideos: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Video' }],
     default: [],

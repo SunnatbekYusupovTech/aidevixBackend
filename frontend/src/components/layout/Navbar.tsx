@@ -60,6 +60,7 @@ export default function Navbar() {
     roadmap: lang === 'en' ? 'Roadmap' : lang === 'ru' ? 'Роадмап' : 'Roadmap',
     adminPanel: lang === 'en' ? 'Admin Panel' : lang === 'ru' ? 'Админ панель' : 'Admin Panel',
     projects: lang === 'en' ? 'Projects' : lang === 'ru' ? 'Проекты' : 'Loyihalar',
+    review: lang === 'en' ? 'Review' : lang === 'ru' ? 'Повторение' : 'Takrorlash',
   }), [lang])
 
   /** Chiptada gorizontal skrollsiz: asosiy 3 + qolganlari “Yana” menyusida.
@@ -71,6 +72,7 @@ export default function Navbar() {
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
   ], [t, navLocalText])
   const navMore = useMemo<{ label: string; to: string }[]>(() => [
+    { label: `🔁 ${navLocalText.review}`, to: ROUTES.REVIEW },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },

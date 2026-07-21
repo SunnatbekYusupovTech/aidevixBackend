@@ -328,6 +328,7 @@ app.use('/api/mentorship',   require('./routes/mentorshipRoutes'));
 app.use('/api/teams',        require('./routes/teamRoutes'));
 app.use('/api/spaced-repetition', require('./routes/spacedRepetitionRoutes'));
 app.use('/api/playground',   require('./routes/playgroundRoutes'));
+app.use('/api/push',         require('./routes/pushRoutes'));
 
 // Health check route
 /**

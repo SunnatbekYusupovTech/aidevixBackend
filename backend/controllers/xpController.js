@@ -1,7 +1,9 @@
 const UserStats = require('../models/UserStats');
 const User = require('../models/User');
+const VideoXpAward = require('../models/VideoXpAward');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
+const SpacedRepetitionCard = require('../models/SpacedRepetitionCard');
 const { awardBadges } = require('../utils/badgeService');
 
 // Rank hisoblash (authController.js dagi bilan bir xil bo'lishi kerak)
@@ -96,45 +98,51 @@ const addVideoWatchXP = async (req, res) => {
     const XP_FOR_VIDEO = 50;
     const { videoId } = req.params;
 
-    // IDEMPOTENTLIK + race fix: XP faqat shu video uchun BIRINCHI marta beriladi.
-    // Atomik shartli update — videoId xpAwardedVideos'da YO'Q bo'lsa $inc + $addToSet.
-    // Bir videodan takror/parallel so'rovlarda ikkinchisi null qaytaradi (XP berilmaydi).
-    let stats = await UserStats.findOneAndUpdate(
-      { userId: req.user.id, xpAwardedVideos: { $ne: videoId } },
-      {
-        $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 },
-        $addToSet: { xpAwardedVideos: videoId },
-      },
-      { new: true }
-    );
+    // IDEMPOTENTLIK (PERF-001): XP faqat shu video uchun BIRINCHI marta beriladi.
+    // Ilgari UserStats.xpAwardedVideos[] embedded massivi cheksiz o'sardi. Endi
+    // alohida VideoXpAward kolleksiyasi + UNIQUE (userId,videoId) index dedupe qiladi.
 
-    if (!stats) {
-      // null sabab: (a) bu video uchun allaqachon XP berilgan, yoki (b) UserStats hujjati yo'q.
+    // Yordamchi: "allaqachon berilgan" javobini qaytaradi (joriy holat bilan).
+    const respondAlreadyAwarded = async () => {
       const existing = await UserStats.findOne({ userId: req.user.id });
-      if (existing) {
-        // (a) Allaqachon berilgan — takror XP yo'q, joriy holatni qaytar.
-        return res.json({
-          success: true,
-          data: {
-            xpEarned: 0,
-            alreadyAwarded: true,
+      const data = existing
+        ? {
             totalXp: existing.xp,
             level: existing.level,
             streak: existing.streak,
             levelProgress: existing.getLevelProgress(),
-          },
-        });
-      }
-      // (b) Hujjat umuman yo'q — birinchi marta yaratib XP beramiz (upsert).
-      stats = await UserStats.findOneAndUpdate(
-        { userId: req.user.id },
-        {
-          $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 },
-          $addToSet: { xpAwardedVideos: videoId },
-        },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      );
+          }
+        : { totalXp: 0, level: 1, streak: 0, levelProgress: 0 };
+      return res.json({ success: true, data: { xpEarned: 0, alreadyAwarded: true, ...data } });
+    };
+
+    // Backward-compat: eski xpAwardedVideos massivida bo'lsa — qayta bermaymiz
+    // (o'tish davri; massiv endi o'stirilmaydi/yozilmaydi).
+    const legacy = await UserStats.findOne({ userId: req.user.id })
+      .select('+xpAwardedVideos xpAwardedVideos')
+      .lean();
+    if (legacy && Array.isArray(legacy.xpAwardedVideos) &&
+        legacy.xpAwardedVideos.some((v) => String(v) === String(videoId))) {
+      return respondAlreadyAwarded();
     }
+
+    // Atomik idempotentlik: award yozuvini birinchi bo'lib yaratamiz.
+    // Duplicate-key (11000) → allaqachon berilgan (takror/parallel so'rov).
+    try {
+      await VideoXpAward.create({ userId: req.user.id, videoId });
+    } catch (dupErr) {
+      if (dupErr && dupErr.code === 11000) {
+        return respondAlreadyAwarded();
+      }
+      throw dupErr;
+    }
+
+    // Award yozildi — XP beramiz. Massivga YOZMAYMIZ (o'sishni to'xtatdik).
+    let stats = await UserStats.findOneAndUpdate(
+      { userId: req.user.id },
+      { $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
     // Streak yangilash (atomik $inc'dan keyin, joriy logika saqlangan)
     const today = new Date();
@@ -288,6 +296,28 @@ const submitQuiz = async (req, res) => {
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
+
+    // FEAT-2 (Spaced Repetition): xato javob berilgan savollardan takrorlash kartasi
+    // yaratamiz. Upsert — mavjud karta progressini (interval/easeFactor) qayta
+    // tiklamaydi; faqat yangi savol uchun karta ochiladi. Fire-and-forget.
+    const wrongIdx = resultAnswers.filter((a) => !a.isCorrect).map((a) => a.questionIndex);
+    if (wrongIdx.length > 0) {
+      const ops = wrongIdx.map((qi) => ({
+        updateOne: {
+          filter: { userId: req.user.id, quizId, questionKey: String(qi) },
+          update: {
+            $setOnInsert: {
+              userId: req.user.id,
+              quizId,
+              questionKey: String(qi),
+              dueAt: new Date(),
+            },
+          },
+          upsert: true,
+        },
+      }));
+      SpacedRepetitionCard.bulkWrite(ops, { ordered: false }).catch(() => {});
+    }
 
     res.json({
       success: true,

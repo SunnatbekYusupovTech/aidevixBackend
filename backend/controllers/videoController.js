@@ -691,8 +691,9 @@ const searchVideos = async (req, res) => {
 
     const filter = { isActive: true };
     if (q.trim()) {
-      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.title = { $regex: escaped, $options: 'i' };
+      // PERF-005: text index ({ title:'text' }) — index-backed $text search.
+      // courseId equality filter top-level'da birga ishlaydi.
+      filter.$text = { $search: q.trim() };
     }
     if (courseId) filter.course = courseId;
 

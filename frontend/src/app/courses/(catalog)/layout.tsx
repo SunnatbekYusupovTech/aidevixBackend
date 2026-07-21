@@ -12,6 +12,7 @@ export const metadata = coursesMetadata;
 
 type Course = {
   _id: string;
+  slug?: string;
   title?: string;
   description?: string;
   thumbnail?: string;
@@ -100,7 +101,7 @@ export default async function CoursesLayout({
           itemListElement: courses.map((c, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            url: `https://aidevix.uz/courses/${c._id}`,
+            url: `https://aidevix.uz/courses/${c.slug || c._id}`,
             name: c.title || 'Aidevix kurs',
           })),
         }

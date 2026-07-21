@@ -1,11 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Editor from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoPlay, IoRefresh, IoCodeSlash, IoTerminal, IoEye, IoChevronDown, IoChevronUp, IoExpand } from 'react-icons/io5';
 import Link from 'next/link';
 import { useLang } from '@/context/LangContext';
+
+// Monaco (~450KB) client-only lazy load — SSR yo'q, dastlabki yuklamani yengillashtiradi.
+const Editor = dynamic(() => import('@monaco-editor/react'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">
+      Editor yuklanmoqda…
+    </div>
+  ),
+});
 
 interface IntegratedPlaygroundProps {
   videoId: string;

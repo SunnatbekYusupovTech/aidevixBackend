@@ -32,12 +32,12 @@ const getAllCourses = async (req, res) => {
     if (category && category !== 'all') filter.category = category;
     if (level) filter.level = level;
     if (isFree !== undefined) filter.isFree = isFree === 'true';
-    if (search) {
-      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.$or = [
-        { title:       { $regex: escapedSearch, $options: 'i' } },
-        { description: { $regex: escapedSearch, $options: 'i' } },
-      ];
+    if (search && String(search).trim()) {
+      const term = String(search).trim();
+      // PERF-004: text index ({ title:'text', description:'text' }) — full collection
+      // scan o'rniga index-backed $text search. Boshqa equality filterlar (category,
+      // level, isFree, isActive) top-level'da birga ishlaydi (MongoDB $text + equality OK).
+      filter.$text = { $search: term };
     }
 
     const sortMap = {

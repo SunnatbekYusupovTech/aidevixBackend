@@ -89,6 +89,19 @@ async function sendDigestToUser(user, stats, nextCourse) {
       }
     }
   }
+
+  // Web Push (FEAT-1) — obuna bo'lgan bo'lsa. Konfiguratsiya yo'q bo'lsa no-op.
+  if (stats) {
+    try {
+      const { sendPushToUser } = require('./pushService');
+      await sendPushToUser(user._id, {
+        title: '📊 Haftalik xulosa tayyor',
+        body: `Bu hafta +${(stats.weeklyXp || 0).toLocaleString()} XP. Streakni davom ettiring!`,
+        url: '/profile',
+        tag: 'weekly-digest',
+      });
+    } catch (_) { /* push xatolarini jim qoldiramiz */ }
+  }
 }
 
 async function runWeeklyDigest() {

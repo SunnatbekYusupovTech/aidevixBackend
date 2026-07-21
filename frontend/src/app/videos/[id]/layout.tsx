@@ -49,8 +49,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: url,
       languages: {
         'uz-UZ': url,
-        'ru-RU': url,
-        'en-US': url,
         'x-default': url,
       },
     },

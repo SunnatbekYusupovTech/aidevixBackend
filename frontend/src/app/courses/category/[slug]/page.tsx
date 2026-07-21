@@ -10,6 +10,7 @@ const BASE = 'https://aidevix.uz';
 
 type Course = {
   _id: string;
+  slug?: string;
   title?: string;
   description?: string;
   thumbnail?: string;
@@ -129,7 +130,7 @@ export default async function CategoryPage(
           itemListElement: courses.map((c, i) => ({
             '@type': 'ListItem',
             position: i + 1,
-            url: `${BASE}/courses/${c._id}`,
+            url: `${BASE}/courses/${c.slug || c._id}`,
             name: c.title || 'Aidevix kurs',
           })),
         }
@@ -168,7 +169,7 @@ export default async function CategoryPage(
             {courses.map((c) => (
               <Link
                 key={c._id}
-                href={`/courses/${c._id}`}
+                href={`/courses/${c.slug || c._id}`}
                 className="group rounded-2xl border border-base-content/10 bg-base-200/40 overflow-hidden hover:border-primary/30 hover:-translate-y-0.5 transition-all flex flex-col"
               >
                 <div className="relative aspect-[16/9] bg-base-300">

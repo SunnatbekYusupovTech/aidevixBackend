@@ -23,7 +23,8 @@ const listJobs = async (req, res) => {
 
 const createJob = async (req, res) => {
   try {
-    const job = await Job.create(req.body);
+    const { company, title, location, type, level, salaryMin, salaryMax, currency, skills, applyUrl, isActive } = req.body;
+    const job = await Job.create({ company, title, location, type, level, salaryMin, salaryMax, currency, skills, applyUrl, isActive });
     return res.status(201).json({ success: true, data: { job } });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });

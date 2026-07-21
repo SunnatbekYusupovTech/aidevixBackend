@@ -29,6 +29,25 @@ const blogItemList = {
   })),
 };
 
+// Blog schema — sahifaning o'zi Blog ekanini bildiradi (BlogPosting'lar ro'yxati bilan).
+const blogSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: 'Aidevix Blog',
+  url: 'https://aidevix.uz/blog',
+  description:
+    "AI dunyosi va dasturlash bo'yicha yangiliklar, qo'llanmalar va tahlillar — o'zbek tilida.",
+  inLanguage: 'uz-UZ',
+  publisher: { '@id': 'https://aidevix.uz/#organization' },
+  blogPost: BLOG_ARTICLES.map((a) => ({
+    '@type': 'BlogPosting',
+    headline: a.title,
+    url: `https://aidevix.uz/blog/${a.slug}`,
+    datePublished: a.date,
+    ...(a.updated ? { dateModified: a.updated } : {}),
+  })),
+};
+
 async function getNews() {
   try {
     const res = await fetch(`${SSR_API_BASE_URL}public/ai-news`, { next: { revalidate: 600 } });
@@ -44,6 +63,7 @@ export default async function BlogPage() {
   const news = await getNews();
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(blogItemList) }} />
 
       {/* Qo'llanmalar — statik SEO maqolalar (server-render, crawlable). */}

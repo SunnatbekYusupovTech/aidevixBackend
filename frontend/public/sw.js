@@ -10,7 +10,7 @@
  * Versiya bumpi yangi versiya deploy bo'lganda barcha eski cache'ni o'chiradi.
  */
 
-const VERSION = 'v3-2026-05-13';
+const VERSION = 'v3-2026-05-13-push';
 const STATIC_CACHE = `aidevix-static-${VERSION}`;
 const PAGES_CACHE = `aidevix-pages-${VERSION}`;
 const RUNTIME_CACHE = `aidevix-runtime-${VERSION}`;
@@ -147,4 +147,53 @@ self.addEventListener('fetch', (event) => {
 
   // Boshqa same-origin GETs — runtime cache (stale-while-revalidate)
   event.respondWith(staleWhileRevalidate(event.request, RUNTIME_CACHE));
+});
+
+// ── Web Push ──────────────────────────────────────────────────────────
+// Backend `sendPushToUser` JSON payload yuboradi: {title, body, url, tag}
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (_) {
+    payload = { title: 'Aidevix', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = payload.title || 'Aidevix';
+  const options = {
+    body: payload.body || '',
+    icon: '/Logo.jpg',
+    badge: '/Logo.jpg',
+    tag: payload.tag || 'aidevix',
+    data: { url: payload.url || '/' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Bildirishnoma bosilganda — mavjud tabni fokuslaymiz yoki yangisini ochamiz
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of allClients) {
+        try {
+          const clientUrl = new URL(client.url);
+          if (clientUrl.origin === self.location.origin && 'focus' in client) {
+            await client.focus();
+            if ('navigate' in client && targetUrl) {
+              try { await client.navigate(targetUrl); } catch (_) {}
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl);
+      }
+    })()
+  );
 });

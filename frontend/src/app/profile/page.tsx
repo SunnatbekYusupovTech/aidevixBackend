@@ -44,6 +44,9 @@ const SavedPromptsSection = dynamic(() => import('@components/profile/SavedPromp
   ),
 });
 
+// Web Push opt-in tugmasi — brauzer API'lariga tayanadi, shuning uchun ssr:false
+const PushOptIn = dynamic(() => import('@components/common/PushOptIn'), { ssr: false });
+
 export default function ProfilePage() {
   const router = useRouter();
   const { isLoggedIn, loading: authLoading } = useAuth();
@@ -437,6 +440,10 @@ export default function ProfilePage() {
                     <p className="break-words italic leading-relaxed text-slate-400">
                       &ldquo;{bio || t('profile.noBio')}&rdquo;
                     </p>
+                  </div>
+
+                  <div className="mt-6 border-t border-white/5 pt-6">
+                    <PushOptIn />
                   </div>
                 </div>
 

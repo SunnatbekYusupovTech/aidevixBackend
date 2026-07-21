@@ -103,6 +103,7 @@ export const ROUTES = {
   REFERRAL:       '/referral',
   MENTORSHIP:     '/mentorship',
   PROMPTS:        '/prompts',
+  REVIEW:         '/review',
   TEAM:           '/team',
   ROADMAP:        '/roadmap',
   PROJECTS:       '/projects',

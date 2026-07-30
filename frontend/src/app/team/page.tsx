@@ -128,168 +128,33 @@ const TEAM_MEMBERS: TeamMember[] = [
 
 const LOCALIZED_CONTENT = {
   uz: {
-    title: 'OUR_HUMAN_INTELLIGENCE',
-    subtitle: 'AIDEVIX RIVOJLANISH JAMOASI',
-    heroDesc: "Zamonaviy sun'iy intellekt va dasturlash o'quv platformasi - Aidevix asoschilari va ishlab chiquvchilari.",
-    status: 'HOLAT: FAOL_RIVOJLANISH_TIZIMI',
-    agents: 'BARCHA AGENTLAR',
-    tech: 'TEXNOLOGIYALAR',
     years: 'YOSH',
     stack: "TEXNOLOGIYALAR RO'YHATI",
     experience: 'JAMOADAGI VAZIFASI',
     socials: 'ALOQA KANALLARI',
     portfolio: 'PORTFOLIO ULANISHI',
-    systemLogs: 'TIZIM TINGLOVCHISI: INSON NODE ULANIROVCHI FAOL...',
     dragHint: "SICHQONCHA BILAN AYLANTIRING YOKI G'ILDIRAKNI AYLANTIRING",
-    diagLabel: 'JAMOA_DIAGNOSTIKASI',
-    avgAge: "O'RTACHA_YOSH",
-    integrity: 'TIZIM_YAXLITLIGI',
   },
   en: {
-    title: 'OUR_HUMAN_INTELLIGENCE',
-    subtitle: 'AIDEVIX DEVELOPMENT TEAM',
-    heroDesc: 'The founders and builders of the modern artificial intelligence and coding platform - Aidevix.',
-    status: 'STATUS: ACTIVE_DEVELOPMENT_CYCLE',
-    agents: 'TOTAL AGENTS',
-    tech: 'TECHNOLOGIES',
     years: 'Y.O',
     stack: 'TECH STACK',
     experience: 'PLATFORM CONTRIBUTION',
     socials: 'COMMUNICATION NODES',
     portfolio: 'PORTFOLIO INTERCONNECT',
-    systemLogs: 'SYSTEM LISTENER: HUMAN NODE INTERCONNECT ACTIVE...',
     dragHint: 'DRAG OR SCROLL TO DRIFT THE GRID',
-    diagLabel: 'TEAM_DIAGNOSTICS',
-    avgAge: 'AVG_AGE',
-    integrity: 'SYSTEM_INTEGRITY',
   },
   ru: {
-    title: 'OUR_HUMAN_INTELLIGENCE',
-    subtitle: 'КОМАНДА РАЗРАБОТКИ AIDEVIX',
-    heroDesc: 'Основатели и разработчики современной платформы обучения искусственному интеллекту и программированию - Aidevix.',
-    status: 'СТАТУС: АКТИВНЫЙ_ЦИКЛ_РАЗРАБОТКИ',
-    agents: 'ВСЕГО АГЕНТОВ',
-    tech: 'ТЕХНОЛОГИИ',
     years: 'ЛЕТ',
     stack: 'СТЕК ТЕХНОЛОГИЙ',
     experience: 'ВКЛАД В ПЛАТФОРМУ',
     socials: 'УЗЛЫ СВЯЗИ',
     portfolio: 'ПОРТФОЛИО СВЯЗЬ',
-    systemLogs: 'СИСТЕМНЫЙ СЛУШАТЕЛЬ: ИНТЕРКОННЕКТ ЧЕЛОВЕЧЕСКИХ НОД АКТИВЕН...',
     dragHint: 'ПЕРЕТАЩИТЕ ИЛИ ПРОКРУТИТЕ КОЛЕСО',
-    diagLabel: 'ДИАГНОСТИКА_КОМАНДЫ',
-    avgAge: 'СРЕДНИЙ_ВОЗРАСТ',
-    integrity: 'ЦЕЛОСТНОСТЬ_СИСТЕМЫ',
   },
 } as const;
 
 type Lang = keyof typeof LOCALIZED_CONTENT;
 type Content = (typeof LOCALIZED_CONTENT)['en'];
-
-// ─── DecodeText — terminal-style scramble-to-reveal heading ─────────────────
-
-function DecodeText({ text, className }: { text: string; className?: string }) {
-  const [display, setDisplay] = useState(text);
-
-  useEffect(() => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#_/><';
-    const totalFrames = 22;
-    let frame = 0;
-
-    const reduceMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) {
-      setDisplay(text);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      frame += 1;
-      const revealCount = Math.floor((frame / totalFrames) * text.length);
-      let out = '';
-      for (let i = 0; i < text.length; i++) {
-        const ch = text[i];
-        if (ch === ' ' || ch === '_') {
-          out += ch;
-        } else {
-          out += i < revealCount ? ch : chars[Math.floor(Math.random() * chars.length)];
-        }
-      }
-      setDisplay(out);
-      if (frame >= totalFrames) {
-        setDisplay(text);
-        clearInterval(interval);
-      }
-    }, 38);
-
-    return () => clearInterval(interval);
-  }, [text]);
-
-  return <span className={className}>{display}</span>;
-}
-
-// ─── StatRow — diagnostics readout row with count-up + fill bar ─────────────
-
-function StatRow({
-  label,
-  value,
-  max,
-  suffix = '',
-  decimals = 0,
-  delay = 0,
-  isDark,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  suffix?: string;
-  decimals?: number;
-  delay?: number;
-  isDark: boolean;
-}) {
-  const numRef = useRef<HTMLSpanElement>(null);
-  const [pct, setPct] = useState(0);
-
-  useEffect(() => {
-    const obj = { val: 0 };
-    const tween = gsap.to(obj, {
-      val: value,
-      duration: 1.3,
-      delay,
-      ease: 'power2.out',
-      onUpdate: () => {
-        if (numRef.current) numRef.current.textContent = obj.val.toFixed(decimals);
-        setPct(Math.min(100, (obj.val / max) * 100));
-      },
-    });
-    return () => {
-      tween.kill();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, max, delay, decimals]);
-
-  const barTrack = isDark ? 'bg-zinc-900' : 'bg-slate-200';
-
-  return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <span className={`text-[9px] font-bold tracking-widest uppercase ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
-          {label}
-        </span>
-        <span className={`text-sm font-black font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-          <span ref={numRef}>0</span>
-          {suffix}
-        </span>
-      </div>
-      <div className={`h-[3px] mt-1.5 ${barTrack} rounded-none overflow-hidden`}>
-        <div
-          className="h-full bg-blue-500 transition-[width] duration-300 ease-out"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 // ─── TeamCard ───────────────────────────────────────────────────────────────
 
@@ -621,27 +486,15 @@ export default function TeamPage() {
   const c: Content = LOCALIZED_CONTENT[(lang as Lang)] || LOCALIZED_CONTENT.uz;
 
   const pageBg = isDark ? 'bg-black text-[#e2e6e9]' : 'bg-slate-50 text-slate-800';
-  const headerTerminalBg = isDark ? 'bg-blue-950/10' : 'bg-blue-50/60';
   const mutedText = isDark ? 'text-zinc-500' : 'text-slate-500';
-  const bodyText = isDark ? 'text-zinc-400' : 'text-slate-600';
-  const titleText = isDark ? 'text-white' : 'text-slate-900';
-  const encChip = isDark ? 'border-zinc-800 text-zinc-400 bg-zinc-900/40' : 'border-slate-300 text-slate-600 bg-slate-100';
   const hrLine = isDark ? 'bg-zinc-700' : 'bg-slate-300';
   const edgeFrom = isDark ? 'from-black' : 'from-slate-50';
-  const diagPanelBorder = isDark ? 'border-blue-500/25' : 'border-blue-500/25';
-  const diagPanelBg = isDark ? 'bg-blue-950/5' : 'bg-blue-50/40';
 
   const [flippedId, setFlippedId] = useState<string | null>(null);
   const flippedIdRef = useRef<string | null>(null);
   useEffect(() => {
     flippedIdRef.current = flippedId;
   }, [flippedId]);
-
-  const avgAge = (
-    TEAM_MEMBERS.filter((m) => !m.hideAge).reduce((sum, m) => sum + m.age, 0) /
-    TEAM_MEMBERS.filter((m) => !m.hideAge).length
-  );
-  const totalTech = Array.from(new Set(TEAM_MEMBERS.flatMap((m) => m.stack))).length;
 
   // ── Drag guard: distinguishes a click from a drag so orbiting doesn't accidentally flip a card ──
   const dragRef = useRef({ dragging: false, lastX: 0, moved: false, totalMove: 0 });
@@ -851,56 +704,6 @@ export default function TeamPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        {/* Header Terminal */}
-        <div
-          className={`border border-blue-500/20 ${headerTerminalBg} p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}
-        >
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-blue-400 font-bold">
-              <span className="h-2 w-2 animate-ping bg-blue-500 rounded-none" />
-              <span>{c.status}</span>
-            </div>
-            <p className={`text-[10px] ${mutedText} uppercase tracking-widest leading-none`}>{c.systemLogs}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-            <span className="border border-blue-500/35 px-2.5 py-1 text-blue-400 bg-blue-950/20 rounded-none">GRID: COMPRESSED</span>
-            <span className={`border px-2.5 py-1 rounded-none ${encChip}`}>ENCRYPTION: AES-256</span>
-          </div>
-        </div>
-
-        {/* Hero + Diagnostics */}
-        <div className="mb-14 border-b border-blue-500/10 pb-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-end">
-          <div className="lg:col-span-7">
-            <h1 className={`text-3xl sm:text-5xl lg:text-6xl font-extrabold italic uppercase tracking-wider ${titleText}`}>
-              <DecodeText text={c.title} />
-            </h1>
-            <p className="mt-3 text-xs sm:text-sm text-blue-500/70 font-semibold tracking-wider uppercase">
-              {'// '}
-              {c.subtitle}
-            </p>
-            <p className={`mt-4 max-w-xl text-xs sm:text-sm ${bodyText} leading-relaxed font-sans font-light`}>{c.heroDesc}</p>
-          </div>
-
-          <div className={`lg:col-span-5 border ${diagPanelBorder} ${diagPanelBg} rounded-none p-4 sm:p-5`}>
-            <div className="flex items-center justify-between mb-4">
-              <span className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                {'// '}
-                {c.diagLabel}
-              </span>
-              <span className={`flex items-center gap-1.5 text-[9px] font-mono ${isDark ? 'text-blue-500/50' : 'text-blue-600/60'}`}>
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-none animate-pulse" />
-                LIVE
-              </span>
-            </div>
-            <div className="space-y-3.5">
-              <StatRow label={c.agents} value={TEAM_MEMBERS.length} max={12} isDark={isDark} delay={0} />
-              <StatRow label={c.avgAge} value={avgAge} max={20} suffix={` ${c.years}`} decimals={1} isDark={isDark} delay={0.12} />
-              <StatRow label={c.tech} value={totalTech} max={30} suffix="+" isDark={isDark} delay={0.24} />
-              <StatRow label={c.integrity} value={100} max={100} suffix="%" isDark={isDark} delay={0.36} />
-            </div>
-          </div>
-        </div>
-
         {/* Drag hint */}
         <div className={`mb-6 flex items-center justify-center gap-3 text-[10px] ${mutedText} font-bold tracking-widest uppercase`}>
           <span className={`w-8 h-px ${hrLine}`} />

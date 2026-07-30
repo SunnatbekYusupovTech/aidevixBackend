@@ -1,10 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { FaInstagram, FaTelegram, FaLinkedin, FaGithub, FaFacebook } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
+// ─── Types & data ────────────────────────────────────────────────────────────
 
 type TeamMember = {
   id: string;
@@ -15,14 +23,11 @@ type TeamMember = {
   details: string;
   stack: string[];
   asset: string;
-  cursorColor: string;
-  textColor: string;
   telegram?: string;
   instagram?: string;
   linkedin?: string;
   github?: string;
   facebook?: string;
-  portfolio?: string;
 };
 
 const TEAM_MEMBERS: TeamMember[] = [
@@ -35,8 +40,6 @@ const TEAM_MEMBERS: TeamMember[] = [
     details: 'Aidevix strategiyasi, mahsulot yonalishi va frontend arxitekturasi.',
     stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
     asset: '/team/sunnatbee.jpg',
-    cursorColor: 'bg-yellow-500',
-    textColor: 'text-yellow-400',
     telegram: 'https://t.me/SUNNATBEE',
     instagram: 'https://www.instagram.com/sunnatbekyusupov.tech',
     linkedin: 'https://www.linkedin.com/in/sunnatbekyusupov/',
@@ -48,44 +51,40 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: 'SARDOR',
     age: 15,
     roleBadge: 'TEAM LEAD / QA',
-    details: 'UI/UX dizayn tizimlari va kreativ goyalar yaratuvchisi. Muammolarni tezkor bartaraf etuvchi faol bug fixer, JWT cookie auth, Mongoose sxemalari va CI/CD.',
+    details:
+      'UI/UX dizayn tizimlari va kreativ goyalar yaratuvchisi. Muammolarni tezkor bartaraf etuvchi faol bug fixer, JWT cookie auth, Mongoose sxemalari va CI/CD.',
     stack: ['UI/UX Design', 'Figma', 'Node.js', 'Mongoose', 'Swagger API'],
     asset: '/team/Sardor.jpg',
-    cursorColor: 'bg-emerald-500',
-    textColor: 'text-emerald-400',
   },
   {
     id: 'firdavs',
     name: 'FIRDAVS',
     age: 16,
     roleBadge: 'AUTH SPECIALIST',
-    details: 'Autentifikatsiya tizimi, Cookie-based JWT sessiyasi, ProtectedRoute, email validation, kunlik mukofot modali.',
+    details:
+      'Autentifikatsiya tizimi, Cookie-based JWT sessiyasi, ProtectedRoute, email validation, kunlik mukofot modali.',
     stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
     asset: '/team/Firdavs.jpg',
-    cursorColor: 'bg-blue-500',
-    textColor: 'text-blue-400',
   },
   {
     id: 'abduvohid',
     name: 'ABDUVOHID',
     age: 15,
     roleBadge: 'HOME UI / FRONTEND',
-    details: 'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
+    details:
+      'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
     stack: ['Framer Motion', 'GSAP', 'CSS 3D', 'UI/UX'],
     asset: '/team/abduvohid.jpg',
-    cursorColor: 'bg-purple-500',
-    textColor: 'text-purple-400',
   },
   {
     id: 'abduvoris',
     name: 'ABDUVORIS',
     age: 16,
     roleBadge: 'VIDEO ENGINEER',
-    details: 'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
+    details:
+      'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
     stack: ['Bunny.net', 'HLS.js', 'Video Stream', 'Skeleton CSS'],
     asset: '/team/Abduvoris.jpg',
-    cursorColor: 'bg-cyan-500',
-    textColor: 'text-cyan-400',
   },
   {
     id: 'doniyor',
@@ -95,8 +94,6 @@ const TEAM_MEMBERS: TeamMember[] = [
     details: 'Kurslar tuzilishi, modullar tizimi va darslar ketma-ketligi arxitekturasi.',
     stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
     asset: '/team/Doniyor.jpg',
-    cursorColor: 'bg-teal-500',
-    textColor: 'text-teal-400',
   },
   {
     id: 'suhrob',
@@ -106,8 +103,6 @@ const TEAM_MEMBERS: TeamMember[] = [
     details: 'Reyting tizimi, XP (tajriba ballari) hisoblash logikasi va peshqadamlar jadvali (leaderboard).',
     stack: ['Leaderboards', 'Gamification', 'XP Logic', 'MongoDB'],
     asset: '/team/Suhrob.jpg',
-    cursorColor: 'bg-pink-500',
-    textColor: 'text-pink-400',
   },
   {
     id: 'qudrat',
@@ -117,8 +112,6 @@ const TEAM_MEMBERS: TeamMember[] = [
     details: 'Foydalanuvchi tajribasini boyitish uchun interaktiv GSAP va Framer Motion animatsiyalari.',
     stack: ['GSAP 3', 'Three.js', 'Framer Motion'],
     asset: '/team/Qudrat.jpg',
-    cursorColor: 'bg-violet-500',
-    textColor: 'text-violet-400',
   },
   {
     id: 'mystery',
@@ -126,11 +119,10 @@ const TEAM_MEMBERS: TeamMember[] = [
     age: 0,
     hideAge: true,
     roleBadge: 'WANTED / ?????',
-    details: '#WANTED #CREATIVE_MIND // Tizimda boshliq aniqlandi. _Bizga kreativ va nostandart fikrlaydigan dev kerak!_ #JOIN_US // matrix_integrity: unstable.',
+    details:
+      '#WANTED #CREATIVE_MIND // Tizimda boshliq aniqlandi. _Bizga kreativ va nostandart fikrlaydigan dev kerak!_ #JOIN_US // matrix_integrity: unstable.',
     stack: ['#CREATIVE', '#CODER', '#BUG_FIXER', 'YOU?'],
     asset: '/team/mystery.jpg',
-    cursorColor: 'bg-red-500',
-    textColor: 'text-red-400',
   },
 ];
 
@@ -148,7 +140,10 @@ const LOCALIZED_CONTENT = {
     socials: 'ALOQA KANALLARI',
     portfolio: 'PORTFOLIO ULANISHI',
     systemLogs: 'TIZIM TINGLOVCHISI: INSON NODE ULANIROVCHI FAOL...',
-    dragHint: 'SICHQONCHA BILAN AYLANTIRING',
+    dragHint: "SICHQONCHA BILAN AYLANTIRING YOKI G'ILDIRAKNI AYLANTIRING",
+    diagLabel: 'JAMOA_DIAGNOSTIKASI',
+    avgAge: "O'RTACHA_YOSH",
+    integrity: 'TIZIM_YAXLITLIGI',
   },
   en: {
     title: 'OUR_HUMAN_INTELLIGENCE',
@@ -163,7 +158,10 @@ const LOCALIZED_CONTENT = {
     socials: 'COMMUNICATION NODES',
     portfolio: 'PORTFOLIO INTERCONNECT',
     systemLogs: 'SYSTEM LISTENER: HUMAN NODE INTERCONNECT ACTIVE...',
-    dragHint: 'DRAG TO ROTATE CAROUSEL',
+    dragHint: 'DRAG OR SCROLL TO DRIFT THE GRID',
+    diagLabel: 'TEAM_DIAGNOSTICS',
+    avgAge: 'AVG_AGE',
+    integrity: 'SYSTEM_INTEGRITY',
   },
   ru: {
     title: 'OUR_HUMAN_INTELLIGENCE',
@@ -178,9 +176,120 @@ const LOCALIZED_CONTENT = {
     socials: 'УЗЛЫ СВЯЗИ',
     portfolio: 'ПОРТФОЛИО СВЯЗЬ',
     systemLogs: 'СИСТЕМНЫЙ СЛУШАТЕЛЬ: ИНТЕРКОННЕКТ ЧЕЛОВЕЧЕСКИХ НОД АКТИВЕН...',
-    dragHint: 'ПЕРЕТАЩИТЕ ДЛЯ ВРАЩЕНИЯ',
+    dragHint: 'ПЕРЕТАЩИТЕ ИЛИ ПРОКРУТИТЕ КОЛЕСО',
+    diagLabel: 'ДИАГНОСТИКА_КОМАНДЫ',
+    avgAge: 'СРЕДНИЙ_ВОЗРАСТ',
+    integrity: 'ЦЕЛОСТНОСТЬ_СИСТЕМЫ',
   },
-};
+} as const;
+
+type Lang = keyof typeof LOCALIZED_CONTENT;
+type Content = (typeof LOCALIZED_CONTENT)['en'];
+
+// ─── DecodeText — terminal-style scramble-to-reveal heading ─────────────────
+
+function DecodeText({ text, className }: { text: string; className?: string }) {
+  const [display, setDisplay] = useState(text);
+
+  useEffect(() => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#_/><';
+    const totalFrames = 22;
+    let frame = 0;
+
+    const reduceMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      setDisplay(text);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      frame += 1;
+      const revealCount = Math.floor((frame / totalFrames) * text.length);
+      let out = '';
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === ' ' || ch === '_') {
+          out += ch;
+        } else {
+          out += i < revealCount ? ch : chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      setDisplay(out);
+      if (frame >= totalFrames) {
+        setDisplay(text);
+        clearInterval(interval);
+      }
+    }, 38);
+
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <span className={className}>{display}</span>;
+}
+
+// ─── StatRow — diagnostics readout row with count-up + fill bar ─────────────
+
+function StatRow({
+  label,
+  value,
+  max,
+  suffix = '',
+  decimals = 0,
+  delay = 0,
+  isDark,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  suffix?: string;
+  decimals?: number;
+  delay?: number;
+  isDark: boolean;
+}) {
+  const numRef = useRef<HTMLSpanElement>(null);
+  const [pct, setPct] = useState(0);
+
+  useEffect(() => {
+    const obj = { val: 0 };
+    const tween = gsap.to(obj, {
+      val: value,
+      duration: 1.3,
+      delay,
+      ease: 'power2.out',
+      onUpdate: () => {
+        if (numRef.current) numRef.current.textContent = obj.val.toFixed(decimals);
+        setPct(Math.min(100, (obj.val / max) * 100));
+      },
+    });
+    return () => {
+      tween.kill();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, max, delay, decimals]);
+
+  const barTrack = isDark ? 'bg-zinc-900' : 'bg-slate-200';
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className={`text-[9px] font-bold tracking-widest uppercase ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
+          {label}
+        </span>
+        <span className={`text-sm font-black font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+          <span ref={numRef}>0</span>
+          {suffix}
+        </span>
+      </div>
+      <div className={`h-[3px] mt-1.5 ${barTrack} rounded-none overflow-hidden`}>
+        <div
+          className="h-full bg-blue-500 transition-[width] duration-300 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // ─── TeamCard ───────────────────────────────────────────────────────────────
 
@@ -193,7 +302,7 @@ function TeamCard({
 }: {
   member: TeamMember;
   index: number;
-  c: (typeof LOCALIZED_CONTENT)['en'];
+  c: Content;
   flippedId: string | null;
   onFlip: (id: string | null) => void;
 }) {
@@ -202,7 +311,6 @@ function TeamCard({
   const isMystery = member.id === 'mystery';
   const { isDark } = useTheme();
 
-  // Neutral surface/text/border tokens adapt to light/dark; accent colors stay.
   const cardBg = isDark ? 'bg-zinc-950/40' : 'bg-white/80';
   const textLayerBg = isDark ? 'bg-zinc-950/95' : 'bg-white/95';
   const gradientFrom = isDark ? 'from-zinc-950' : 'from-white';
@@ -220,57 +328,58 @@ function TeamCard({
     ? 'border-yellow-500/20 hover:border-yellow-500/70'
     : isMystery
     ? 'border-red-500/20 hover:border-red-500/70'
-    : `${neutralBorder} hover:border-emerald-500/60`;
+    : `${neutralBorder} hover:border-blue-500/60`;
 
-  const cornerColor = isCEO
-    ? 'border-yellow-500'
-    : isMystery
-    ? 'border-red-500'
-    : 'border-emerald-500';
+  const cornerColor = isCEO ? 'border-yellow-500' : isMystery ? 'border-red-500' : 'border-blue-500';
 
   const nameColor = isCEO
-    ? (isDark ? 'text-yellow-400' : 'text-yellow-600')
+    ? isDark
+      ? 'text-yellow-400'
+      : 'text-yellow-600'
     : isMystery
-    ? (isDark ? 'text-red-400' : 'text-red-600')
-    : (isDark ? 'text-emerald-400' : 'text-emerald-600');
+    ? isDark
+      ? 'text-red-400'
+      : 'text-red-600'
+    : isDark
+    ? 'text-blue-400'
+    : 'text-blue-600';
 
   const badgeClass = isCEO
-    ? (isDark
-        ? 'bg-yellow-950/85 border border-yellow-500/40 text-yellow-400'
-        : 'bg-yellow-50 border border-yellow-500/40 text-yellow-700')
+    ? isDark
+      ? 'bg-yellow-950/85 border border-yellow-500/40 text-yellow-400'
+      : 'bg-yellow-50 border border-yellow-500/40 text-yellow-700'
     : isMystery
-    ? (isDark
-        ? 'bg-red-950/90 border border-red-500/50 text-red-400 animate-pulse'
-        : 'bg-red-50 border border-red-500/50 text-red-600 animate-pulse')
-    : (isDark
-        ? 'bg-emerald-950/85 border border-emerald-500/40 text-emerald-400'
-        : 'bg-emerald-50 border border-emerald-500/40 text-emerald-700');
+    ? isDark
+      ? 'bg-red-950/90 border border-red-500/50 text-red-400 animate-pulse'
+      : 'bg-red-50 border border-red-500/50 text-red-600 animate-pulse'
+    : isDark
+    ? 'bg-blue-950/85 border border-blue-500/40 text-blue-400'
+    : 'bg-blue-50 border border-blue-500/40 text-blue-700';
 
   const techClass = isCEO
-    ? (isDark
-        ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/35 hover:text-yellow-300'
-        : 'border-slate-300 text-slate-600 hover:border-yellow-500/50 hover:text-yellow-600')
+    ? isDark
+      ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/35 hover:text-yellow-300'
+      : 'border-slate-300 text-slate-600 hover:border-yellow-500/50 hover:text-yellow-600'
     : isMystery
     ? 'border-red-500/30 text-red-400/90 font-bold italic'
-    : (isDark
-        ? 'border-zinc-800 text-zinc-400 hover:border-emerald-500/20 hover:text-emerald-300'
-        : 'border-slate-300 text-slate-600 hover:border-emerald-500/40 hover:text-emerald-600');
+    : isDark
+    ? 'border-zinc-800 text-zinc-400 hover:border-blue-500/35 hover:text-blue-300'
+    : 'border-slate-300 text-slate-600 hover:border-blue-500/50 hover:text-blue-600';
 
   const socialClass = isCEO
-    ? (isDark
-        ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
-        : 'border-slate-300 text-slate-600 hover:border-yellow-500/40 hover:text-yellow-600 hover:bg-yellow-500/5')
-    : (isDark
-        ? 'border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-400 hover:bg-emerald-500/5'
-        : 'border-slate-300 text-slate-600 hover:border-emerald-500/40 hover:text-emerald-600 hover:bg-emerald-500/5');
+    ? isDark
+      ? 'border-zinc-800 text-zinc-400 hover:border-yellow-500/40 hover:text-yellow-400 hover:bg-yellow-500/5'
+      : 'border-slate-300 text-slate-600 hover:border-yellow-500/40 hover:text-yellow-600 hover:bg-yellow-500/5'
+    : isDark
+    ? 'border-zinc-800 text-zinc-400 hover:border-blue-500/40 hover:text-blue-400 hover:bg-blue-500/5'
+    : 'border-slate-300 text-slate-600 hover:border-blue-500/40 hover:text-blue-600 hover:bg-blue-500/5';
 
   return (
     <div
-      className={`group relative border ${cardBg} transition-all duration-300 rounded-none w-full overflow-hidden cursor-pointer ${borderBase}`}
-      style={{ pointerEvents: 'auto', height: '380px' }}
+      className={`group relative border ${cardBg} transition-all duration-300 rounded-none w-full h-full overflow-hidden cursor-pointer ${borderBase}`}
+      style={{ pointerEvents: 'auto' }}
       onClick={() => onFlip(flipped ? null : member.id)}
     >
-      {/* Corner brackets */}
       {(['tl', 'tr', 'bl', 'br'] as const).map((pos) => (
         <div
           key={pos}
@@ -283,7 +392,6 @@ function TeamCard({
         />
       ))}
 
-      {/* Flip hint */}
       <div className="absolute top-2 right-2 z-30 pointer-events-none">
         <span className={`text-[7px] font-bold tracking-widest uppercase opacity-40 ${nameColor}`}>
           {flipped ? '← IMG' : 'INFO →'}
@@ -320,7 +428,6 @@ function TeamCard({
           />
         )}
 
-        {/* Bottom gradient + name */}
         <div className={`absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t ${gradientFrom} to-transparent pointer-events-none`} />
         <div className="absolute bottom-0 inset-x-0 p-3 z-10">
           <div className="mb-1">
@@ -328,9 +435,7 @@ function TeamCard({
               [{member.roleBadge}]
             </span>
           </div>
-          <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>
-            {member.name}
-          </h3>
+          <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>{member.name}</h3>
           <p className={`text-[9px] ${mutedText} font-mono mt-0.5`}>
             {isMystery ? '// ID: ANOMALY_NODE' : `// ID: DEV_NODE_0${index + 1}`}
           </p>
@@ -343,15 +448,12 @@ function TeamCard({
         style={{ opacity: flipped ? 1 : 0, pointerEvents: flipped ? 'auto' : 'none' }}
       >
         <div className="space-y-3">
-          {/* Header */}
           <div>
             <span className={`px-2 py-0.5 text-[9px] tracking-wider uppercase font-bold rounded-none ${badgeClass}`}>
               [{member.roleBadge}]
             </span>
             <div className="flex items-baseline gap-2 mt-1.5">
-              <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>
-                {member.name}
-              </h3>
+              <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>{member.name}</h3>
               {!member.hideAge && (
                 <span className={`text-[9px] ${mutedText} font-mono`}>
                   [{member.age} {c.years}]
@@ -363,41 +465,38 @@ function TeamCard({
             </p>
           </div>
 
-          {/* Details */}
           <div className="space-y-1">
             <span className={`text-[9px] font-bold ${mutedText} tracking-wider uppercase block`}>
-              {'// '}{c.experience}
+              {'// '}
+              {c.experience}
             </span>
             {isMystery ? (
               <div className="space-y-1.5">
                 <div className="flex flex-wrap gap-1">
                   {['#WANTED', '#CREATIVE_MIND', '#JOIN_US'].map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-1.5 py-0.5 text-[9px] font-black bg-red-950/50 border border-red-500/40 text-red-400"
-                    >
+                    <span key={tag} className="px-1.5 py-0.5 text-[9px] font-black bg-red-950/50 border border-red-500/40 text-red-400">
                       {tag}
                     </span>
                   ))}
                 </div>
-                <p className={`text-[10px] ${quoteText} leading-relaxed italic border-l-2 border-red-500/40 pl-2 py-0.5 ${isDark ? 'bg-red-950/10' : 'bg-red-50'} font-serif`}>
+                <p
+                  className={`text-[10px] ${quoteText} leading-relaxed italic border-l-2 border-red-500/40 pl-2 py-0.5 ${
+                    isDark ? 'bg-red-950/10' : 'bg-red-50'
+                  } font-serif`}
+                >
                   Bizga kreativ va nostandart fikrlaydigan dev kerak!
                 </p>
-                <p className="text-[9px] text-red-500/40 font-mono">
-                  {'// matrix_integrity: unstable'}
-                </p>
+                <p className="text-[9px] text-red-500/40 font-mono">{'// matrix_integrity: unstable'}</p>
               </div>
             ) : (
-              <p className={`text-[10px] ${bodyText} leading-relaxed font-sans font-light italic`}>
-                {member.details}
-              </p>
+              <p className={`text-[10px] ${bodyText} leading-relaxed font-sans font-light italic`}>{member.details}</p>
             )}
           </div>
 
-          {/* Stack */}
           <div className="space-y-1">
             <span className={`text-[9px] font-bold ${mutedText} tracking-wider uppercase block`}>
-              {'// '}{c.stack}
+              {'// '}
+              {c.stack}
             </span>
             <div className="flex flex-wrap gap-1">
               {member.stack.map((tech) => (
@@ -412,7 +511,6 @@ function TeamCard({
           </div>
         </div>
 
-        {/* Socials pinned to bottom */}
         {isMystery ? (
           <a
             href="https://t.me/aidevix"
@@ -493,142 +591,243 @@ function TeamCard({
   );
 }
 
+// ─── Drift gallery physics ──────────────────────────────────────────────────
+
+const CARD_W = 260;
+const CARD_H = 360;
+const DEPTH_RANGE = 2200;
+const FOCAL = 480;
+const MAX_OFFSET = 620;
+const MAX_VELOCITY = 11;
+const PIN_DISTANCE = 4800;
+const HEADER_OFFSET_FALLBACK = 88;
+
+type GalleryItem = {
+  id: string;
+  member: TeamMember;
+  index: number;
+  x: number;
+  y: number;
+  baseZ: number;
+};
+
+type ItemVisual = { x: number; y: number; scale: number; opacity: number; z: number };
+
 // ─── TeamPage ────────────────────────────────────────────────────────────────
 
 export default function TeamPage() {
   const { lang } = useLang();
   const { isDark } = useTheme();
-  const c = LOCALIZED_CONTENT[lang as keyof typeof LOCALIZED_CONTENT] || LOCALIZED_CONTENT.uz;
+  const c: Content = LOCALIZED_CONTENT[(lang as Lang)] || LOCALIZED_CONTENT.uz;
 
-  // Theme-aware neutral tokens for the terminal shell (accent greens/reds stay).
   const pageBg = isDark ? 'bg-black text-[#e2e6e9]' : 'bg-slate-50 text-slate-800';
-  const headerTerminalBg = isDark ? 'bg-emerald-950/5' : 'bg-emerald-50/60';
+  const headerTerminalBg = isDark ? 'bg-blue-950/10' : 'bg-blue-50/60';
   const mutedText = isDark ? 'text-zinc-500' : 'text-slate-500';
-  const faintText = isDark ? 'text-zinc-600' : 'text-slate-400';
   const bodyText = isDark ? 'text-zinc-400' : 'text-slate-600';
   const titleText = isDark ? 'text-white' : 'text-slate-900';
-  const metricSurface = isDark ? 'border-zinc-800 bg-zinc-950/60' : 'border-slate-200 bg-white/70';
   const encChip = isDark ? 'border-zinc-800 text-zinc-400 bg-zinc-900/40' : 'border-slate-300 text-slate-600 bg-slate-100';
   const hrLine = isDark ? 'bg-zinc-700' : 'bg-slate-300';
   const edgeFrom = isDark ? 'from-black' : 'from-slate-50';
+  const diagPanelBorder = isDark ? 'border-blue-500/25' : 'border-blue-500/25';
+  const diagPanelBg = isDark ? 'bg-blue-950/5' : 'bg-blue-50/40';
 
   const [flippedId, setFlippedId] = useState<string | null>(null);
+  const flippedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    flippedIdRef.current = flippedId;
+  }, [flippedId]);
 
   const avgAge = (
     TEAM_MEMBERS.filter((m) => !m.hideAge).reduce((sum, m) => sum + m.age, 0) /
     TEAM_MEMBERS.filter((m) => !m.hideAge).length
-  ).toFixed(1);
+  );
   const totalTech = Array.from(new Set(TEAM_MEMBERS.flatMap((m) => m.stack))).length;
 
-  // ── Carousel constants ──
-  const RADIUS = 420;
-  const CARD_W = 280;
-  const CARD_H = 380;
-  const DEG_STEP = 360 / TEAM_MEMBERS.length;
+  // ── Drag guard: distinguishes a click from a drag so orbiting doesn't accidentally flip a card ──
+  const dragRef = useRef({ dragging: false, lastX: 0, moved: false, totalMove: 0 });
 
-  // ── Refs ──
-  const autoRotateRef = useRef(0);
-  const currentXRef = useRef(-15);
-  const currentYRef = useRef(0);
-  const targetXRef = useRef(-15);
-  const targetYRef = useRef(0);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const isDraggingRef = useRef(false);
-  const lastMouseXRef = useRef(0);
-  const dragVelocityRef = useRef(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // ── Mouse / touch handlers ──
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isDraggingRef.current) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    targetYRef.current = (x - 0.5) * 30;
-    targetXRef.current = -15 - (y - 0.5) * 20;
-  }, []);
-
-  const handleMouseDown = useCallback((e: MouseEvent) => {
-    isDraggingRef.current = true;
-    lastMouseXRef.current = e.clientX;
-    dragVelocityRef.current = 0;
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  const handleMouseDrag = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current) return;
-    const dx = e.clientX - lastMouseXRef.current;
-    dragVelocityRef.current = dx * 0.3;
-    autoRotateRef.current += dx * 0.15;
-    lastMouseXRef.current = e.clientX;
-  }, []);
-
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    isDraggingRef.current = true;
-    lastMouseXRef.current = e.touches[0].clientX;
-    dragVelocityRef.current = 0;
-  }, []);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDraggingRef.current) return;
-    const dx = e.touches[0].clientX - lastMouseXRef.current;
-    dragVelocityRef.current = dx * 0.3;
-    autoRotateRef.current += dx * 0.15;
-    lastMouseXRef.current = e.touches[0].clientX;
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener('mousemove', handleMouseMove);
-    el.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('mousemove', handleMouseDrag);
-    el.addEventListener('touchstart', handleTouchStart, { passive: true });
-    el.addEventListener('touchmove', handleTouchMove, { passive: true });
-    el.addEventListener('touchend', handleTouchEnd);
-    return () => {
-      el.removeEventListener('mousemove', handleMouseMove);
-      el.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('mousemove', handleMouseDrag);
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-      el.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleMouseMove, handleMouseDown, handleMouseUp, handleMouseDrag, handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  // ── Animation loop — pauses when a card is flipped ──
-  useEffect(() => {
-    function animate() {
-      if (!isDraggingRef.current && !flippedId) {
-        autoRotateRef.current += 0.08;
-        if (Math.abs(dragVelocityRef.current) > 0.01) {
-          autoRotateRef.current += dragVelocityRef.current;
-          dragVelocityRef.current *= 0.95;
-        }
-      }
-      currentXRef.current += (targetXRef.current - currentXRef.current) * 0.05;
-      currentYRef.current += (targetYRef.current - currentYRef.current) * 0.05;
-      if (wrapperRef.current) {
-        wrapperRef.current.style.transform = `rotateX(${currentXRef.current}deg) rotateY(${autoRotateRef.current + currentYRef.current}deg)`;
-      }
-      rafRef.current = requestAnimationFrame(animate);
+  const handleFlip = useCallback((id: string | null) => {
+    if (dragRef.current.moved) {
+      dragRef.current.moved = false;
+      return;
     }
-    rafRef.current = requestAnimationFrame(animate);
+    setFlippedId(id);
+  }, []);
+
+  // ── Gallery items (static scatter positions, computed once) ──
+  const items: GalleryItem[] = useMemo(() => {
+    return TEAM_MEMBERS.map((member, i) => {
+      const angle = (i * 2.618) % (Math.PI * 2);
+      const radius = 0.55 + ((i % 4) + 1) * 0.14;
+      return {
+        id: member.id,
+        member,
+        index: i,
+        x: Math.sin(angle) * radius * MAX_OFFSET,
+        y: Math.cos(angle) * radius * MAX_OFFSET * 0.62,
+        baseZ: (DEPTH_RANGE / TEAM_MEMBERS.length) * i,
+      };
+    });
+  }, []);
+
+  const physicsRef = useRef({
+    zOffset: 0,
+    velocity: 0,
+    isAutoPlay: true,
+    lastInteraction: Date.now(),
+  });
+  const visualRef = useRef<Record<string, ItemVisual>>({});
+  const nodeRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const setNodeRef = useCallback(
+    (id: string) => (el: HTMLDivElement | null) => {
+      nodeRefs.current.set(id, el);
+    },
+    []
+  );
+
+  // ── Pointer / wheel interaction ──
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    const phys = physicsRef.current;
+    const delta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 40);
+    phys.velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, phys.velocity + delta * 0.06));
+    phys.isAutoPlay = false;
+    phys.lastInteraction = Date.now();
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    dragRef.current = { dragging: true, lastX: e.clientX, moved: false, totalMove: 0 };
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag.dragging) return;
+    const dx = e.clientX - drag.lastX;
+    drag.lastX = e.clientX;
+    drag.totalMove += Math.abs(dx);
+    if (drag.totalMove > 4) drag.moved = true;
+
+    const phys = physicsRef.current;
+    phys.velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, phys.velocity + dx * 0.26));
+    phys.isAutoPlay = false;
+    phys.lastInteraction = Date.now();
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    dragRef.current.dragging = false;
+  }, []);
+
+  // ── Pin the gallery during scroll; scroll velocity feeds the drift ──
+  // If your app shell has a fixed/sticky header, "top top" pins the gallery
+  // flush against the very top of the viewport — right under (or behind) that
+  // header. Give your fixed header `id="site-header"` and its real height is
+  // read automatically; otherwise HEADER_OFFSET_FALLBACK is used.
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      const headerEl = document.getElementById('site-header');
+      const headerOffset = headerEl?.offsetHeight || HEADER_OFFSET_FALLBACK;
+
+      const trigger = ScrollTrigger.create({
+        trigger: containerRef.current,
+        start: `top ${headerOffset}px`,
+        end: `+=${PIN_DISTANCE}`,
+        pin: true,
+        pinSpacing: true,
+        anticipatePin: 1,
+        scrub: true,
+        onUpdate: (self) => {
+          const scrollVel = self.getVelocity();
+          const clamped = Math.max(-3, Math.min(3, scrollVel * 0.0007));
+          const phys = physicsRef.current;
+          phys.velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, phys.velocity + clamped));
+          phys.isAutoPlay = false;
+          phys.lastInteraction = Date.now();
+        },
+      });
+
+      const handleResize = () => trigger.refresh();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // ── Animation loop ──
+  useEffect(() => {
+    const reduceMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function tick() {
+      const phys = physicsRef.current;
+      const now = Date.now();
+      const focused = flippedIdRef.current;
+
+      if (!phys.isAutoPlay && !focused && now - phys.lastInteraction > 3000) {
+        phys.isAutoPlay = true;
+      }
+      if (phys.isAutoPlay && !focused && !reduceMotion) {
+        phys.velocity += 0.09;
+      }
+      phys.velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, phys.velocity));
+      phys.velocity *= 0.92;
+      if (!focused) phys.zOffset += phys.velocity;
+
+      items.forEach((item) => {
+        let z = (item.baseZ + phys.zOffset) % DEPTH_RANGE;
+        if (z < 0) z += DEPTH_RANGE;
+        const perspective = FOCAL / (z + 140);
+
+        let targetX = item.x * perspective;
+        let targetY = item.y * perspective;
+        let targetScale = perspective;
+
+        const normalizedZ = z / DEPTH_RANGE;
+        let targetOpacity = 1;
+        if (normalizedZ < 0.18) targetOpacity = normalizedZ / 0.18;
+        else if (normalizedZ > 0.68) targetOpacity = 1 - (normalizedZ - 0.68) / 0.32;
+        targetOpacity = Math.max(0, Math.min(1, targetOpacity));
+
+        const isFocused = focused === item.id;
+        if (isFocused) {
+          targetX = 0;
+          targetY = -20;
+          targetScale = 1.2;
+          targetOpacity = 1;
+        }
+
+        let visual = visualRef.current[item.id];
+        if (!visual) {
+          visual = { x: targetX, y: targetY, scale: targetScale, opacity: targetOpacity, z };
+          visualRef.current[item.id] = visual;
+        }
+        visual.x += (targetX - visual.x) * 0.05;
+        visual.y += (targetY - visual.y) * 0.05;
+        visual.scale += (targetScale - visual.scale) * 0.05;
+        visual.opacity += (targetOpacity - visual.opacity) * 0.07;
+        visual.z = z;
+
+        const node = nodeRefs.current.get(item.id);
+        if (node) {
+          node.style.transform = `translate3d(${visual.x.toFixed(1)}px, ${visual.y.toFixed(1)}px, 0) scale(${visual.scale.toFixed(3)})`;
+          node.style.opacity = visual.opacity.toFixed(3);
+          node.style.zIndex = String(isFocused ? 9999 : Math.round(2000 - visual.z));
+          node.style.pointerEvents = visual.opacity < 0.06 ? 'none' : 'auto';
+        }
+      });
+
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [flippedId]);
+  }, [items]);
 
   return (
     <main className={`relative min-h-screen w-full ${pageBg} overflow-hidden rounded-none select-none font-mono`}>
@@ -636,67 +835,70 @@ export default function TeamPage() {
       <div
         className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]"
         style={{
-          backgroundImage: `linear-gradient(to right, #10b981 1px, transparent 1px), linear-gradient(to bottom, #10b981 1px, transparent 1px)`,
+          backgroundImage:
+            'linear-gradient(to right, #3b82f6 1px, transparent 1px), linear-gradient(to bottom, #3b82f6 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }}
       />
 
       {/* CRT Scanlines */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.015] bg-[linear-gradient(to_bottom,rgba(16,185,129,0.3)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_4px]" />
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.015] bg-[linear-gradient(to_bottom,rgba(59,130,246,0.3)_50%,rgba(0,0,0,0)_50%)] bg-[size:100%_4px]" />
 
       {/* Ambient Glows */}
       <div className="absolute inset-x-0 top-0 h-[45rem] pointer-events-none z-0">
-        <div className="absolute left-[10%] top-[-10%] w-[35%] h-[25rem] rounded-none blur-[150px] opacity-[0.07] bg-emerald-500" />
-        <div className="absolute right-[10%] top-[5%] w-[30%] h-[20rem] rounded-none blur-[150px] opacity-[0.04] bg-emerald-600" />
+        <div className="absolute left-[10%] top-[-10%] w-[35%] h-[25rem] rounded-none blur-[150px] opacity-[0.08] bg-blue-500" />
+        <div className="absolute right-[10%] top-[5%] w-[30%] h-[20rem] rounded-none blur-[150px] opacity-[0.05] bg-blue-700" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-
         {/* Header Terminal */}
-        <div className={`border border-emerald-500/20 ${headerTerminalBg} p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
+        <div
+          className={`border border-blue-500/20 ${headerTerminalBg} p-4 sm:p-5 rounded-none mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}
+        >
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
-              <span className="h-2 w-2 animate-ping bg-emerald-500 rounded-none" />
+            <div className="flex items-center gap-2 text-xs text-blue-400 font-bold">
+              <span className="h-2 w-2 animate-ping bg-blue-500 rounded-none" />
               <span>{c.status}</span>
             </div>
             <p className={`text-[10px] ${mutedText} uppercase tracking-widest leading-none`}>{c.systemLogs}</p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-            <span className="border border-emerald-500/35 px-2.5 py-1 text-emerald-400 bg-emerald-950/20 rounded-none">GRID: COMPRESSED</span>
+            <span className="border border-blue-500/35 px-2.5 py-1 text-blue-400 bg-blue-950/20 rounded-none">GRID: COMPRESSED</span>
             <span className={`border px-2.5 py-1 rounded-none ${encChip}`}>ENCRYPTION: AES-256</span>
           </div>
         </div>
 
-        {/* Title */}
-        <div className="mb-14 border-b border-emerald-500/10 pb-8">
-          <h1 className={`text-3xl sm:text-5xl lg:text-7xl font-extrabold italic uppercase tracking-wider ${titleText}`}>
-            {c.title}
-          </h1>
-          <p className="mt-3 text-xs sm:text-sm text-emerald-500/70 font-semibold tracking-wider uppercase">
-            {'// '}{c.subtitle}
-          </p>
-          <p className={`mt-4 max-w-2xl text-xs sm:text-sm ${bodyText} leading-relaxed font-sans font-light`}>
-            {c.heroDesc}
-          </p>
-        </div>
+        {/* Hero + Diagnostics */}
+        <div className="mb-14 border-b border-blue-500/10 pb-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-end">
+          <div className="lg:col-span-7">
+            <h1 className={`text-3xl sm:text-5xl lg:text-6xl font-extrabold italic uppercase tracking-wider ${titleText}`}>
+              <DecodeText text={c.title} />
+            </h1>
+            <p className="mt-3 text-xs sm:text-sm text-blue-500/70 font-semibold tracking-wider uppercase">
+              {'// '}
+              {c.subtitle}
+            </p>
+            <p className={`mt-4 max-w-xl text-xs sm:text-sm ${bodyText} leading-relaxed font-sans font-light`}>{c.heroDesc}</p>
+          </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-          {[
-            { label: c.agents, value: `[0${TEAM_MEMBERS.length}]`, desc: 'Active human nodes' },
-            { label: 'AVERAGE_AGE', value: `[${avgAge}]`, desc: 'Mean crew age' },
-            { label: c.tech, value: `[${totalTech}+]`, desc: 'Direct stack elements' },
-            { label: 'NODE_INTEGRITY', value: '[100%]', desc: 'No latency detected' },
-          ].map((m, idx) => (
-            <div
-              key={idx}
-              className={`border ${metricSurface} p-4 sm:p-5 rounded-none flex flex-col justify-between hover:border-emerald-500/30 transition-colors duration-300`}
-            >
-              <span className={`text-[9px] sm:text-[10px] font-bold ${mutedText} tracking-wider uppercase`}>{m.label}</span>
-              <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'} mt-2 font-mono`}>{m.value}</span>
-              <span className={`text-[9px] ${faintText} mt-1 font-sans`}>{m.desc}</span>
+          <div className={`lg:col-span-5 border ${diagPanelBorder} ${diagPanelBg} rounded-none p-4 sm:p-5`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                {'// '}
+                {c.diagLabel}
+              </span>
+              <span className={`flex items-center gap-1.5 text-[9px] font-mono ${isDark ? 'text-blue-500/50' : 'text-blue-600/60'}`}>
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-none animate-pulse" />
+                LIVE
+              </span>
             </div>
-          ))}
+            <div className="space-y-3.5">
+              <StatRow label={c.agents} value={TEAM_MEMBERS.length} max={12} isDark={isDark} delay={0} />
+              <StatRow label={c.avgAge} value={avgAge} max={20} suffix={` ${c.years}`} decimals={1} isDark={isDark} delay={0.12} />
+              <StatRow label={c.tech} value={totalTech} max={30} suffix="+" isDark={isDark} delay={0.24} />
+              <StatRow label={c.integrity} value={100} max={100} suffix="%" isDark={isDark} delay={0.36} />
+            </div>
+          </div>
         </div>
 
         {/* Drag hint */}
@@ -706,71 +908,53 @@ export default function TeamPage() {
           <span className={`w-8 h-px ${hrLine}`} />
         </div>
 
-        {/* Carousel viewport */}
+        {/* Drift gallery viewport */}
         <div
           ref={containerRef}
-          className="relative w-full overflow-hidden cursor-grab active:cursor-grabbing"
-          style={{ height: `${CARD_H + 400}px`, perspective: '1200px' }}
+          className="relative w-full overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
+          style={{ height: `${CARD_H + 380}px` }}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
-          {/* Scene origin */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              width: 0,
-              height: 0,
-              transformStyle: 'preserve-3d',
-            }}
-          >
-            {/* Rotating wrapper */}
+          {flippedId && (
             <div
-              ref={wrapperRef}
+              className="absolute inset-0"
+              style={{ zIndex: 20 }}
+              onClick={() => handleFlip(null)}
+            />
+          )}
+
+          {items.map((item) => (
+            <div
+              key={item.id}
+              ref={setNodeRef(item.id)}
+              className="absolute will-change-transform"
               style={{
-                width: `${CARD_W}px`,
-                height: `${CARD_H + 200}px`,
-                position: 'absolute',
-                left: `-${CARD_W / 2}px`,
-                top: `-${CARD_H / 2}px`,
-                transformStyle: 'preserve-3d',
-                transform: 'rotateX(-15deg) rotateY(0deg)',
+                left: '50%',
+                top: '50%',
+                width: CARD_W,
+                height: CARD_H,
+                marginLeft: -CARD_W / 2,
+                marginTop: -CARD_H / 2,
               }}
             >
-              {TEAM_MEMBERS.map((member, i) => (
-                <div
-                  key={member.id}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    transform: `rotateY(${DEG_STEP * i}deg) translateZ(${RADIUS}px) translateY(-80px)`,
-                    transformStyle: 'preserve-3d',
-                    backfaceVisibility: 'visible',
-                    width: `${CARD_W}px`,
-                    height: `${CARD_H}px`,
-                  }}
-                >
-                  <TeamCard
-                    member={member}
-                    index={i}
-                    c={c}
-                    flippedId={flippedId}
-                    onFlip={setFlippedId}
-                  />
-                </div>
-              ))}
+              <TeamCard member={item.member} index={item.index} c={c} flippedId={flippedId} onFlip={handleFlip} />
             </div>
-          </div>
+          ))}
 
           {/* Edge fades */}
-          <div className={`absolute inset-y-0 left-0 w-24 bg-gradient-to-r ${edgeFrom} to-transparent pointer-events-none z-20`} />
-          <div className={`absolute inset-y-0 right-0 w-24 bg-gradient-to-l ${edgeFrom} to-transparent pointer-events-none z-20`} />
-          <div className={`absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t ${edgeFrom} to-transparent pointer-events-none z-20`} />
+          <div className={`absolute inset-y-0 left-0 w-24 bg-gradient-to-r ${edgeFrom} to-transparent pointer-events-none z-30`} />
+          <div className={`absolute inset-y-0 right-0 w-24 bg-gradient-to-l ${edgeFrom} to-transparent pointer-events-none z-30`} />
+          <div className={`absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t ${edgeFrom} to-transparent pointer-events-none z-30`} />
         </div>
 
         {/* Footer */}
-        <div className={`mt-30 border-t border-emerald-500/10 pt-8 text-center text-[10px] ${faintText} space-y-2`}>
+        <div className={`mt-30 border-t border-blue-500/10 pt-8 text-center text-[10px] ${isDark ? 'text-zinc-600' : 'text-slate-400'} space-y-2`}>
           <p className="font-mono">{'// END_OF_FILE // SYSTEM_ACTIVE // ALL_NODES_OPERATIONAL: TRUE'}</p>
-          <p className="font-mono text-emerald-500/40 animate-pulse">AIDEVIX PLATFORM CORE HUMAN ASSETS V2.06</p>
+          <p className="font-mono text-blue-500/40 animate-pulse">AIDEVIX PLATFORM CORE HUMAN ASSETS V3.0</p>
         </div>
       </div>
     </main>

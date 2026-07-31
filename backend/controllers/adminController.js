@@ -169,24 +169,29 @@ const updateUser = async (req, res) => {
   }
 };
 
-/** @desc  Foydalanuvchini o'chirish | @route DELETE /api/admin/users/:id | @access Admin */
+/** @desc  Foydalanuvchini o'chirish (soft-delete + anonymize) | @route DELETE /api/admin/users/:id | @access Admin */
 const deleteUser = async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ success: false, message: 'O\'zingizni o\'chira olmaysiz' });
     }
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    // Soft-delete + anonymize (GDPR-compliant, same as self-deletion)
+    const { softDeleteUser } = require('../utils/accountDeletion');
+    await softDeleteUser(user._id, `admin:${req.user.username}`);
 
     logger.info('admin_user_delete', {
       adminId: String(req.user._id),
       adminUsername: req.user.username,
       deletedUserId: req.params.id,
       deletedUsername: user.username,
+      method: 'soft-delete',
     });
 
-    res.json({ success: true, message: 'Foydalanuvchi o\'chirildi' });
+    res.json({ success: true, message: 'Foydalanuvchi o\'chirildi va anonimlashtirildi' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Foydalanuvchini o\'chirishda xato' });
   }
@@ -320,7 +325,8 @@ const sendTelegramMessage = async (req, res) => {
     res.json({ success: true, message: `@${channel} kanaliga yuborildi`, data: { messageId: tgRes.data.result?.message_id } });
   } catch (err) {
     const detail = err.response?.data?.description || err.message;
-    res.status(500).json({ success: false, message: `Telegram xato: ${detail}` });
+    console.error('[admin] sendTelegramMessage error:', detail);
+    res.status(500).json({ success: false, message: 'Telegram xabar yuborishda xatolik.' });
   }
 };
 

@@ -35,7 +35,7 @@ const enrollCourse = async (req, res) => {
   } catch (err) {
     if (err.code === 11000)
       return res.status(400).json({ success: false, message: 'Siz bu kursga allaqachon yozilgansiz' });
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Kursga yozilishda xatolik.' });
   }
 };
 
@@ -49,7 +49,7 @@ const getMyEnrollments = async (req, res) => {
 
     res.json({ success: true, data: { enrollments } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Ma\'lumotlarni olishda xatolik.' });
   }
 };
 
@@ -105,7 +105,8 @@ const markVideoWatched = async (req, res) => {
       data: { progressPercent: enrollment.progressPercent, isCompleted: enrollment.isCompleted, newBadges },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[enrollment] markVideoWatched:', err.message);
+    res.status(500).json({ success: false, message: 'Video belgilashda xatolik.' });
   }
 };
 
@@ -127,7 +128,7 @@ const getCourseProgress = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Progress olishda xatolik.' });
   }
 };
 
@@ -211,7 +212,8 @@ const continueLearning = async (req, res) => {
 
     res.json({ success: true, data: null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[enrollment] continueLearning:', err.message);
+    res.status(500).json({ success: false, message: 'Ma\'lumotlarni olishda xatolik.' });
   }
 };
 

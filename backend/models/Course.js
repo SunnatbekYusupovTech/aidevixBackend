@@ -109,6 +109,15 @@ const courseSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
+  // SEO uchun alohida meta ma'lumotlar
+  metaDescription: {
+    type: String,
+    trim: true,
+  },
+  metaKeywords: {
+    type: [String],
+    default: [],
+  },
 }, {
   timestamps: true,
 });

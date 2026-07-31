@@ -79,7 +79,8 @@ const getAllCourses = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[courseController] getAllCourses:', error.message);
+    res.status(500).json({ success: false, message: 'Kurslarni olishda xatolik.' });
   }
 };
 
@@ -105,7 +106,7 @@ const getTopCourses = async (req, res) => {
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Top kurslarni olishda xatolik.' });
   }
 };
 
@@ -133,7 +134,7 @@ const getCategories = async (req, res) => {
 
     res.json({ success: true, data: { categories: result } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Kategoriyalarni olishda xatolik.' });
   }
 };
 
@@ -177,7 +178,8 @@ const getCourse = async (req, res) => {
 
     res.json({ success: true, data: { course } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[courseController] getCourse:', error.message);
+    res.status(500).json({ success: false, message: 'Kurs ma\'lumotlarini olishda xatolik.' });
   }
 };
 
@@ -212,7 +214,7 @@ const getRecommendedCourses = async (req, res) => {
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Tavsiya etilgan kurslarni olishda xatolik.' });
   }
 };
 
@@ -226,6 +228,7 @@ const createCourse = async (req, res) => {
     const {
       title, description, thumbnail, price, category,
       level, isFree, rating, ratingCount, studentsCount,
+      metaDescription, metaKeywords,
     } = req.body;
 
     if (!title || !description || price === undefined) {
@@ -246,6 +249,8 @@ const createCourse = async (req, res) => {
       rating:        rating || 0,
       ratingCount:   ratingCount || 0,
       studentsCount: studentsCount || 0,
+      metaDescription: metaDescription || undefined,
+      metaKeywords:  metaKeywords || undefined,
       instructor:    req.user._id,
     });
 
@@ -255,7 +260,8 @@ const createCourse = async (req, res) => {
       data: { course },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[courseController] createCourse:', error.message);
+    res.status(500).json({ success: false, message: 'Kurs yaratishda xatolik.' });
   }
 };
 
@@ -269,6 +275,7 @@ const updateCourse = async (req, res) => {
     const allowed = [
       'title', 'description', 'thumbnail', 'price', 'category',
       'level', 'isFree', 'isActive', 'rating', 'ratingCount', 'studentsCount',
+      'metaDescription', 'metaKeywords'
     ];
 
     const update = {};
@@ -286,7 +293,7 @@ const updateCourse = async (req, res) => {
 
     res.json({ success: true, message: 'Kurs yangilandi', data: { course } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Kurs yangilashda xatolik.' });
   }
 };
 
@@ -303,7 +310,7 @@ const deleteCourse = async (req, res) => {
     await course.deleteOne();
     res.json({ success: true, message: 'Kurs o\'chirildi' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Kurs o\'chirishda xatolik.' });
   }
 };
 
@@ -432,7 +439,8 @@ const getUserRecommendedCourses = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[courseController] getUserRecommendedCourses:', error.message);
+    res.status(500).json({ success: false, message: 'Tavsiyalarni olishda xatolik.' });
   }
 };
 
@@ -458,7 +466,7 @@ const getAutocomplete = async (req, res) => {
 
     res.json({ success: true, data: { suggestions } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Qidiruvda xatolik.' });
   }
 };
 
@@ -496,7 +504,7 @@ const getFilterCounts = async (req, res) => {
       data: { categories, levels, free: freeCount, paid: paidCount },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Filter ma\'lumotlarini olishda xatolik.' });
   }
 };
 
@@ -516,7 +524,7 @@ const getSitemapCourses = async (req, res) => {
 
     res.json({ success: true, data: { courses } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Sitemap ma\'lumotlarini olishda xatolik.' });
   }
 };
 

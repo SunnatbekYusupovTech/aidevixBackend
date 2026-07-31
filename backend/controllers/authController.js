@@ -55,15 +55,7 @@ const authDebug = (...args) => {
   }
 };
 
-const calculateRank = (xp) => {
-  if (xp >= 50000) return 'LEGEND';
-  if (xp >= 20000) return 'MASTER';
-  if (xp >= 10000) return 'SENIOR';
-  if (xp >= 5000) return 'MIDDLE';
-  if (xp >= 2000) return 'JUNIOR';
-  if (xp >= 500) return 'CANDIDATE';
-  return 'AMATEUR';
-};
+const calculateRank = require('../utils/calculateRank');
 
 // Require 8+ chars, upper, lower, digit, special — any printable special char
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,128}$/;

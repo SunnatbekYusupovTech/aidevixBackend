@@ -23,11 +23,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://aidevix.uz'),
   title: {
     template: '%s | Aidevix',
-    default: 'Aidevix - O\'zbek tilida dasturlashni o\'rganing',
+    default: 'Aidevix — Online dasturlash kurslari va IT ta\'lim platformasi',
   },
-  description: 'Aidevix - O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi. React, Node.js, Python, Mobile va boshqa yo\'nalishlarda sifatli kurslar.',
+  description: 'Online dasturlash kurslari — Aidevix platformasida O\'zbek tilida sifatli ta\'lim o\'rganing. React, Node.js, Python, AI va boshqa IT yo\'nalishlarda zamonaviy darslar.',
   keywords: [
-    'aidevix', 'dasturlash kurslari', 'dasturlash', 'online ta\'lim', 'uzbek tilida',
+    'online dasturlash kurslari', 'aidevix', 'dasturlash', 'online ta\'lim', 'uzbek tilida',
     'react', 'nextjs', 'javascript', 'backend o\'rganish', 'frontend kurslar',
     'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish'
   ],
@@ -53,14 +53,14 @@ export const metadata: Metadata = {
     locale: 'uz_UZ',
     url: 'https://aidevix.uz',
     siteName: 'Aidevix',
-    title: 'Aidevix - Kelajakni kodlashni boshlang',
-    description: 'O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi.',
+    title: 'Aidevix — Online dasturlash kurslari',
+    description: 'Online dasturlash kurslari va IT texnologiyalar O\'zbek tilida.',
     images: [{ url: '/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aidevix - Kelajakni kodlashni boshlang',
-    description: 'O\'zbek tilidagi eng yirik va zamonaviy dasturlash o\'quv platformasi.',
+    title: 'Aidevix — Online dasturlash kurslari',
+    description: 'Online dasturlash kurslari va IT texnologiyalar O\'zbek tilida.',
     images: ['/Logo.jpg'],
   },
   robots: {

@@ -6,16 +6,8 @@ const QuizResult = require('../models/QuizResult');
 const SpacedRepetitionCard = require('../models/SpacedRepetitionCard');
 const { awardBadges } = require('../utils/badgeService');
 
-// Rank hisoblash (authController.js dagi bilan bir xil bo'lishi kerak)
-const calculateRank = (xp) => {
-  if (xp >= 50000) return 'LEGEND';
-  if (xp >= 20000) return 'MASTER';
-  if (xp >= 10000) return 'SENIOR';
-  if (xp >= 5000) return 'MIDDLE';
-  if (xp >= 2000) return 'JUNIOR';
-  if (xp >= 500) return 'CANDIDATE';
-  return 'AMATEUR';
-};
+// Rank hisoblash (shared utility — single source of truth)
+const calculateRank = require('../utils/calculateRank');
 
 /**
  * @desc  Foydalanuvchi statsini olish
@@ -437,7 +429,7 @@ const updateProfile = async (req, res) => {
     });
   } catch (err) {
     console.error('UPDATE_PROFILE_ERROR:', err);
-    res.status(500).json({ success: false, message: 'Profilni yangilashda xatolik: ' + err.message });
+    res.status(500).json({ success: false, message: 'Profilni yangilashda xatolik.' });
   }
 };
 

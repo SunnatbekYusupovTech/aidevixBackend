@@ -44,6 +44,7 @@ const getCourseVideos = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('[videoController] getCourseVideos:', error.message);
     res.status(500).json({
       success: false,
       message: 'Error fetching videos.',
@@ -128,6 +129,7 @@ const getVideo = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('[videoController] getVideo:', error.message);
     res.status(500).json({
       success: false,
       message: 'Error fetching video.',
@@ -414,7 +416,8 @@ const askQuestion = async (req, res) => {
 
     res.status(201).json({ success: true, data: { question: qa } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] askQuestion:', error.message);
+    res.status(500).json({ success: false, message: 'Savolni yuborishda xatolik.' });
   }
 };
 
@@ -460,7 +463,8 @@ const getVideoQuestions = async (req, res) => {
       data: { questions: threaded, total, page, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] getVideoQuestions:', error.message);
+    res.status(500).json({ success: false, message: 'Savollarni olishda xatolik.' });
   }
 };
 
@@ -492,7 +496,8 @@ const answerQuestion = async (req, res) => {
 
     res.json({ success: true, message: 'Savol javoblandi', data: { question: qa } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] answerQuestion:', error.message);
+    res.status(500).json({ success: false, message: 'Javob berishda xatolik.' });
   }
 };
 
@@ -525,7 +530,8 @@ const upvoteQuestion = async (req, res) => {
       data: { upvoted, upvotesCount: qa.upvotes.length },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] upvoteQuestion:', error.message);
+    return res.status(500).json({ success: false, message: 'Ovoz berishda xatolik.' });
   }
 };
 
@@ -542,7 +548,8 @@ const markBestAnswer = async (req, res) => {
     await target.save();
     return res.json({ success: true, message: 'Best answer belgilandi' });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] markBestAnswer:', error.message);
+    return res.status(500).json({ success: false, message: 'Best answer belgilashda xatolik.' });
   }
 };
 
@@ -721,7 +728,8 @@ const searchVideos = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[videoController] searchVideos:', error.message);
+    res.status(500).json({ success: false, message: 'Qidiruvda xatolik.' });
   }
 };
 
@@ -747,10 +755,10 @@ const getTopVideos = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('[videoController] getTopVideos:', error.message);
     res.status(500).json({
       success: false,
       message: 'Error fetching top videos.',
-      error: error.message
     });
   }
 };

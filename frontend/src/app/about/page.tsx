@@ -3,11 +3,11 @@ import AboutClient from './AboutClient';
 import { SSR_API_BASE_URL } from '@/utils/constants';
 
 export const metadata: Metadata = {
-  title: 'Biz haqimizda',
-  description: 'Aidevix — O\'zbek tilidagi eng yirik AI va dasturlash o\'quv platformasi. Bizning missiya va jamoamiz haqida.',
+  title: 'Biz haqimizda - Aidevix | O\'zbekistonning Yetakchi IT va AI Platformasi',
+  description: 'Aidevix loyihasi nima, missiyasi qanday va uning ortida kimlar turadi? Jamoamiz, maqsadlarimiz va O\'zbekistonda IT hamda Sun\'iy intellekt kelajagi haqida to\'liq ma\'lumot.',
   alternates: { canonical: '/about' },
   openGraph: {
-    title: 'Aidevix — O\'zbek dasturchilarining yangi avlodini tarbiyalaymiz',
+    title: 'Biz haqimizda - Aidevix | IT loyihasi va Jamoa',
     description: 'Bizning hikoyamiz, qiymatlarimiz va missiyamiz.',
   },
 };

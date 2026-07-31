@@ -167,6 +167,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...ruUrls,
     ...blogUrls,
     ...courseUrls,
-    ...profileUrls,
+    // Profil sahifalari SEO sifatini pasaytirgani (thin-content) uchun 
+    // sitemap'dan olib tashlandi, faqat sayt ichidagi linklar orqali topiladi.
+    // ...profileUrls,
   ];
 }

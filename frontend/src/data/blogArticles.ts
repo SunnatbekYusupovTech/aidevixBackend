@@ -247,9 +247,9 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   },
   {
     slug: 'chatgpt-nima-qanday-foydalanish',
-    title: 'ChatGPT nima va undan qanday foydalanish kerak',
+    title: 'ChatGPT\'dan qanday to\'g\'ri foydalanish kerak? | To\'liq qo\'llanma',
     description:
-      "ChatGPT nima, qanday ishlaydi va undan o'qish, ish va dasturlashda qanday foydalanish mumkin. O'zbek tilida to'liq boshlang'ich qo'llanma.",
+      "Siz ChatGPT\'dan to'g'ri foydalanyapsizmi? Ushbu o'quv qo'llanmada AI'ni ishda, o'qish va dasturlashda 10 barobar samarali ishlatish sirlarini o'rganasiz.",
     keywords: [
       'chatgpt', 'chatgpt nima', 'chatgpt qanday ishlatiladi', 'chatgpt o\'zbekcha',
       'chatgpt o\'zbek tilida', 'chat gpt', 'openai', 'ai chat', 'suniy intellekt chat',

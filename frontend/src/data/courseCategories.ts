@@ -86,9 +86,9 @@ export const COURSE_CATEGORIES: CourseCategoryMeta[] = [
   {
     slug: 'security',
     label: 'Kiberxavfsizlik',
-    title: 'Kiberxavfsizlik kurslari — o\'zbek tilida',
+    title: 'Kiberxavfsizlik Kurslari: O\'zbekistonda Etik Xaker Bo\'ling',
     description:
-      "Kiberxavfsizlik bo'yicha o'zbek tilidagi kurslar: veb-xavfsizlik, etik xakerlik asoslari va himoya usullari. Talab yuqori sohani o'rganing.",
+      "2026-yilning eng talab yuqori sohasi — kiberxavfsizlikni o'zbek tilida o'rganing! Veb-xavfsizlik, etik xakerlik va tizim himoyasi sirlarini amaliyotda sinab ko'ring.",
     keywords: ['kiberxavfsizlik kurslari', 'cyber security o\'zbek', 'etik xakerlik', 'veb xavfsizlik', 'axborot xavfsizligi kurs'],
     intro:
       "Eng talab yuqori sohalardan biri — kiberxavfsizlikni o'zbek tilida o'rganing. Himoya usullari va xavfsiz dasturlash.",

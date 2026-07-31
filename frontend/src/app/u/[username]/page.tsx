@@ -66,18 +66,22 @@ export default async function PublicProfilePage({ params }: { params: { username
   // for the username query.
   const personSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'Person',
-    name: fullName,
-    alternateName: profile.user.username,
+    '@type': 'ProfilePage',
     url,
-    ...(profile.user.avatar && { image: profile.user.avatar }),
-    ...(profile.stats?.bio && { description: profile.stats.bio }),
-    jobTitle: `Level ${profile.stats.level}${profile.stats.title ? ` · ${profile.stats.title}` : ''}`,
-    memberOf: {
-      '@type': 'Organization',
-      name: 'Aidevix',
-      url: 'https://aidevix.uz',
-    },
+    mainEntity: {
+      '@type': 'Person',
+      name: fullName,
+      alternateName: profile.user.username,
+      url,
+      ...(profile.user.avatar && { image: profile.user.avatar }),
+      ...(profile.stats?.bio && { description: profile.stats.bio }),
+      jobTitle: `Level ${profile.stats.level}${profile.stats.title ? ` · ${profile.stats.title}` : ''}`,
+      memberOf: {
+        '@type': 'Organization',
+        name: 'Aidevix',
+        url: 'https://aidevix.uz',
+      },
+    }
   };
 
   const breadcrumbSchema = {

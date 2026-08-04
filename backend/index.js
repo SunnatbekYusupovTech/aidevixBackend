@@ -481,6 +481,10 @@ const io = new Server(server, {
   }
 });
 
+// Battle Sockets
+const setupBattleSockets = require('./sockets/battleSocket');
+setupBattleSockets(io);
+
 const getFormattedTime = (dateStr) => {
   if (!dateStr) return 'Noma\'lum';
   const d = new Date(dateStr);

@@ -8,28 +8,14 @@ import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 import CourseCard from '@/components/courses/CourseCard';
 import VideoCard from '@/components/videos/VideoCard';
-import ProBanner from '@/components/home/ProBanner';
+
 // Below-the-fold home widgets — split out of the initial bundle to cut
 // mobile main-thread/JS parse cost (LCP). ContinueWatching & RecommendedForYou
 // render null for anonymous users, so ssr:false removes them entirely from the
 // (Google-measured) logged-out visitor's bundle with zero layout shift.
 const ContinueWatching = dynamic(() => import('@/components/home/ContinueWatching'), { ssr: false });
 const RecommendedForYou = dynamic(() => import('@/components/home/RecommendedForYou'), { ssr: false });
-// AiNewsTabs fetches its news client-side anyway; ssr:false + a height-matched
-// placeholder keeps CLS unchanged while deferring its framer-motion weight.
-const AiNewsTabs = dynamic(() => import('@/components/home/AiNewsTabs'), {
-  ssr: false,
-  loading: () => (
-    <section
-      aria-hidden="true"
-      className="relative w-full border-t border-b border-platinum-200/40 py-20 dark:border-platinum-800/40 sm:py-24"
-    >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="h-[26rem] w-full animate-pulse rounded-none bg-white/5" />
-      </div>
-    </section>
-  ),
-});
+
 // Recharts alohida chunk'ga ajratildi — boshlang'ich home bundle'iga tushmaydi.
 const WeeklyXpChart = dynamic(() => import('@/components/home/WeeklyXpChart'), {
   ssr: false,
@@ -1030,11 +1016,49 @@ export default function HomeClient({
         </div>
       </section>
 
-      <AiNewsTabs
-        isDark={isDark}
-        mutedText={mutedText}
-        t={t}
-      />
+      {/* Platform Features Grid to drive traffic to gamified sections */}
+      <section data-direction="up" className="reveal-section px-3 py-16 sm:px-4 sm:py-20 relative border-y border-white/5 bg-[#050810]/50">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">Platformaning <span className="text-indigo-400">interaktiv</span> imkoniyatlari</h2>
+            <p className="text-slate-400">O'qishdan zerikmaysiz. Boshqalar bilan bellashing, muhokama qiling va amaliyot o'tang.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Battle */}
+            <Link href="/battle" className="group p-6 rounded-2xl bg-gradient-to-b from-[#111726] to-[#0A0E1A] border border-white/10 hover:border-indigo-500/40 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-indigo-500/20" />
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-2xl mb-4 border border-indigo-500/30">⚔️</div>
+              <h3 className="text-xl font-bold text-white mb-2">Code Battle</h3>
+              <p className="text-sm text-slate-400">Boshqa dasturchilar bilan yuzma-yuz real vaqtda kod yozish bo'yicha bellashing.</p>
+            </Link>
+
+            {/* Forum */}
+            <Link href="/forum" className="group p-6 rounded-2xl bg-gradient-to-b from-[#111726] to-[#0A0E1A] border border-white/10 hover:border-emerald-500/40 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-emerald-500/20" />
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-2xl mb-4 border border-emerald-500/30">💬</div>
+              <h3 className="text-xl font-bold text-white mb-2">Q&A Forum</h3>
+              <p className="text-sm text-slate-400">Xatoliklarga duch keldingizmi? Savol bering, tajribalilardan javob oling va XP yig'ing.</p>
+            </Link>
+
+            {/* Prompts */}
+            <Link href="/prompts" className="group p-6 rounded-2xl bg-gradient-to-b from-[#111726] to-[#0A0E1A] border border-white/10 hover:border-amber-500/40 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-amber-500/20" />
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl mb-4 border border-amber-500/30">🤖</div>
+              <h3 className="text-xl font-bold text-white mb-2">Top Prompts</h3>
+              <p className="text-sm text-slate-400">ChatGPT, Claude va boshqa AI'lar uchun maxsus eng zo'r promptlar jamlanmasi.</p>
+            </Link>
+
+            {/* Playground */}
+            <Link href="/playground" className="group p-6 rounded-2xl bg-gradient-to-b from-[#111726] to-[#0A0E1A] border border-white/10 hover:border-pink-500/40 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-pink-500/20" />
+              <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-2xl mb-4 border border-pink-500/30">⚡</div>
+              <h3 className="text-xl font-bold text-white mb-2">Playgrounds</h3>
+              <p className="text-sm text-slate-400">Brauzerning o'zida HTML, JS, React yoki Python kodlarini yozib test qiling.</p>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Continue Learning Widget — faqat login qilgan foydalanuvchilar uchun */}
       {isLoggedIn && continueLearning && (
@@ -1158,9 +1182,7 @@ export default function HomeClient({
         </div>
       </section>
 
-      <section data-direction="up" className="py-20 reveal-section">
-        <ProBanner />
-      </section>
+
 
 
 

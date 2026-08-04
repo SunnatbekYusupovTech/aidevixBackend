@@ -1,155 +1,82 @@
-# Aidevix — Professional AI & Dasturlash O'quv Platformasi
+# Aidevix — Professional IT and Programming Education Platform
 
-O'zbek tilidagi zamonaviy IT o'quv platformasi. Claude, Cursor, Codex va AI tools bo'yicha kurslar, kunlik challengelar, prompt kutubxonasi va community.
+![Aidevix Banner](https://aidevix.uz/Logo.jpg)
 
-**Live:** [aidevix.uz](https://aidevix.uz) | **Bot:** [@aidevix_bot](https://t.me/aidevix_bot) | **Kanal:** [@aidevix](https://t.me/aidevix)
+Aidevix is the largest and most modern programming education platform in Uzbekistan, designed to teach cutting-edge technologies like React, Node.js, Python, and AI through interactive tools, gamification, and real-time coding challenges.
 
----
+## 🌟 Key Features
+- **Courses & Interactive Learning:** Video lessons, text materials, and real-world projects.
+- **Q&A Forum:** A highly engaging community for students to ask questions and earn XP.
+- **Code Battle Arena:** Real-time 1v1 multiplayer coding challenges via WebSockets.
+- **Top Prompts:** Curated AI prompts for developers to enhance their productivity.
+- **AI Playground:** A built-in code editor (HTML, CSS, JS, Python, React) to test concepts directly in the browser.
+- **Gamification:** XP system, leaderboards, daily challenges, streaks, and ranks (from Amateur to Legend).
 
-## Stack
+## 🏗️ Architecture & Tech Stack
 
-| | Texnologiya | Hosting |
-|--|--|--|
-| **Backend** | Express 5, MongoDB, JWT, Swagger | Railway |
-| **Frontend** | Next.js 14 (App Router), Redux Toolkit, Tailwind | Vercel |
-| **Video** | Bunny.net Stream | CDN |
-| **Bot** | Telegram Bot API (long polling) | Railway (bilan birga) |
-| **AI** | Groq API (llama-3.3-70b) | — |
+This repository is a monorepo containing three main components:
 
----
+### 1. `frontend/` (Web Application)
+- **Framework:** Next.js 14 (App Router), React, TypeScript
+- **Styling:** Tailwind CSS, Framer Motion, GSAP
+- **State Management:** Redux Toolkit, Context API
+- **Deployment:** Vercel
 
-## Asosiy Feature'lar
+### 2. `backend/` (API & WebSockets)
+- **Framework:** Node.js, Express.js 5.0
+- **Database:** MongoDB (Mongoose), Redis (Caching)
+- **Real-time:** Socket.io (for Code Battles and Notifications)
+- **Security:** Helmet, Rate-Limiter, MongoDB Sanitize, JWT
+- **Deployment:** Railway
 
-### 🎓 Kurs Tizimi
-- Video kurslar (Bunny.net CDN orqali)
-- Seksiya va bo'limlar
-- Quiz tizimi (XP bilan)
-- Sertifikat generatsiya
-- Praktik loyihalar
+### 3. `AidevixApp/` (Mobile Application)
+- **Framework:** React Native (Expo)
+- **Navigation:** React Navigation
+- **State Management:** Redux Toolkit
+- **Features:** Direct WebViews for complex features (e.g., Forum, Prompts), native Code Quizzes, and Shorts.
 
-### ⚡ AI Tools & Vibe Coding
-- **Prompt Kutubxonasi** (`/prompts`) — Claude, Cursor, Copilot va boshqa AI tools uchun professional promptlar. Community yaratadi, like bosadi, copy qiladi. Yaratganda +30 XP.
-- **AI Stack** (Profil) — Foydalanuvchi qaysi AI toollardan foydalanishini belgilaydi (leaderboard da ko'rinadi)
-- **Kunlik AI News** — Telegram kanalga avtomatik Claude/Codex/Cursor yangiliklari (10:00, 16:00, 20:00)
+## 🚀 Getting Started
 
-### 🏆 Gamification
-- XP tizimi: video ko'rish (+50), quiz (+10/javob), challenge, prompt yaratish (+30)
-- Rank: AMATEUR → CANDIDATE → JUNIOR → MIDDLE → SENIOR → MASTER → LEGEND
-- Streak + Streak Freeze
-- Badges (auto-award)
-- Global va haftalik leaderboard
+### Prerequisites
+- Node.js (v18+)
+- MongoDB and Redis (Local or Cloud)
+- Expo CLI (for mobile)
 
-### 📅 Kunlik Challengelar
-- Har kuni yarim tunda avtomatik challenge yaratiladi
-- Telegram kanalga e'lon yuboriladi
-- Turlar: video ko'rish, quiz, streak, prompt yozish
-- Mukofot: 80–250 XP
+### Quick Start
 
-### 🤖 Telegram Bot (@aidevix_bot)
-- `/start` — platformaga kirish (Mini App)
-- `/stats` — shaxsiy statistika
-- `/referral` — taklifnoma havola
-- `/login` — Magic login (parolsiz kirish)
-- `/postnews` — admin: kanal uchun AI yangilik yuborish
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/SunnatbekYusupovTech/aidevixBackend.git
+   cd aidevixBackend
+   ```
 
-### 💳 To'lov Tizimi
-- Payme va Click integratsiya
-- Kurs to'lovlari
+2. **Backend Setup:**
+   ```bash
+   cd backend
+   npm install
+   # Create a .env file based on environment variables
+   npm run dev
+   ```
 
-### 🔐 Obuna Gate
-- Telegram kanali (@aidevix) obunasi tekshiriladi (real-time getChatMember)
-- Video ko'rishdan oldin har safar tekshiriladi
+3. **Frontend Setup:**
+   ```bash
+   cd frontend
+   npm install
+   # Create a .env.local file
+   npm run dev
+   ```
 
----
+4. **Mobile App Setup:**
+   ```bash
+   cd AidevixApp
+   npm install
+   npx expo start
+   ```
 
-## Tezkor Ishga Tushirish
-
-```bash
-# Backend
-cd backend && npm install && npm run dev   # localhost:5000
-
-# Frontend
-cd frontend && npm install && npm run dev  # localhost:3000
-```
-
-**Muhim env o'zgaruvchilar** (`backend/.env`):
-
-```
-MONGODB_URI=
-JWT_SECRET=
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHANNEL_USERNAME=aidevix
-TELEGRAM_ADMIN_CHAT_ID=
-GROQ_API_KEY=
-NEWS_ENABLED=true
-FRONTEND_URL=http://localhost:3000
-```
+## 🔒 Security
+- All sensitive configurations and tokens are managed via environment variables.
+- Authentication utilizes secure, `httpOnly` cookies in the web and secure async storage in mobile.
+- Strong protection against NoSQL injection, XSS, and DDoS attacks via rate limiters and Helmet.
 
 ---
-
-## Loyiha Dokumentatsiyasi
-
-| Hujjat | Mazmuni |
-|--------|---------|
-| [`docs/AUTOFIX.md`](docs/AUTOFIX.md) | AutoFix sistemasi — chokidar + Claude CLI orqali avtomatik bug fix |
-| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | Lighthouse 40% → 75%+ optimizatsiyalari |
-| [`CLAUDE.md`](CLAUDE.md) | Agent va contributor uchun arxitektura xulosasi |
-| [`VIDEO_INTEGRATION.md`](VIDEO_INTEGRATION.md) | Bunny.net video integratsiyasi |
-| [`mobile.md`](mobile.md) | Mobil yondashuv qaydlari |
-
----
-
-## API Dokumentatsiya
-
-- **Swagger UI:** `http://localhost:5000/api-docs` (login: Aidevix / sunnatbee)
-- **Production:** `https://aidevix-backend-production.up.railway.app/api-docs`
-
-### Asosiy Endpointlar
-
-```
-POST   /api/auth/register         # Ro'yxatdan o'tish
-POST   /api/auth/login            # Kirish
-GET    /api/courses               # Kurslar ro'yxati
-GET    /api/prompts               # Prompt kutubxonasi
-POST   /api/prompts               # Prompt yaratish (+30 XP, auth)
-GET    /api/challenges/today      # Bugungi challenge
-GET    /api/ranking/users         # Leaderboard (aiStack bilan)
-GET    /api/xp/stats              # Foydalanuvchi statistikasi
-PUT    /api/xp/profile            # Profil yangilash (bio, skills, aiStack)
-```
-
----
-
-## Deploy
-
-```bash
-git push origin main     # Backend → Railway avtomatik
-npx vercel --prod        # Frontend → Vercel (aidevix.uz)
-```
-
----
-
-## Loyiha Tuzilmasi
-
-```
-AidevixBackend/
-├── backend/
-│   ├── controllers/   # 17 controller
-│   ├── models/        # 19 Mongoose schema (User, Prompt, ...)
-│   ├── routes/        # Express routers
-│   ├── middleware/    # auth, subscriptionCheck, rateLimiter
-│   └── utils/         # telegramBot, newsScheduler, challengeScheduler, bunny
-└── frontend/
-    ├── src/api/       # Axios API modules (promptApi ← yangi)
-    ├── src/store/     # Redux slices
-    ├── src/app/       # Next.js pages (prompts/ ← yangi)
-    └── src/components/
-```
-
----
-
-## O'quvchilar uchun
-
-- **Umumiy yo'riqnoma:** [frontend/docs/STUDENTS_GUIDE.md](./frontend/docs/STUDENTS_GUIDE.md)
-- **Backend:** [backend/OQUVCHILAR_UCHUN.md](./backend/OQUVCHILAR_UCHUN.md)
-- **Deploy:** [backend/DEPLOY.md](./backend/DEPLOY.md)
+*Built with ❤️ for the Uzbek Developer Community by Aidevix.*

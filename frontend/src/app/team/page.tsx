@@ -67,14 +67,26 @@ const TEAM_MEMBERS: TeamMember[] = [
     asset: '/team/Firdavs.jpg',
   },
   {
-    id: 'abduvohid',
-    name: 'ABDUVOHID',
-    age: 15,
+    id: 'numton',
+    name: 'NUMTON',
+    age: 16,
+    hideAge: true,
     roleBadge: 'HOME UI / FRONTEND',
     details:
       'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
     stack: ['Framer Motion', 'GSAP', 'CSS 3D', 'UI/UX'],
-    asset: '/team/abduvohid.jpg',
+    asset: '/team/numton.jpg',
+  },
+  {
+    id: 'kamton',
+    name: 'KAMTON',
+    age: 16,
+    hideAge: true,
+    roleBadge: 'SECURITY & UPDATER',
+    details:
+      'Sayt xavfsizligini ta\'minlovchi, texnik qo\'llab-quvvatlash, tizimni yangilash (updater) va buglarni tezkor bartaraf etuvchi mutaxassis.',
+    stack: ['Cyber Security', 'Bug Fixing', 'Tech Support', 'Updater'],
+    asset: '/team/kamton.jpg',
   },
   {
     id: 'abduvoris',

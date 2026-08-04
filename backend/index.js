@@ -470,61 +470,108 @@ const io = new Server(server, {
   }
 });
 
-// Function to format time as "Bugun, HH:mm"
-const getFormattedTime = (minutesAgo = 0) => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - minutesAgo);
+const getFormattedTime = (dateStr) => {
+  if (!dateStr) return 'Noma\'lum';
+  const d = new Date(dateStr);
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `Bugun, ${hh}:${mm}`;
 };
 
-// Mock state for demo
-let onlineCount = 0;
-let popularPages = { '/courses/cybersecurity': 5, '/challenges': 3, '/blog/chatgpt': 2 };
-let lastSeenUsers = [
-  { name: "Ali Valiyev", email: "ali@gmail.com", online: true, time: getFormattedTime(0) },
-  { name: "Sardor O'ktamov", email: "sardor.u@mail.ru", online: true, time: getFormattedTime(0) },
-  { name: "Dilshod Karimov", email: "dilshod123@yahoo.com", online: false, time: getFormattedTime(5) },
-  { name: "Zuhra Rustamova", email: "zuhra_r@gmail.com", online: false, time: getFormattedTime(12) },
-  { name: "Otabek Qosimov", email: "otabekq@gmail.com", online: false, time: getFormattedTime(60) },
-];
+// State for active presence
+const activeSockets = new Map(); // socket.id -> { user: {name, email}, path: string, connectedAt: Date }
+const lastSeenHistory = new Map(); // email -> { name, email, time: Date }
 
-io.on('connection', (socket) => {
-  onlineCount++;
+const computeDashboardState = () => {
+  let onlineCount = activeSockets.size;
+  let pages = {};
   
-  // Send initial data
-  socket.emit('dashboard_update', {
-    onlineCount,
-    popularPages,
-    lastSeenUsers
+  const onlineUsersByEmail = new Set();
+  
+  activeSockets.forEach((data) => {
+    if (data.path) {
+      pages[data.path] = (pages[data.path] || 0) + 1;
+    }
+    if (data.user?.email) {
+      onlineUsersByEmail.add(data.user.email);
+    }
   });
 
-  // Broadcast to all admins
-  io.emit('online_count_change', onlineCount);
+  // Combine online users with last seen history
+  let lastSeenUsers = [];
+  
+  // Add currently online
+  activeSockets.forEach((data) => {
+    if (data.user?.email && !lastSeenUsers.find(u => u.email === data.user.email)) {
+      lastSeenUsers.push({
+        name: data.user.name || data.user.username,
+        email: data.user.email,
+        online: true,
+        time: getFormattedTime(new Date())
+      });
+    }
+  });
 
-  // Simulating random traffic updates every 5 seconds
-  const interval = setInterval(() => {
-    // Randomize for visual effect
-    const newCount = onlineCount + Math.floor(Math.random() * 5) - 2;
-    onlineCount = Math.max(1, newCount);
+  // Add offline users from history
+  lastSeenHistory.forEach((data, email) => {
+    if (!onlineUsersByEmail.has(email)) {
+      lastSeenUsers.push({
+        name: data.name,
+        email: data.email,
+        online: false,
+        time: getFormattedTime(data.time)
+      });
+    }
+  });
+
+  // Sort lastSeen by most recent (online first, then descending time)
+  lastSeenUsers.sort((a, b) => {
+    if (a.online && !b.online) return -1;
+    if (!a.online && b.online) return 1;
+    return 0; // Keeping simple, we just want to ensure online users are at top
+  });
+
+  // Limit to top 15
+  lastSeenUsers = lastSeenUsers.slice(0, 15);
+
+  return { onlineCount, popularPages: pages, lastSeenUsers };
+};
+
+const broadcastUpdate = () => {
+  io.emit('dashboard_update', computeDashboardState());
+};
+
+io.on('connection', (socket) => {
+  activeSockets.set(socket.id, { path: '/', connectedAt: new Date(), user: null });
+  broadcastUpdate();
+
+  socket.on('presence:update', (data) => {
+    const prevData = activeSockets.get(socket.id) || {};
+    activeSockets.set(socket.id, { ...prevData, ...data, lastUpdate: new Date() });
     
-    // Randomize popular pages
-    popularPages['/courses/cybersecurity'] = Math.max(1, Math.floor(Math.random() * 10));
-    popularPages['/challenges'] = Math.max(1, Math.floor(Math.random() * 8));
-    popularPages['/blog/chatgpt'] = Math.max(1, Math.floor(Math.random() * 6));
+    // Track history for offline display
+    if (data.user?.email) {
+      lastSeenHistory.set(data.user.email, {
+        name: data.user.name || data.user.username,
+        email: data.user.email,
+        time: new Date()
+      });
+    }
     
-    io.emit('dashboard_update', {
-      onlineCount,
-      popularPages,
-      lastSeenUsers
-    });
-  }, 5000);
+    broadcastUpdate();
+  });
 
   socket.on('disconnect', () => {
-    onlineCount = Math.max(0, onlineCount - 1);
-    io.emit('online_count_change', onlineCount);
-    clearInterval(interval);
+    const data = activeSockets.get(socket.id);
+    if (data?.user?.email) {
+      lastSeenHistory.set(data.user.email, {
+        name: data.user.name || data.user.username,
+        email: data.user.email,
+        time: new Date() // Time they disconnected
+      });
+    }
+    activeSockets.delete(socket.id);
+    broadcastUpdate();
   });
 });
 

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ScrollToTop from '@/components/layout/ScrollToTop';
+import GlobalPresence from '@/components/common/GlobalPresence';
 
 const DailyRewardModal = dynamic(() => import('@components/common/DailyRewardModal'), { ssr: false });
 const LiveActivityTicker = dynamic(() => import('@components/common/LiveActivityTicker'), { ssr: false });
@@ -109,6 +110,7 @@ export default function ClientLayoutWrapper({
           HTML'da Google'ga ko'rinishi kerak. Theme/Lang/Sound contextlar
           deterministik boshlanadi (dark/uz/true), hydration mismatch yo'q. */}
       {!hideLayout && <Navbar />}
+      {isMounted && <GlobalPresence />}
       {showEnhancements && <DailyRewardModal />}
       
       <main className="relative w-full min-w-0 max-w-full overflow-x-clip">

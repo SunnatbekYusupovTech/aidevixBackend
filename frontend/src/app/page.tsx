@@ -5,8 +5,9 @@ import { safeJsonLd } from '@/utils/jsonLd';
 
 // Professional Metadata for SEO
 export const metadata: Metadata = {
-  title: 'Aidevix — Dasturlash va IT kurslari, O\'zbek tilida onlayn ta\'lim',
-  description: 'Aidevix — O\'zbek tilidagi eng yirik dasturlash va IT kurslari platformasi. Frontend, Backend, Mobile, AI va kiberxavfsizlik bo\'yicha amaliy onlayn kurslar.',
+  title: 'Dasturlash kurslari — O\'zbek tilida onlayn Frontend va IT kurslari | Aidevix',
+  description: 'O\'zbekistondagi eng ilg\'or onlayn dasturlash kurslari. Google dasturlash kurslari kabi sifatli Frontend, Backend va AI yo\'nalishlarini noldan boshlab professional darajagacha o\'rganing.',
+  keywords: ['google dasturlash kurslari', 'onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'it kurslari', 'dasturlashni o\'rganish', 'o\'zbek tilida dasturlash'],
   alternates: {
     canonical: 'https://aidevix.uz',
     languages: {
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Aidevix — Dasturlash kurslari, O\'zbek tilida onlayn ta\'lim',
-    description: 'Dasturlashni O\'zbek tilida sifatli o\'rganing. React, Python, AI va boshqa kurslar.',
+    title: 'Dasturlash kurslari — Onlayn Frontend va IT kurslari',
+    description: 'Aidevix orqali eng yaxshi onlayn dasturlash kurslari yordamida o\'rganing.',
     images: ['/Logo.jpg'],
   },
 };

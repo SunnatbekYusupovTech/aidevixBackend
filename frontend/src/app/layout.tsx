@@ -23,11 +23,12 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://aidevix.uz'),
   title: {
     template: '%s | Aidevix',
-    default: 'Aidevix — Online dasturlash kurslari va IT ta\'lim platformasi',
+    default: 'Aidevix — Dasturlash kurslari va Onlayn IT ta\'lim platformasi',
   },
-  description: 'Online dasturlash kurslari — Aidevix platformasida O\'zbek tilida sifatli ta\'lim o\'rganing. React, Node.js, Python, AI va boshqa IT yo\'nalishlarda zamonaviy darslar.',
+  description: 'Online dasturlash kurslari — Aidevix platformasida O\'zbek tilida sifatli ta\'lim o\'rganing. Google dasturlash kurslari standartlaridagi Frontend, Backend va AI yo\'nalishlari.',
   keywords: [
-    'online dasturlash kurslari', 'aidevix', 'dasturlash', 'online ta\'lim', 'uzbek tilida',
+    'dasturlash kurslari', 'onlayn dasturlash kurslari', 'frontend kurslari', 'google dasturlash kurslari',
+    'aidevix', 'dasturlash', 'online ta\'lim', 'uzbek tilida', 'backend kurslari',
     'react', 'nextjs', 'javascript', 'backend o\'rganish', 'frontend kurslar',
     'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish'
   ],
@@ -53,8 +54,8 @@ export const metadata: Metadata = {
     locale: 'uz_UZ',
     url: 'https://aidevix.uz',
     siteName: 'Aidevix',
-    title: 'Aidevix — Online dasturlash kurslari',
-    description: 'Online dasturlash kurslari va IT texnologiyalar O\'zbek tilida.',
+    title: 'Aidevix — Eng yaxshi onlayn dasturlash kurslari',
+    description: 'Onlayn dasturlash kurslari, Frontend, Backend va IT texnologiyalar O\'zbek tilida.',
     images: [{ url: '/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
   },
   twitter: {

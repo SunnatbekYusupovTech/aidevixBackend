@@ -129,7 +129,7 @@ export default function BattleClient() {
               
               <div className="bg-[#0A0E1A] rounded-xl p-4 mb-4 border border-white/5 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <img src={user.avatar || \`https://ui-avatars.com/api/?name=\${user.username}\`} className="w-10 h-10 rounded-full border-2 border-indigo-500" />
+                  <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.username}`} className="w-10 h-10 rounded-full border-2 border-indigo-500" />
                   <div>
                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Siz</p>
                     <p className="font-bold text-white">{user.username}</p>
@@ -137,7 +137,7 @@ export default function BattleClient() {
                 </div>
                 <div className="text-2xl font-black text-indigo-500">VS</div>
                 <div className="flex items-center gap-3 flex-row-reverse text-right">
-                  <img src={opponent?.avatar || \`https://ui-avatars.com/api/?name=\${opponent?.username}\`} className="w-10 h-10 rounded-full border-2 border-rose-500" />
+                  <img src={opponent?.avatar || `https://ui-avatars.com/api/?name=${opponent?.username}`} className="w-10 h-10 rounded-full border-2 border-rose-500" />
                   <div>
                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Raqib</p>
                     <p className="font-bold text-white">{opponent?.username}</p>
@@ -156,7 +156,7 @@ export default function BattleClient() {
               )}
               {status === 'finished' && (
                 <div className="text-center">
-                  <p className={\`text-xl font-black mb-4 \${winnerId === user.id || winnerId === user._id ? 'text-emerald-400' : 'text-rose-400'}\`}>
+                  <p className={`text-xl font-black mb-4 ${winnerId === user.id || winnerId === user._id ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {message}
                   </p>
                   <button onClick={leaveBattle} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-xl font-bold">

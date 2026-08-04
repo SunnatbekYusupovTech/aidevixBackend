@@ -32,31 +32,21 @@ export default function Footer() {
       title: t('footer.platform'),
       links: [
         { label: t('footer.fCourses'), to: ROUTES.COURSES },
-        { label: t('footer.fMentors'), to: ROUTES.TEAM },
-        { label: t('footer.fPricing'), to: ROUTES.PRICING },
-        { label: t('footer.fEnterprise'), to: ROUTES.CONTACT },
+        { label: 'Muhokamalar (Q&A)', to: '/forum' },
+        { label: 'Code Battle', to: '/battle' },
+        { label: 'Top Prompts', to: '/prompts' },
       ],
     },
     {
-      title: t('footer.company'),
+      title: 'Tizimlar',
       links: [
-        { label: t('footer.fAbout'), to: ROUTES.ABOUT },
-        { label: lang === 'ru' ? 'Проекты' : lang === 'en' ? 'Projects' : 'Loyihalar', to: ROUTES.PROJECTS },
-        { label: t('footer.fBlog'), to: ROUTES.BLOG },
-        { label: t('footer.fCareers'), to: ROUTES.CAREERS },
-        { label: t('footer.fContact'), to: ROUTES.CONTACT },
+        { label: 'AI Playground', to: '/playground' },
+        { label: 'Kunlik Challenge', to: '/challenges' },
+        { label: 'Reyting (Top)', to: '/leaderboard' },
+        { label: 'Qisqa videolar', to: '/videos' },
       ],
     },
-    {
-      title: t('footer.resources'),
-      links: [
-        { label: t('footer.fHelp'), to: ROUTES.HELP },
-        { label: t('footer.fPrivacy'), to: ROUTES.PRIVACY },
-        { label: t('footer.fTerms'), to: ROUTES.TERMS },
-        { label: t('footer.sitemap'), to: ROUTES.SITEMAP_XML },
-      ],
-    },
-  ]
+  ];
 
   const shell = isDark 
     ? 'bg-gradient-to-br from-[#0A0E1A] via-[#111726] to-[#0A0E1A] text-slate-100 shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.7)]' 
@@ -220,17 +210,7 @@ export default function Footer() {
               </Link>
             ))}
           </div>
-          {/* Ruscha landing'ga doimiy ichki link — crawl discovery + hreflang juftligi. */}
-          <div className="mt-4">
-            <Link
-              href="/ru/courses"
-              onMouseEnter={() => playSound('/sounds/onlyclick.wav')}
-              hrefLang="ru"
-              className={`inline-flex items-center gap-1 text-xs font-semibold transition-colors ${linkText}`}
-            >
-              Курсы программирования на русском →
-            </Link>
-          </div>
+
         </div>
 
         {/* 3. Bottom Bar */}

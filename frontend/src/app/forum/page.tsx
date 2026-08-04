@@ -37,13 +37,13 @@ export default async function ForumPage({ searchParams }: { searchParams: { page
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-white/5 pb-4">
-          <Link href="/forum?sort=newest" className={\`font-bold \${sort === 'newest' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}\`}>
+          <Link href="/forum?sort=newest" className={`font-bold ${sort === 'newest' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}>
             Eng yangilari
           </Link>
-          <Link href="/forum?sort=popular" className={\`font-bold flex items-center gap-1 \${sort === 'popular' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}\`}>
+          <Link href="/forum?sort=popular" className={`font-bold flex items-center gap-1 ${sort === 'popular' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}>
             <IoFlame /> Mashhurlari
           </Link>
-          <Link href="/forum?sort=unanswered" className={\`font-bold \${sort === 'unanswered' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}\`}>
+          <Link href="/forum?sort=unanswered" className={`font-bold ${sort === 'unanswered' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}>
             Javobsizlar
           </Link>
         </div>
@@ -60,7 +60,7 @@ export default async function ForumPage({ searchParams }: { searchParams: { page
                     <span className="block text-lg font-bold text-white">{q.score || 0}</span>
                     <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ovoz</span>
                   </div>
-                  <div className={\`text-center px-3 py-1 rounded-lg border \${q.isResolved ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : (q.answersCount > 0 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-500')}\`}>
+                  <div className={`text-center px-3 py-1 rounded-lg border ${q.isResolved ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : (q.answersCount > 0 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-500')}`}>
                     <span className="block text-lg font-bold">{q.answersCount || 0}</span>
                     <span className="text-[10px] uppercase tracking-wider font-bold">Javob</span>
                   </div>
@@ -72,7 +72,7 @@ export default async function ForumPage({ searchParams }: { searchParams: { page
                 {/* Content */}
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <Link href={\`/forum/\${q._id}\`}>
+                    <Link href={`/forum/${q._id}`}>
                       <h2 className="text-lg font-bold text-indigo-100 hover:text-indigo-400 transition-colors line-clamp-2 leading-snug">
                         {q.title}
                       </h2>
@@ -87,8 +87,8 @@ export default async function ForumPage({ searchParams }: { searchParams: { page
                   </div>
                   <div className="flex justify-end items-center mt-4">
                     <div className="flex items-center gap-2">
-                      <img src={q.author?.avatar || \`https://ui-avatars.com/api/?name=\${q.author?.username}&background=2d3748&color=fff\`} alt="avatar" className="w-6 h-6 rounded-full" />
-                      <Link href={\`/u/\${q.author?.username}\`} className="text-xs text-indigo-400 font-medium hover:underline">
+                      <img src={q.author?.avatar || `https://ui-avatars.com/api/?name=${q.author?.username}&background=2d3748&color=fff`} alt="avatar" className="w-6 h-6 rounded-full" />
+                      <Link href={`/u/${q.author?.username}`} className="text-xs text-indigo-400 font-medium hover:underline">
                         {q.author?.username}
                       </Link>
                       <span className="text-xs text-slate-500">• {new Date(q.createdAt).toLocaleDateString('uz-UZ')}</span>

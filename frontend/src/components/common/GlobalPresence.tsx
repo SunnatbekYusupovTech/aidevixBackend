@@ -26,7 +26,7 @@ export default function GlobalPresence() {
     if (socketRef.current) {
       socketRef.current.emit('presence:update', {
         path: pathname,
-        user: user ? { username: user.username, email: user.email, name: user.name || user.username } : null
+        user: user ? { id: user._id, username: user.username, email: user.email, name: user.name || user.username } : null
       });
     }
   }, [pathname, user]);

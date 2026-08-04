@@ -104,6 +104,12 @@ const userStatsSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  // Koproq qaysi page dan foydalanilganini saqlash uchun
+  visitedPages: {
+    type: Map,
+    of: Number,
+    default: {},
+  },
 }, {
   timestamps: true,
 });

@@ -142,8 +142,33 @@ const getUsers = async (req, res) => {
       User.countDocuments(filter),
     ]);
 
-    // Format google users
-    const mappedUsers = users.map(u => ({ ...u, isGoogle: !!u.googleId }));
+    const userIds = users.map(u => u._id);
+    const statsList = await UserStats.find({ userId: { $in: userIds } }).select('userId lastActivityDate visitedPages').lean();
+    const statsMap = {};
+    statsList.forEach(s => {
+      let mostVisited = '-';
+      let maxVisits = 0;
+      if (s.visitedPages) {
+        Object.entries(s.visitedPages).forEach(([page, count]) => {
+          if (count > maxVisits) {
+            maxVisits = count;
+            mostVisited = page.replace(/_/g, '.'); // Restore dots from keys
+          }
+        });
+      }
+      statsMap[s.userId.toString()] = {
+        lastActivityDate: s.lastActivityDate || null,
+        mostVisitedPage: mostVisited !== '-' ? `${mostVisited} (${maxVisits} marta)` : '-',
+      };
+    });
+
+    // Format google users and attach stats
+    const mappedUsers = users.map(u => ({ 
+      ...u, 
+      isGoogle: !!u.googleId,
+      lastActivityDate: statsMap[u._id.toString()]?.lastActivityDate || null,
+      mostVisitedPage: statsMap[u._id.toString()]?.mostVisitedPage || '-',
+    }));
 
     res.json({ success: true, data: { users: mappedUsers, pagination: { total, page, limit } } });
   } catch (err) {

@@ -463,6 +463,8 @@ const server = app.listen(PORT, HOST, () => {
 
 // Socket.io for Real-time Admin Dashboard
 const { Server } = require('socket.io');
+const UserStats = require('./models/UserStats');
+
 const io = new Server(server, {
   cors: {
     origin: '*', // Allow all for demo purposes, restrict in prod
@@ -479,7 +481,7 @@ const getFormattedTime = (dateStr) => {
 };
 
 // State for active presence
-const activeSockets = new Map(); // socket.id -> { user: {name, email}, path: string, connectedAt: Date }
+const activeSockets = new Map(); // socket.id -> { user: {id, name, email}, path: string, connectedAt: Date }
 const lastSeenHistory = new Map(); // email -> { name, email, time: Date }
 
 const computeDashboardState = () => {
@@ -545,9 +547,14 @@ io.on('connection', (socket) => {
   activeSockets.set(socket.id, { path: '/', connectedAt: new Date(), user: null });
   broadcastUpdate();
 
-  socket.on('presence:update', (data) => {
+  socket.on('presence:update', async (data) => {
     const prevData = activeSockets.get(socket.id) || {};
-    activeSockets.set(socket.id, { ...prevData, ...data, lastUpdate: new Date() });
+    
+    // Normalize path to prevent huge maps in MongoDB (replace object IDs with ':id' if needed, but we keep it simple for now)
+    let safePath = data.path || '/';
+    safePath = safePath.replace(/\./g, '_'); // MongoDB maps don't like dots in keys
+    
+    activeSockets.set(socket.id, { ...prevData, ...data, path: safePath, lastUpdate: new Date() });
     
     // Track history for offline display
     if (data.user?.email) {
@@ -556,6 +563,22 @@ io.on('connection', (socket) => {
         email: data.user.email,
         time: new Date()
       });
+      
+      // Update DB persistently
+      if (data.user.id) {
+        try {
+          const updateObj = { 
+            $set: { lastActivityDate: new Date() }
+          };
+          if (safePath) {
+            updateObj.$inc = { [`visitedPages.${safePath}`]: 1 };
+          }
+          await UserStats.updateOne(
+            { userId: data.user.id },
+            updateObj
+          ).catch(() => {}); // ignore errors (like user not having a stats doc yet)
+        } catch (e) {}
+      }
     }
     
     broadcastUpdate();

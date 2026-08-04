@@ -16,6 +16,8 @@ type UserRow = {
   isActive?: boolean;
   createdAt?: string;
   isGoogle?: boolean;
+  lastActivityDate?: string;
+  mostVisitedPage?: string;
 };
 
 type ConfirmAction = {
@@ -37,6 +39,8 @@ function RowSkeleton() {
       </td>
       <td className="px-5 py-4"><div className="h-5 w-16 animate-pulse rounded-full bg-white/5" /></td>
       <td className="px-5 py-4"><div className="h-4 w-14 animate-pulse rounded bg-white/5" /></td>
+      <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-white/5" /></td>
+      <td className="px-5 py-4"><div className="h-4 w-24 animate-pulse rounded bg-white/5" /></td>
       <td className="px-5 py-4 text-right"><div className="ml-auto h-8 w-24 animate-pulse rounded-lg bg-white/5" /></td>
     </tr>
   );
@@ -203,6 +207,8 @@ export default function AdminUsersPage() {
                 <th className="px-5 py-3.5">Foydalanuvchi</th>
                 <th className="px-5 py-3.5">Rol</th>
                 <th className="px-5 py-3.5">Holat</th>
+                <th className="px-5 py-3.5">Faollik</th>
+                <th className="px-5 py-3.5">Ko'p kirilgan</th>
                 <th className="px-5 py-3.5 text-right">Amallar</th>
               </tr>
             </thead>
@@ -252,6 +258,21 @@ export default function AdminUsersPage() {
                           ? <><FiSlash className="h-3 w-3" /> Bloklangan</>
                           : <><FiCheck className="h-3 w-3" /> Faol</>
                         }
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {u.lastActivityDate ? (
+                        <div className="text-xs text-slate-300">
+                          {new Date(u.lastActivityDate).toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' })} <br/>
+                          <span className="text-slate-500">{new Date(u.lastActivityDate).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-xs text-slate-400 block max-w-[150px] truncate" title={u.mostVisitedPage || '-'}>
+                        {u.mostVisitedPage || '-'}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">

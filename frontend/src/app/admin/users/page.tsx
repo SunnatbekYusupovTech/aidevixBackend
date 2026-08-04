@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getUsers, updateUser, deleteUser, unwrapAdmin } from '@/api/adminApi';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiSearch, FiTrash2, FiShield, FiUser, FiEye, FiSlash, FiCheck } from 'react-icons/fi';
+import { FiSearch, FiTrash2, FiShield, FiUser, FiEye, FiSlash, FiCheck, FiMail } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
 import ConfirmModal from '@/components/admin/ConfirmModal';
 
 type UserRow = {
@@ -14,6 +15,7 @@ type UserRow = {
   role: string;
   isActive?: boolean;
   createdAt?: string;
+  isGoogle?: boolean;
 };
 
 type ConfirmAction = {
@@ -47,14 +49,22 @@ export default function AdminUsersPage() {
   const [limit] = useState(15);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
+  const [authType, setAuthType] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<ConfirmAction | null>(null);
+  
+  // Message modal state
+  const [messageModal, setMessageModal] = useState<{ open: boolean; user: UserRow | null }>({ open: false, user: null });
+  const [msgSubject, setMsgSubject] = useState('');
+  const [msgBody, setMsgBody] = useState('');
+  const [msgLoading, setMsgLoading] = useState(false);
+
   const [actionLoading, setActionLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getUsers({ page, limit, search: search.trim() || undefined, role: role || undefined });
+      const res = await getUsers({ page, limit, search: search.trim() || undefined, role: role || undefined, authType: authType || undefined });
       const d = unwrapAdmin<{ users: UserRow[]; pagination: { total: number } }>(res);
       setUsers(d.users ?? []);
       setTotal(d.pagination?.total ?? 0);
@@ -63,7 +73,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, role]);
+  }, [page, limit, search, role, authType]);
 
   useEffect(() => {
     const t = setTimeout(() => load(), search ? 350 : 0);
@@ -93,6 +103,24 @@ export default function AdminUsersPage() {
       toast.error(msg ?? 'Amal bajarilmadi');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageModal.user || !msgSubject.trim() || !msgBody.trim()) return;
+    setMsgLoading(true);
+    try {
+      const { sendMessageToUser } = await import('@/api/adminApi');
+      await sendMessageToUser(messageModal.user._id, msgSubject, msgBody);
+      toast.success('Xabar muvaffaqiyatli yuborildi');
+      setMessageModal({ open: false, user: null });
+      setMsgSubject('');
+      setMsgBody('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Xabar yuborishda xatolik');
+    } finally {
+      setMsgLoading(false);
     }
   };
 
@@ -156,6 +184,15 @@ export default function AdminUsersPage() {
           <option value="user">Foydalanuvchi</option>
           <option value="admin">Administrator</option>
         </select>
+        <select
+          value={authType}
+          onChange={(e) => { setAuthType(e.target.value); setPage(1); }}
+          className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500/50 focus:outline-none sm:w-44"
+        >
+          <option value="">Barcha turdagi</option>
+          <option value="google">Google orqali</option>
+          <option value="local">Saytdan (Email)</option>
+        </select>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111726] shadow-xl">
@@ -188,7 +225,14 @@ export default function AdminUsersPage() {
                           {u.username.slice(0, 1).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-white">{u.username}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-white">{u.username}</p>
+                            {u.isGoogle && (
+                               <div className="flex items-center justify-center rounded bg-white/10 px-1.5 py-0.5" title="Google orqali">
+                                 <FcGoogle className="h-3 w-3" />
+                               </div>
+                            )}
+                          </div>
                           <p className="max-w-[220px] truncate text-xs text-slate-500">{u.email}</p>
                         </div>
                       </div>
@@ -212,6 +256,14 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Xabar yozish"
+                          onClick={() => setMessageModal({ open: true, user: u })}
+                          className="rounded-lg p-2 text-indigo-400 hover:bg-indigo-500/10"
+                        >
+                          <FiMail className="h-4 w-4" />
+                        </button>
                         <Link
                           href={`/admin/users/${u._id}`}
                           title="Batafsil"
@@ -295,6 +347,62 @@ export default function AdminUsersPage() {
         onConfirm={handleConfirm}
         onCancel={() => setConfirm(null)}
       />
+
+      {/* Message Modal */}
+      {messageModal.open && messageModal.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f1423] p-6 shadow-2xl">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-white">Xabar yuborish</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                <span className="font-medium text-white">{messageModal.user.username}</span> ga elektron pochta xabari yuborish
+              </p>
+            </div>
+            
+            <form onSubmit={handleSendMessage} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-400">Mavzu</label>
+                <input
+                  type="text"
+                  required
+                  value={msgSubject}
+                  onChange={(e) => setMsgSubject(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                  placeholder="Masalan: Kursga kirish haqida..."
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-400">Xabar matni</label>
+                <textarea
+                  required
+                  rows={5}
+                  value={msgBody}
+                  onChange={(e) => setMsgBody(e.target.value)}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                  placeholder="Foydalanuvchiga nima demoqchisiz? (HTML teglar xavfsiz emas, oddiy matn ishlating)"
+                />
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMessageModal({ open: false, user: null })}
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 transition-colors"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  type="submit"
+                  disabled={msgLoading}
+                  className="rounded-xl bg-indigo-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+                >
+                  {msgLoading ? 'Yuborilmoqda...' : 'Yuborish'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

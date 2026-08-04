@@ -16,6 +16,8 @@ export const getRecentPayments  = (params) => axiosInstance.get('admin/payments'
 export const getUsers    = (params)      => axiosInstance.get('admin/users', { params })
 export const updateUser  = (id, data)    => axiosInstance.put(`admin/users/${id}`, data)
 export const deleteUser  = (id)          => axiosInstance.delete(`admin/users/${id}`)
+export const sendMessageToUser = (id: string, subject: string, message: string) => 
+  axiosInstance.post(`admin/users/${id}/message`, { subject, message })
 
 // ─── Courses ─────────────────────────────────────────────────────────────────
 export const getAllCourses  = (params)   => axiosInstance.get('courses', { params })

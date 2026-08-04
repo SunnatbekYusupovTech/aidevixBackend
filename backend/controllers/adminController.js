@@ -121,10 +121,11 @@ const getRecentPayments = async (req, res) => {
 /** @desc  Foydalanuvchilar ro'yxati | @route GET /api/admin/users | @access Admin */
 const getUsers = async (req, res) => {
   try {
-    const page   = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit  = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
-    const search = req.query.search || '';
-    const role   = req.query.role   || '';
+    const page     = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit    = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100);
+    const search   = req.query.search || '';
+    const role     = req.query.role   || '';
+    const authType = req.query.authType || ''; // 'google' | 'local'
 
     const VALID_ROLES = ['user', 'admin'];
     const filter = {};
@@ -133,13 +134,18 @@ const getUsers = async (req, res) => {
       { email:    { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
     ];
     if (role && VALID_ROLES.includes(role)) filter.role = role;
+    if (authType === 'google') filter.googleId = { $ne: null };
+    if (authType === 'local') filter.googleId = null;
 
     const [users, total] = await Promise.all([
       User.find(filter).select('-password -refreshToken').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       User.countDocuments(filter),
     ]);
 
-    res.json({ success: true, data: { users, pagination: { total, page, limit } } });
+    // Format google users
+    const mappedUsers = users.map(u => ({ ...u, isGoogle: !!u.googleId }));
+
+    res.json({ success: true, data: { users: mappedUsers, pagination: { total, page, limit } } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Foydalanuvchilarni olishda xato' });
   }
@@ -638,12 +644,48 @@ const adminAwardXp = async (req, res) => {
   }
 };
 
+/** @desc  Admin tomonidan foydalanuvchiga xat yuborish | @route POST /api/admin/users/:id/message | @access Admin */
+const adminSendMessageToUser = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: 'Yaroqsiz ID' });
+    const { subject, message } = req.body;
+    if (!subject || !message) return res.status(400).json({ success: false, message: 'Mavzu va matn kerak' });
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Foydalanuvchi topilmadi' });
+
+    const { sendMail } = require('../utils/emailService');
+    const FROM = process.env.EMAIL_FROM || 'Aidevix <onboarding@resend.dev>';
+    
+    // Basik HTML formatlash
+    const safeHtml = message.replace(/\n/g, '<br/>');
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px;">
+        <h2 style="color: #6366f1;">Aidevix Admin Xabari</h2>
+        <p>Salom, <strong>${user.username}</strong>,</p>
+        <div style="padding: 15px; border-left: 4px solid #6366f1; background: #f4f6fb; margin: 20px 0;">
+          ${safeHtml}
+        </div>
+        <p style="color: #64748b; font-size: 12px;">Hurmat bilan,<br/>Aidevix jamoasi</p>
+      </div>
+    `;
+
+    await sendMail({ from: FROM, to: user.email, subject: `Aidevix: ${subject}`, html });
+
+    logger.info('admin_send_message', { adminId: String(req.user._id), userId: user._id, subject });
+    res.json({ success: true, message: 'Xabar muvaffaqiyatli yuborildi' });
+  } catch (err) {
+    logger.error('adminSendMessage error', { error: err.message });
+    res.status(500).json({ success: false, message: 'Xabar yuborishda xatolik' });
+  }
+};
+
 module.exports = {
   getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments,
   getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
-  getAllEnrollments, adminAwardXp,
+  getAllEnrollments, adminAwardXp, adminSendMessageToUser,
   updatePayment,
   adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,
 };

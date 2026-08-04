@@ -5,7 +5,7 @@ const {
   getRecentPayments, getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
   sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
-  getAllEnrollments, adminAwardXp,
+  getAllEnrollments, adminAwardXp, adminSendMessageToUser,
   updatePayment,
   adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,
 } = require('../controllers/adminController');
@@ -46,6 +46,7 @@ router.get('/users/:id',           ...guard, validateObjectId('id'), getUserDeta
 router.put('/users/:id',           ...guard, validateObjectId('id'), updateUser);
 router.delete('/users/:id',        ...guard, validateObjectId('id'), deleteUser);
 router.post('/users/:id/award-xp', ...guard, validateObjectId('id'), adminAwardXp);
+router.post('/users/:id/message',  ...guard, validateObjectId('id'), adminSendMessageToUser);
 
 // Enrollments
 router.get('/enrollments', ...guard, getAllEnrollments);

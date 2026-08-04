@@ -14,13 +14,15 @@ if (typeof window !== 'undefined') {
 
 // ─── Types & data ────────────────────────────────────────────────────────────
 
+type LocalizedString = { uz: string; en: string; ru: string };
+
 type TeamMember = {
   id: string;
   name: string;
   age: number;
   hideAge?: boolean;
-  roleBadge: string;
-  details: string;
+  roleBadge: LocalizedString;
+  details: LocalizedString;
   stack: string[];
   asset: string;
   telegram?: string;
@@ -36,8 +38,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: 'Sunnatbek Yusupov',
     age: 0,
     hideAge: true,
-    roleBadge: 'CEO / FOUNDER',
-    details: 'Aidevix strategiyasi, mahsulot yonalishi va frontend arxitekturasi.',
+    roleBadge: { uz: 'CEO / ASOSCHI', en: 'CEO / FOUNDER', ru: 'CEO / ОСНОВАТЕЛЬ' },
+    details: {
+      uz: 'Aidevix strategiyasi, mahsulot yo\'nalishi va frontend arxitekturasi.',
+      en: 'Aidevix strategy, product direction, and frontend architecture.',
+      ru: 'Стратегия Aidevix, направление продукта и архитектура фронтенда.'
+    },
     stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
     asset: '/team/sunnatbee.jpg',
     telegram: 'https://t.me/SUNNATBEE',
@@ -50,9 +56,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'sardor',
     name: 'SARDOR',
     age: 15,
-    roleBadge: 'TEAM LEAD / QA',
-    details:
-      'UI/UX dizayn tizimlari va kreativ goyalar yaratuvchisi. Muammolarni tezkor bartaraf etuvchi faol bug fixer, JWT cookie auth, Mongoose sxemalari va CI/CD.',
+    roleBadge: { uz: 'TEAM LEAD / QA', en: 'TEAM LEAD / QA', ru: 'ТИМЛИД / QA' },
+    details: {
+      uz: 'UI/UX dizayn tizimlari va kreativ g\'oyalar yaratuvchisi. Muammolarni tezkor bartaraf etuvchi faol bug fixer, JWT cookie auth, Mongoose sxemalari va CI/CD.',
+      en: 'UI/UX design systems and creative ideas generator. Active bug fixer, JWT cookie auth, Mongoose schemas, and CI/CD.',
+      ru: 'Создатель систем UI/UX дизайна и креативных идей. Активный баг фиксер, JWT cookie auth, схемы Mongoose и CI/CD.'
+    },
     stack: ['UI/UX Design', 'Figma', 'Node.js', 'Mongoose', 'Swagger API'],
     asset: '/team/Sardor.jpg',
   },
@@ -60,9 +69,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'firdavs',
     name: 'FIRDAVS',
     age: 16,
-    roleBadge: 'AUTH SPECIALIST',
-    details:
-      'Autentifikatsiya tizimi, Cookie-based JWT sessiyasi, ProtectedRoute, email validation, kunlik mukofot modali.',
+    roleBadge: { uz: 'AVTORIZATSIYA', en: 'AUTH SPECIALIST', ru: 'АВТОРИЗАЦИЯ' },
+    details: {
+      uz: 'Autentifikatsiya tizimi, Cookie-based JWT sessiyasi, ProtectedRoute, email validation, kunlik mukofot modali.',
+      en: 'Authentication system, Cookie-based JWT session, ProtectedRoute, email validation, daily reward modal.',
+      ru: 'Система аутентификации, JWT сессии на основе cookie, ProtectedRoute, проверка email, модальное окно ежедневных наград.'
+    },
     stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
     asset: '/team/Firdavs.jpg',
   },
@@ -71,9 +83,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: 'NUMTON',
     age: 16,
     hideAge: true,
-    roleBadge: 'HOME UI / FRONTEND',
-    details:
-      'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
+    roleBadge: { uz: 'HOME UI / FRONTEND', en: 'HOME UI / FRONTEND', ru: 'HOME UI / ФРОНТЕНД' },
+    details: {
+      uz: 'Bosh sahifa UI/UX, hero, metrikalar, kurs bloklari, Framer Motion va GSAP silliq animatsiyalari.',
+      en: 'Home UI/UX, hero section, metrics, course blocks, smooth Framer Motion and GSAP animations.',
+      ru: 'UI/UX главной страницы, секция hero, метрики, блоки курсов, плавные анимации Framer Motion и GSAP.'
+    },
     stack: ['Framer Motion', 'GSAP', 'CSS 3D', 'UI/UX'],
     asset: '/team/numton.jpg',
   },
@@ -82,9 +97,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: 'KAMTON',
     age: 16,
     hideAge: true,
-    roleBadge: 'SECURITY & UPDATER',
-    details:
-      'Sayt xavfsizligini ta\'minlovchi, texnik qo\'llab-quvvatlash, tizimni yangilash (updater) va buglarni tezkor bartaraf etuvchi mutaxassis.',
+    roleBadge: { uz: 'XAVFSIZLIK & UPDATER', en: 'SECURITY & UPDATER', ru: 'БЕЗОПАСНОСТЬ И ОБНОВЛЕНИЯ' },
+    details: {
+      uz: 'Sayt xavfsizligini ta\'minlovchi, texnik qo\'llab-quvvatlash, tizimni yangilash (updater) va buglarni tezkor bartaraf etuvchi mutaxassis.',
+      en: 'Ensuring site security, tech support, system updating (updater), and rapid bug fixing specialist.',
+      ru: 'Обеспечение безопасности сайта, техническая поддержка, обновление системы (updater) и специалист по быстрому исправлению багов.'
+    },
     stack: ['Cyber Security', 'Bug Fixing', 'Tech Support', 'Updater'],
     asset: '/team/kamton.jpg',
   },
@@ -92,9 +110,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'abduvoris',
     name: 'ABDUVORIS',
     age: 16,
-    roleBadge: 'VIDEO ENGINEER',
-    details:
-      'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
+    roleBadge: { uz: 'VIDEO MUHANDISI', en: 'VIDEO ENGINEER', ru: 'ВИДЕОИНЖЕНЕР' },
+    details: {
+      uz: 'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
+      en: 'Bunny.net Stream HLS video player, in-video quiz system, progress tracking, and skeletons.',
+      ru: 'Видео плеер Bunny.net Stream HLS, система тестов внутри видео, отслеживание прогресса и скелетоны.'
+    },
     stack: ['Bunny.net', 'HLS.js', 'Video Stream', 'Skeleton CSS'],
     asset: '/team/Abduvoris.jpg',
   },
@@ -102,8 +123,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'doniyor',
     name: 'DONIYOR',
     age: 16,
-    roleBadge: 'COURSE ARCHITECT',
-    details: 'Kurslar tuzilishi, modullar tizimi va darslar ketma-ketligi arxitekturasi.',
+    roleBadge: { uz: 'KURS ARXITEKTORI', en: 'COURSE ARCHITECT', ru: 'АРХИТЕКТОР КУРСОВ' },
+    details: {
+      uz: 'Kurslar tuzilishi, modullar tizimi va darslar ketma-ketligi arxitekturasi.',
+      en: 'Course structure, module system, and lesson sequence architecture.',
+      ru: 'Структура курсов, система модулей и архитектура последовательности уроков.'
+    },
     stack: ['React 18', 'TypeScript', 'Next.js 14', 'Redux Toolkit'],
     asset: '/team/Doniyor.jpg',
   },
@@ -111,8 +136,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'suhrob',
     name: 'SUHROB',
     age: 14,
-    roleBadge: 'RANKING BUILDER',
-    details: 'Reyting tizimi, XP (tajriba ballari) hisoblash logikasi va peshqadamlar jadvali (leaderboard).',
+    roleBadge: { uz: 'REYTING YARATUVCHI', en: 'RANKING BUILDER', ru: 'РАЗРАБОТЧИК РЕЙТИНГА' },
+    details: {
+      uz: 'Reyting tizimi, XP (tajriba ballari) hisoblash logikasi va peshqadamlar jadvali (leaderboard).',
+      en: 'Ranking system, XP (experience points) calculation logic, and leaderboard implementation.',
+      ru: 'Система рейтинга, логика вычисления XP (очков опыта) и таблица лидеров (leaderboard).'
+    },
     stack: ['Leaderboards', 'Gamification', 'XP Logic', 'MongoDB'],
     asset: '/team/Suhrob.jpg',
   },
@@ -120,8 +149,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     id: 'qudrat',
     name: 'QUDRAT',
     age: 14,
-    roleBadge: 'MOTION CREATOR',
-    details: 'Foydalanuvchi tajribasini boyitish uchun interaktiv GSAP va Framer Motion animatsiyalari.',
+    roleBadge: { uz: 'MOTION YARATUVCHI', en: 'MOTION CREATOR', ru: 'СОЗДАТЕЛЬ АНИМАЦИЙ' },
+    details: {
+      uz: 'Foydalanuvchi tajribasini boyitish uchun interaktiv GSAP va Framer Motion animatsiyalari.',
+      en: 'Interactive GSAP and Framer Motion animations to enrich user experience.',
+      ru: 'Интерактивные анимации GSAP и Framer Motion для обогащения пользовательского опыта.'
+    },
     stack: ['GSAP 3', 'Three.js', 'Framer Motion'],
     asset: '/team/Qudrat.jpg',
   },
@@ -130,9 +163,12 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: 'WANTED_NODE',
     age: 0,
     hideAge: true,
-    roleBadge: 'WANTED / ?????',
-    details:
-      '#WANTED #CREATIVE_MIND // Tizimda boshliq aniqlandi. _Bizga kreativ va nostandart fikrlaydigan dev kerak!_ #JOIN_US // matrix_integrity: unstable.',
+    roleBadge: { uz: 'QIDIRUVDA / ?????', en: 'WANTED / ?????', ru: 'РАЗЫСКИВАЕТСЯ / ?????' },
+    details: {
+      uz: '#WANTED #CREATIVE_MIND // Tizimda bo\'shliq aniqlandi. _Bizga kreativ va nostandart fikrlaydigan dev kerak!_ #JOIN_US // matrix_integrity: unstable.',
+      en: '#WANTED #CREATIVE_MIND // System void detected. _We need a creative and unconventional dev!_ #JOIN_US // matrix_integrity: unstable.',
+      ru: '#WANTED #CREATIVE_MIND // В системе обнаружена пустота. _Нам нужен креативный дев с нестандартным мышлением!_ #JOIN_US // matrix_integrity: unstable.'
+    },
     stack: ['#CREATIVE', '#CODER', '#BUG_FIXER', 'YOU?'],
     asset: '/team/mystery.jpg',
   },
@@ -174,12 +210,14 @@ function TeamCard({
   member,
   index,
   c,
+  lang,
   flippedId,
   onFlip,
 }: {
   member: TeamMember;
   index: number;
   c: Content;
+  lang: Lang;
   flippedId: string | null;
   onFlip: (id: string | null) => void;
 }) {
@@ -309,7 +347,7 @@ function TeamCard({
         <div className="absolute bottom-0 inset-x-0 p-3 z-10">
           <div className="mb-1">
             <span className={`px-2 py-0.5 text-[9px] tracking-wider uppercase font-bold rounded-none ${badgeClass}`}>
-              [{member.roleBadge}]
+              [{member.roleBadge[lang] || member.roleBadge.uz}]
             </span>
           </div>
           <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>{member.name}</h3>
@@ -327,7 +365,7 @@ function TeamCard({
         <div className="space-y-3">
           <div>
             <span className={`px-2 py-0.5 text-[9px] tracking-wider uppercase font-bold rounded-none ${badgeClass}`}>
-              [{member.roleBadge}]
+              [{member.roleBadge[lang] || member.roleBadge.uz}]
             </span>
             <div className="flex items-baseline gap-2 mt-1.5">
               <h3 className={`text-sm font-black tracking-wider uppercase ${nameColor}`}>{member.name}</h3>
@@ -361,12 +399,14 @@ function TeamCard({
                     isDark ? 'bg-red-950/10' : 'bg-red-50'
                   } font-serif`}
                 >
-                  Bizga kreativ va nostandart fikrlaydigan dev kerak!
+                  {lang === 'uz' ? 'Bizga kreativ va nostandart fikrlaydigan dev kerak!' :
+                   lang === 'en' ? 'We need a creative and unconventional dev!' :
+                   'Нам нужен креативный дев с нестандартным мышлением!'}
                 </p>
                 <p className="text-[9px] text-red-500/40 font-mono">{'// matrix_integrity: unstable'}</p>
               </div>
             ) : (
-              <p className={`text-[10px] ${bodyText} leading-relaxed font-sans font-light italic`}>{member.details}</p>
+              <p className={`text-[10px] ${bodyText} leading-relaxed font-sans font-light italic`}>{member.details[lang] || member.details.uz}</p>
             )}
           </div>
 
@@ -756,7 +796,7 @@ export default function TeamPage() {
                 marginTop: -CARD_H / 2,
               }}
             >
-              <TeamCard member={item.member} index={item.index} c={c} flippedId={flippedId} onFlip={handleFlip} />
+              <TeamCard member={item.member} index={item.index} c={c} lang={lang as Lang} flippedId={flippedId} onFlip={handleFlip} />
             </div>
           ))}
 

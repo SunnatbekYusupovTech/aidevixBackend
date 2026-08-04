@@ -470,12 +470,24 @@ const io = new Server(server, {
   }
 });
 
+// Function to format time as "Bugun, HH:mm"
+const getFormattedTime = (minutesAgo = 0) => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - minutesAgo);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `Bugun, ${hh}:${mm}`;
+};
+
 // Mock state for demo
 let onlineCount = 0;
 let popularPages = { '/courses/cybersecurity': 5, '/challenges': 3, '/blog/chatgpt': 2 };
 let lastSeenUsers = [
-  { name: "Ali Valiyev", email: "ali@gmail.com", online: true, time: "Hozirgina" },
-  { name: "Sardor O'ktamov", email: "sardor.u@mail.ru", online: true, time: "Hozirgina" },
+  { name: "Ali Valiyev", email: "ali@gmail.com", online: true, time: getFormattedTime(0) },
+  { name: "Sardor O'ktamov", email: "sardor.u@mail.ru", online: true, time: getFormattedTime(0) },
+  { name: "Dilshod Karimov", email: "dilshod123@yahoo.com", online: false, time: getFormattedTime(5) },
+  { name: "Zuhra Rustamova", email: "zuhra_r@gmail.com", online: false, time: getFormattedTime(12) },
+  { name: "Otabek Qosimov", email: "otabekq@gmail.com", online: false, time: getFormattedTime(60) },
 ];
 
 io.on('connection', (socket) => {

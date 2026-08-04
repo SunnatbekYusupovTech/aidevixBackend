@@ -80,7 +80,7 @@ const TEAM_MEMBERS: TeamMember[] = [
   },
   {
     id: 'numton',
-    name: 'NUMTON',
+    name: 'NURMUHAMMAD',
     age: 16,
     hideAge: true,
     roleBadge: { uz: 'HOME UI / FRONTEND', en: 'HOME UI / FRONTEND', ru: 'HOME UI / ФРОНТЕНД' },
@@ -94,7 +94,7 @@ const TEAM_MEMBERS: TeamMember[] = [
   },
   {
     id: 'kamton',
-    name: 'KAMTON',
+    name: 'KOMRON',
     age: 16,
     hideAge: true,
     roleBadge: { uz: 'XAVFSIZLIK & UPDATER', en: 'SECURITY & UPDATER', ru: 'БЕЗОПАСНОСТЬ И ОБНОВЛЕНИЯ' },

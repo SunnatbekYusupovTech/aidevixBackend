@@ -9,34 +9,6 @@ import { COURSES_FAQ } from '@/data/coursesFaq';
 export default function SeoContent() {
   return (
     <section className="mx-auto max-w-4xl px-4 mt-20 pt-12 border-t border-base-content/10">
-      <div className="max-w-none text-base-content/70 space-y-4 text-sm sm:text-base">
-        <h2 className="text-2xl sm:text-3xl font-black text-base-content mb-4">
-          O'zbek tilida dasturlash va IT kurslari
-        </h2>
-        <p className="leading-relaxed">
-          Aidevix — O'zbekistonda AI davri uchun mo'ljallangan onlayn dasturlash va
-          IT ta'lim platformasi. Bu yerda <strong>React, JavaScript, TypeScript, Node.js,
-          Python</strong> va <strong>sun'iy intellekt</strong> bo'yicha professional
-          kurslarni o'zbek tilida o'rganasiz. Har bir kurs amaliy loyihalar,
-          topshiriqlar va real misollar bilan tuzilgan — nazariyani emas, ish
-          beradigan ko'nikmani o'rgatadi.
-        </p>
-        <p className="leading-relaxed">
-          <strong>IT kurslari</strong> keng qamrovli: veb-dasturlash (frontend va
-          backend), mobil dasturlash, kiberxavfsizlik, ma'lumotlar bilan ishlash va
-          zamonaviy sun'iy intellekt vositalari. Qaysi IT yo'nalishini tanlashni
-          bilmasangiz, roadmap va kategoriya sahifalari orqali o'zingizga mos yo'lni
-          topasiz — noldan boshlab karyerangizgacha.
-        </p>
-        <p className="leading-relaxed">
-          Kurslar boshlang'ich darajadan senior darajagacha bosqichma-bosqich
-          tuzilgan. Dasturlashni noldan boshlayotgan bo'lsangiz ham, malakangizni
-          oshirmoqchi bo'lgan mutaxassis bo'lsangiz ham — o'zingizga mos yo'nalishni
-          tanlaysiz. Aidevix'ning asosiy farqi: an'anaviy dasturlash bilan birga
-          <strong> Claude Code, Cursor va GitHub Copilot</strong> kabi zamonaviy AI
-          vositalari bilan ishlashni ham o'rgatadi.
-        </p>
-      </div>
 
       {/* Yo'nalishlar bo'yicha ichki linklar — internal linking + long-tail */}
       <div className="mt-10">

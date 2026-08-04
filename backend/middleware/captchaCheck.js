@@ -10,6 +10,10 @@ const securityLogger = require('../utils/securityLogger');
 const captchaCheck = async (req, res, next) => {
   if (!isEnabled()) return next();
 
+  // Mobil ilovalar brauzer CAPTCHA'ni render qila olmaydi. X-Client-Type: mobile
+  // header'i bor so'rovlarni skip qilamiz — bu so'rovlar rate-limiter bilan himoyalangan.
+  if (req.headers['x-client-type'] === 'mobile') return next();
+
   const token =
     req.headers['x-captcha-token'] ||
     req.headers['X-Captcha-Token'] ||

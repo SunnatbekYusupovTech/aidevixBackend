@@ -11,10 +11,11 @@ import {
 import {
   FiUsers, FiBookOpen, FiVideo, FiDollarSign,
   FiTrendingUp, FiAward, FiLayers, FiBarChart2,
-  FiRefreshCw, FiAlertCircle,
+  FiRefreshCw, FiAlertCircle, FiActivity, FiGlobe, FiClock
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { io } from 'socket.io-client';
 
 type DashboardData = {
   users: { total: number; newThisMonth: number };
@@ -109,6 +110,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // Real-time socket states
+  const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [popularPages, setPopularPages] = useState<Record<string, number>>({});
+  const [lastSeen, setLastSeen] = useState<any[]>([]);
+
   const load = () => {
     let cancelled = false;
     setLoading(true);
@@ -136,6 +142,22 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => load(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Connect to WebSocket Server (Backend)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const socket = io(backendUrl);
+
+    socket.on('dashboard_update', (data) => {
+      if (data.onlineCount !== undefined) setOnlineCount(data.onlineCount);
+      if (data.popularPages) setPopularPages(data.popularPages);
+      if (data.lastSeenUsers) setLastSeen(data.lastSeenUsers);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const fmt = (n: number) => new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 }).format(n || 0);
 
@@ -434,6 +456,109 @@ export default function AdminDashboardPage() {
               )}
             </ul>
           )}
+        </div>
+      </div>
+
+      {/* Real-time stats & Last Seen */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        
+        {/* Hozir onlayn & Ommabop sahifalar (Mock UI) */}
+        <div className="flex flex-col gap-6 lg:col-span-1">
+          <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FiActivity className="text-emerald-400 h-5 w-5 animate-pulse" />
+                <h3 className="font-display text-base font-bold text-white">Hozir Onlayn</h3>
+              </div>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </div>
+            
+            <div className="flex items-end gap-3 mb-6">
+              <span className="text-4xl font-black text-white">{onlineCount}</span>
+              <span className="text-sm font-medium text-emerald-400 mb-1">foydalanuvchi saytda</span>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Ommabop sahifalar (Hozir)</p>
+                <ul className="space-y-2 text-sm">
+                  {Object.entries(popularPages)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([path, count], idx) => (
+                      <li key={idx} className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <span className="text-slate-300 truncate pr-4">{path}</span>
+                        <span className="text-white font-mono">{count} kishi</span>
+                      </li>
+                    ))}
+                  {Object.keys(popularPages).length === 0 && (
+                     <li className="text-slate-500 text-xs text-center py-2">Ma'lumot yo'q</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Oxirgi kirgan foydalanuvchilar (Mock UI) */}
+        <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 lg:col-span-2 shadow-lg">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FiClock className="text-sky-400 h-5 w-5" />
+              <h3 className="font-display text-base font-bold text-white">Oxirgi marta kirganlar</h3>
+            </div>
+            <Link href="/admin/users" className="text-xs font-medium text-amber-400 hover:text-amber-300">
+              Barchasini ko'rish →
+            </Link>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="pb-3 pl-2">Foydalanuvchi</th>
+                  <th className="pb-3">Holat</th>
+                  <th className="pb-3 text-right pr-2">Oxirgi marta onlayn</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {lastSeen.length > 0 ? lastSeen.map((u, i) => (
+                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 pl-2">
+                      <span className="font-medium text-white block">{u.name}</span>
+                      <span className="text-xs text-slate-500">{u.email}</span>
+                    </td>
+                    <td className="py-3">
+                      {u.online ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-emerald-400">
+                          Onlayn
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-500/20 bg-slate-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-slate-400">
+                          Oflayn
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 text-right pr-2 text-slate-400">{u.time}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-sm text-slate-500">Hech qanday ma'lumot yo'q</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <p className="mt-4 text-[11px] text-emerald-500/80 text-center flex items-center justify-center gap-1">
+               <span className="relative flex h-2 w-2">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+               </span>
+               WebSocket orqali real vaqtda yangilanmoqda
+            </p>
+          </div>
         </div>
       </div>
     </div>

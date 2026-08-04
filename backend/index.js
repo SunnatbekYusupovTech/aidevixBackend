@@ -461,6 +461,62 @@ const server = app.listen(PORT, HOST, () => {
   }
 });
 
+// Socket.io for Real-time Admin Dashboard
+const { Server } = require('socket.io');
+const io = new Server(server, {
+  cors: {
+    origin: '*', // Allow all for demo purposes, restrict in prod
+    methods: ['GET', 'POST']
+  }
+});
+
+// Mock state for demo
+let onlineCount = 0;
+let popularPages = { '/courses/cybersecurity': 5, '/challenges': 3, '/blog/chatgpt': 2 };
+let lastSeenUsers = [
+  { name: "Ali Valiyev", email: "ali@gmail.com", online: true, time: "Hozirgina" },
+  { name: "Sardor O'ktamov", email: "sardor.u@mail.ru", online: true, time: "Hozirgina" },
+];
+
+io.on('connection', (socket) => {
+  onlineCount++;
+  
+  // Send initial data
+  socket.emit('dashboard_update', {
+    onlineCount,
+    popularPages,
+    lastSeenUsers
+  });
+
+  // Broadcast to all admins
+  io.emit('online_count_change', onlineCount);
+
+  // Simulating random traffic updates every 5 seconds
+  const interval = setInterval(() => {
+    // Randomize for visual effect
+    const newCount = onlineCount + Math.floor(Math.random() * 5) - 2;
+    onlineCount = Math.max(1, newCount);
+    
+    // Randomize popular pages
+    popularPages['/courses/cybersecurity'] = Math.max(1, Math.floor(Math.random() * 10));
+    popularPages['/challenges'] = Math.max(1, Math.floor(Math.random() * 8));
+    popularPages['/blog/chatgpt'] = Math.max(1, Math.floor(Math.random() * 6));
+    
+    io.emit('dashboard_update', {
+      onlineCount,
+      popularPages,
+      lastSeenUsers
+    });
+  }, 5000);
+
+  socket.on('disconnect', () => {
+    onlineCount = Math.max(0, onlineCount - 1);
+    io.emit('online_count_change', onlineCount);
+    clearInterval(interval);
+  });
+});
+
+
 // ═══════════════════════════════════════════════════════════════════
 // Slowloris / Slow-POST DDoS himoyasi
 // Hujumchi sekin asta byte yuborib socket'larni egallashga uringanida

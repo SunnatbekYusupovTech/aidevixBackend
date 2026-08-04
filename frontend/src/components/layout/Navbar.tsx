@@ -73,7 +73,6 @@ export default function Navbar() {
   ], [t, navLocalText])
   const navMore = useMemo<{ label: string; to: string }[]>(() => [
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
-    { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },
   ], [t, navLocalText])
   const allNavMobile = [...navPrimary, ...navMore]

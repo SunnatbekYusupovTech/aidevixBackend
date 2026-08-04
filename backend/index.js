@@ -475,9 +475,17 @@ const io = new Server(server, {
 const getFormattedTime = (dateStr) => {
   if (!dateStr) return 'Noma\'lum';
   const d = new Date(dateStr);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `Bugun, ${hh}:${mm}`;
+  
+  // O'zbekiston (Tashkent) vaqti bilan formatlash
+  const formatter = new Intl.DateTimeFormat('uz-UZ', {
+    timeZone: 'Asia/Tashkent',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  
+  const timeString = formatter.format(d);
+  return `Bugun, ${timeString}`;
 };
 
 // State for active presence

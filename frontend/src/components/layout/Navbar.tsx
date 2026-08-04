@@ -72,7 +72,6 @@ export default function Navbar() {
     { label: t('nav.leaderboard'), to: ROUTES.LEADERBOARD },
   ], [t, navLocalText])
   const navMore = useMemo<{ label: string; to: string }[]>(() => [
-    { label: `🔁 ${navLocalText.review}`, to: ROUTES.REVIEW },
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🗺 ${navLocalText.roadmap}`, to: ROUTES.ROADMAP },
     { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },
@@ -433,12 +432,7 @@ export default function Navbar() {
                       )}
                       <li><Link href={ROUTES.PROFILE} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.profile')}</Link></li>
 
-                      <li>
-                        <Link href={ROUTES.REFERRAL} className="flex justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
-                          <span>{t('nav.referral')}</span>
-                          <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-300">+1000 XP</span>
-                        </Link>
-                      </li>
+
                       <li><Link href={ROUTES.SUBSCRIPTION} className={`rounded-xl px-3 py-2.5 text-sm ${dropdownItemColor}`}>{t('nav.subscription')}</Link></li>
                       <div className={`my-1 h-px ${isDark ? 'bg-white/10' : 'bg-slate-900/10'}`} />
                       <li>

@@ -88,6 +88,14 @@ connectDB().then(async () => {
   } catch (emailError) {
     console.error('⚠️ Email transport verify failed to start:', emailError.message);
   }
+
+  // Database Backup Scheduler
+  try {
+    const { startBackupScheduler } = require('./utils/backupScheduler');
+    startBackupScheduler();
+  } catch (backupError) {
+    console.error('⚠️ Backup Scheduler initialization failed:', backupError.message);
+  }
 }).catch(err => {
   console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
   console.error('   Reason:', err.message);

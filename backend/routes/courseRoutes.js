@@ -18,14 +18,16 @@ const {
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 
+const cacheMiddleware = require('../middleware/cacheMiddleware');
+
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses  |  POST /api/courses
 // ════════════════════════════════════════════════════════════════
-router.get('/',                getAllCourses);
-router.get('/top',             getTopCourses);
-router.get('/categories',      getCategories);
-router.get('/autocomplete',    getAutocomplete);
-router.get('/filter-counts',   getFilterCounts);
+router.get('/',                cacheMiddleware(60), getAllCourses);
+router.get('/top',             cacheMiddleware(300), getTopCourses);
+router.get('/categories',      cacheMiddleware(3600), getCategories);
+router.get('/autocomplete',    cacheMiddleware(60), getAutocomplete);
+router.get('/filter-counts',   cacheMiddleware(60), getFilterCounts);
 // Foydalanuvchi uchun aqlli tavsiya — aiStack + tugatilgan kurslar asosida
 router.get('/recommended', authenticate, getUserRecommendedCourses);
 // Bonus-14: sitemap uchun lightweight endpoint (50-clamp yo'q, slug bilan)

@@ -53,6 +53,13 @@ describe('pathToId', () => {
   it('refuses an empty path', () => {
     expect(() => mkhls.pathToId('')).toThrow(/required/);
   });
+
+  it('refuses a path that normalises to nothing', () => {
+    // A lone separator passes the empty-string and traversal checks but
+    // collapses to '' once slashes are stripped — that must fail the same
+    // way an empty input does, not silently produce an empty ID.
+    expect(() => mkhls.pathToId('/')).toThrow(/required/);
+  });
 });
 
 describe('buildStreamPath', () => {
@@ -116,6 +123,15 @@ describe('getAdminToken', () => {
       .reply(401, { success: false, error: { code: 'INVALID_CREDENTIALS', message: 'nope' } });
 
     await expect(mkhls.getAdminToken()).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  });
+
+  it('surfaces a success response with no data as a MkhlsError, not a raw TypeError', async () => {
+    // {success: true} with no `data` is not a shape any caller here expects.
+    // unwrap must turn it into a MkhlsError instead of letting the next line
+    // (data.token) crash with a raw TypeError.
+    nock(BASE).post('/admin/login').reply(200, { success: true });
+
+    await expect(mkhls.getAdminToken()).rejects.toMatchObject({ code: 'MALFORMED_RESPONSE' });
   });
 });
 

@@ -45,7 +45,9 @@ const pathToId = (streamPath) => {
     // generated, never user-supplied, so a traversal segment means a bug.
     throw new MkhlsError(`mkhls: unsafe streamPath: ${raw}`, { code: 'INVALID_PATH' });
   }
-  return raw.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\/+/g, '_');
+  const id = raw.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\/+/g, '_');
+  if (!id) throw new MkhlsError('mkhls: streamPath required', { code: 'INVALID_PATH' });
+  return id;
 };
 
 const buildStreamPath = (videoId) => `${NAMESPACE()}/${videoId}.mp4`;
@@ -84,6 +86,13 @@ const unwrap = (body) => {
       `mkhls: ${body?.error?.code || 'UNKNOWN'}: ${body?.error?.message || 'unexpected response'}`,
       { code: body?.error?.code || 'UNKNOWN' }
     );
+  }
+  if (body.data === undefined) {
+    // A success envelope with no payload is not a shape any operation in this
+    // module expects (deleteVideo's {deleted: true} etc. always sends data).
+    // Surfacing it as a MkhlsError keeps the boundary contract instead of
+    // letting callers hit a raw TypeError on `data.token`/`data.expires_at`.
+    throw new MkhlsError('mkhls: success response missing data', { code: 'MALFORMED_RESPONSE' });
   }
   return body.data;
 };

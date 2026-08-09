@@ -43,3 +43,24 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
+  # Local database for the Aidevix backend. The backend itself runs on the
+  # host (npm run dev) so it stays debuggable; only its dependencies are
+  # containerised.
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      # A named volume, not a bind mount: WiredTiger needs POSIX file locking
+      # semantics that Windows bind mounts do not provide, and it fails at
+      # startup on them.
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:

@@ -3,6 +3,7 @@ const Video = require('../models/Video');
 const Course = require('../models/Course');
 const VideoLink = require('../models/VideoLink');
 const VideoQuestion = require('../models/VideoQuestion');
+const Enrollment = require('../models/Enrollment');
 const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
 const mkhls = require('../utils/mkhls');
@@ -92,27 +93,49 @@ const getVideo = async (req, res) => {
       }
     }
 
-    // Video Bunny.net da mavjudmi va tayyor holatdami?
-    let embedUrl = null;
-    let expiresAt = null;
+    // ─── Player ──────────────────────────────────────────────────────────────
+    // player === null bo'lsa frontend "tayyorlanmoqda" ekranini ko'rsatadi —
+    // bu shartnoma o'zgarmadi.
+    let player = null;
 
-    if (!video.bunnyVideoId) {
-      // Bunny ID yo'q — video hali yuklanmagan (dev mode da davom etamiz)
-      console.warn(`[Video ${id}] bunnyVideoId yo'q — video player ko'rinmaydi`);
-    } else if (video.bunnyStatus !== 'ready') {
-      // Bunny da hali qayta ishlanmoqda
-      console.warn(`[Video ${id}] bunnyStatus: ${video.bunnyStatus} — hali tayyor emas`);
+    if (!video.streamPath) {
+      console.warn(`[Video ${id}] streamPath yo'q — video hali yuklanmagan`);
+    } else if (video.streamStatus !== 'ready') {
+      console.warn(`[Video ${id}] streamStatus: ${video.streamStatus} — hali tayyor emas`);
     } else {
-      // 2 soatlik muddatli signed embed URL yaratish
-      const signed = generateSignedEmbedUrl(video.bunnyVideoId);
-      embedUrl = signed.embedUrl;
-      expiresAt = signed.expiresAt;
+      try {
+        const { token, expiresAt } = await mkhls.generateStreamToken(video.streamPath);
+        player = {
+          type: 'hls',
+          hlsUrl: mkhls.buildHlsUrl(video.streamPath, token),
+          expiresAt,
+        };
+      } catch (err) {
+        console.error('[video] stream token:', err.code, err.message);
+        // mkhls o'chgan bo'lsa video haqiqatan ham ko'rsatib bo'lmaydi —
+        // 200 + player:null "tayyorlanmoqda" deb yolg'on aytardi (spec §11).
+        return res.status(503).json({
+          success: false,
+          message: 'Video vaqtincha mavjud emas. Birozdan keyin urinib ko\'ring.',
+        });
+      }
     }
 
-    // Ko'rishlar sonini oshirish (background)
-    Video.findByIdAndUpdate(id, { $inc: { viewCount: 1 } })
-      .exec()
-      .catch((e) => console.error('[video] viewCount inc:', e.message));
+    // ─── Resume pozitsiyasi ──────────────────────────────────────────────────
+    let progress = null;
+    const enrollment = await Enrollment.findOne({
+      userId: req.user._id,
+      courseId: video.course?._id || video.course,
+    })
+      .select('watchedVideos')
+      .lean();
+
+    const watched = enrollment?.watchedVideos?.find(
+      (w) => String(w.videoId) === String(video._id)
+    );
+    if (watched) {
+      progress = { lastPositionSeconds: watched.watchedSeconds || 0 };
+    }
 
     res.json({
       success: true,
@@ -127,9 +150,13 @@ const getVideo = async (req, res) => {
           materials: video.materials,
           course: video.course,
           views: video.viewCount,
-          rating: video.rating,
+          // `rating` olib tashlandi: models/Video.js da bunday field yo'q,
+          // ya'ni u har doim undefined qaytardi.
         },
-        player: embedUrl ? { embedUrl, expiresAt } : null,
+        player,
+        progress,
+        // Frontend "tayyorlanmoqda" ekranida nimani pollinq qilishni bilishi uchun.
+        streamStatus: video.streamStatus,
       },
     });
   } catch (error) {

@@ -3,8 +3,10 @@ const Course     = require('../models/Course');
 const UserStats  = require('../models/UserStats');
 const Certificate = require('../models/Certificate');
 const ActivityLog = require('../models/ActivityLog');
+const Video = require('../models/Video');
 const { awardBadges } = require('../utils/badgeService');
 const { sendEnrollmentEmail, sendCertificateEmail } = require('../utils/emailService');
+const { computeWatchDelta } = require('../utils/watchProgress');
 const crypto = require('crypto');
 
 /** @desc  Kursga yozilish | @route POST /api/enrollments/:courseId | @access Private */
@@ -57,7 +59,10 @@ const getMyEnrollments = async (req, res) => {
 const markVideoWatched = async (req, res) => {
   try {
     const { courseId, videoId } = req.params;
-    const { watchedSeconds = 0 } = req.body;
+    // Shartnoma: frontend JORIY POZITSIYAni yuboradi, delta emas.
+    // `watchedSeconds` — eski nom, bir reliz qabul qilinadi (Plan 3 gacha).
+    const { positionSeconds, watchedSeconds } = req.body;
+    const position = Number(positionSeconds ?? watchedSeconds ?? 0);
 
     // PB-005: parallelize independent reads
     const [enrollment, course] = await Promise.all([
@@ -68,8 +73,19 @@ const markVideoWatched = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
 
     const alreadyWatched = enrollment.watchedVideos.find(w => w.videoId.toString() === videoId);
+    const previousPosition = alreadyWatched ? alreadyWatched.watchedSeconds || 0 : 0;
+    const delta = computeWatchDelta(previousPosition, position);
+
     if (!alreadyWatched) {
-      enrollment.watchedVideos.push({ videoId, watchedSeconds });
+      enrollment.watchedVideos.push({ videoId, watchedSeconds: position });
+
+      // viewCount shu yerda oshadi — foydalanuvchi videoni haqiqatan ko'ra
+      // boshlaganda, bir marta. Ilgari u getVideo'da edi va har refresh'da,
+      // hatto video umuman o'ynamaganda ham oshardi.
+      Video.updateOne({ _id: videoId }, { $inc: { viewCount: 1 } })
+        .exec()
+        .catch(err => console.error('[enrollment] viewCount inc:', err.message));
+
       // ActivityLog: birinchi ko'rishni denormalized log'ga yoz (fire-and-forget)
       // getHomeStats aggregation'ini tezlashtirish uchun (PB-001)
       ActivityLog.create({
@@ -78,7 +94,8 @@ const markVideoWatched = async (req, res) => {
         courseId,
       }).catch(err => console.error('[ActivityLog] yozishda xato:', err.message));
     } else {
-      alreadyWatched.watchedSeconds = Math.max(alreadyWatched.watchedSeconds, watchedSeconds);
+      // Orqaga seek qilish eng uzoq ko'rilgan nuqtani kamaytirmaydi.
+      alreadyWatched.watchedSeconds = Math.max(previousPosition, position);
     }
 
     // Progress hisoblash
@@ -86,7 +103,7 @@ const markVideoWatched = async (req, res) => {
     enrollment.progressPercent = totalVideos > 0
       ? Math.round((enrollment.watchedVideos.length / totalVideos) * 100)
       : 0;
-    enrollment.totalWatchedSeconds += watchedSeconds;
+    enrollment.totalWatchedSeconds += delta;
 
     // Kurs tugallandi
     if (enrollment.progressPercent >= 100 && !enrollment.isCompleted) {

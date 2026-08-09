@@ -75,3 +75,18 @@ scratch/
 
 # Raw font archives — extracted .ttf files are committed, not the zips
 frontend/public/*.zip
+
+# Local video streaming dev data (media files and HLS cache)
+# Note: ".data/*" alone ignores the media/cache dirs themselves, so git
+# never descends into them to apply a "!.data/media/.gitkeep" negation.
+# Un-ignoring the dirs outright isn't the fix either — that would also
+# un-ignore every real media/cache file placed inside them. Instead:
+# un-ignore the dirs just enough to traverse into them, re-ignore their
+# contents wholesale, then re-allow only the .gitkeep marker files.
+.data/*
+!.data/media
+!.data/cache
+.data/media/*
+.data/cache/*
+!.data/media/.gitkeep
+!.data/cache/.gitkeep

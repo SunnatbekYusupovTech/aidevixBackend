@@ -1,0 +1,37 @@
+# Local development environment for video streaming.
+# mkhls-streamer is built from the sibling checkout; it is NOT vendored into this repo.
+services:
+  mkhls:
+    build:
+      context: ../mkhls-streamer
+      dockerfile: deployments/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      MKHLS_VOD_SOURCE_TYPE: "local"
+      MKHLS_VOD_ROOT_PATH: "/media"
+      MKHLS_VOD_CACHE_PATH: "/cache"
+      MKHLS_VOD_PRE_TRANSCODE: "true"
+      # Deliberately OFF locally: source files are reused across test runs.
+      MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE: "false"
+      # NOTE: the field is auth.secret_key (mapstructure tag), not "jwt_secret".
+      # MKHLS_AUTH_JWT_SECRET would silently bind to nothing per viper's env
+      # override rules (see internal/infrastructure/config/config.go).
+      MKHLS_AUTH_SECRET_KEY: "dev-only-not-a-real-secret"
+    volumes:
+      - ./.data/media:/media
+      - ./.data/cache:/cache
+      # The image bakes configs/production/config.yaml, which is full of
+      # ${VAR:-default} shell-style placeholders (e.g. s3.use_ssl:
+      # "${S3_USE_SSL:-false}") that Go's os.ExpandEnv does NOT resolve —
+      # it has no ":-default" support, and viper's own YAML decode fails
+      # outright on the unexpanded bool string before our MKHLS_ env vars
+      # ever get a chance to apply. Mount the sibling repo's development
+      # config (valid literal YAML, no placeholders) over it instead; the
+      # MKHLS_ vars above still override individual keys on top of this file.
+      - ../mkhls-streamer/configs/development/config.yaml:/app/configs/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

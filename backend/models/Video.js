@@ -31,12 +31,28 @@ const videoSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  // Bunny.net Stream integration
+  // ─── mkhls-streamer ────────────────────────────────────────────────────────
+  // Storage path inside mkhls AND the public URL path: "aidevix/{videoId}.mp4".
+  // The namespace is deliberate — when mkhls becomes multi-tenant, Aidevix
+  // moves without changing a single path.
+  streamPath: {
+    type: String,
+    default: null,
+  },
+  streamStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'ready', 'failed'],
+    default: 'pending',
+  },
+
+  // ─── Bunny.net (DEPRECATED) ────────────────────────────────────────────────
+  // Kept for one release: existing rows still carry these and the admin panel
+  // still reads bunnyStatus until Plan 3 renames it. Removed by migration
+  // afterwards. New videos never set them.
   bunnyVideoId: {
     type: String,
     default: null,
   },
-  // ready | processing | failed | pending
   bunnyStatus: {
     type: String,
     enum: ['pending', 'processing', 'ready', 'failed'],
@@ -76,6 +92,7 @@ const videoSchema = new mongoose.Schema({
 
 videoSchema.index({ course: 1, order: 1 });
 videoSchema.index({ course: 1, isActive: 1 });
+videoSchema.index({ streamStatus: 1 });
 videoSchema.index({ bunnyStatus: 1 });
 videoSchema.index({ title: 'text' });
 

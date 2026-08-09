@@ -61,6 +61,7 @@ Two small things the spec's tables do not cover. Both are decided here; no furth
 3  mkhls client: auth core            ─┐
 4  mkhls client: media operations     ─┤ 5 needs 3+4
 5  Live smoke test of the client      ─┘
+1b mkhls: persist probed metadata      (added mid-execution — see below; mkhls repo)
 6  Video model fields                  (7-10 all write these fields)
 7  createVideo + linkToStream + getCourseVideos leak
 8  uploadVideoProxy + checkVideoStatus (needs 4: uploadVideo, startTranscode)
@@ -1472,6 +1473,211 @@ top of it — the gap that produced most of stages 1-2's defects.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
+
+---
+
+### Task 1b: mkhls — persist the probed metadata after a transcode
+
+**Added mid-execution, after Task 5. Repo: `mkhls-streamer`, branch `feat/vod-local-pipeline`. No Claude attribution in this commit.**
+
+Task 5's live run reported `duration: 0` on a video mkhls had marked `ready`. The clip is genuinely 3.0 s / 640×360 (ffprobe inside the container), so the file is fine. The cause:
+
+`TranscodingService.UpdateVideoMetadata` (`transcoding_service.go:1180`) probes the source and writes `duration`, `size`, `width`, `height`, `bitrate`, `codec`, `audio_codec` and `format` through `VideoService.UpdateVideoMetadata` — and **nothing calls it.** `grep -rn UpdateVideoMetadata --include=*.go` returns only its own definition and the domain method it delegates to. Every uploaded video therefore keeps `duration: 0` forever, and `GET /admin/videos/{id}` reports it as such.
+
+This is the same defect class Plan 1 found in `ffmpeg.presets`: a complete, correct feature that was parsed and then never wired. It is generic, it is upstream's bug, and no consumer-specific naming enters the fix.
+
+Two ordering constraints make this less trivial than it looks:
+
+- **The probe must run before `maybeDeleteSource`.** `GetMediaInfo` reads the source file; once `delete_source_after_transcode` removes it, there is nothing left to probe. In production that flag is on.
+- **The probe must run before `MarkVideoReady`.** A client polling `GET /admin/videos/{id}` stops as soon as it sees `ready`; if status flips first, the poller can capture `ready` with `duration: 0` and never look again. Aidevix's `checkVideoStatus` reads both fields from the same response, so this window is directly observable.
+
+`s.ffmpeg` is a concrete `*ffmpeg.FFmpeg`, not an interface, so it cannot be faked in a unit test — and `TestFinishJobDoesNotInvertLockOrder` constructs a `TranscodingService` with a **nil** `ffmpeg`. The call must therefore be nil-guarded, both so that test keeps passing and because `app.go` legitimately runs without a transcoder when the binary is missing. The real evidence for this task is the container check in Step 5.
+
+**Files:**
+- Modify: `internal/application/service/transcoding_service.go` (`finishJob`, the `JobStatusCompleted` non-HEVC branch, around line 588)
+- Modify: `internal/application/service/transcoding_service_test.go`
+- Modify: `claude_usage_log.txt`
+
+**Interfaces:**
+- Consumes: `TranscodingService.UpdateVideoMetadata(ctx, videoID) error` — already implemented, currently dead
+- Produces: `GET /admin/videos/{id}` returns a real `duration` (and `width`/`height`/`codec`) for uploaded videos. Task 8's `checkVideoStatus` persists that into `Video.duration`; Plan 3's player and admin panel display it.
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `internal/application/service/transcoding_service_test.go`. This test pins the nil-ffmpeg guard and the ordering, which is what a future edit is most likely to break. It uses the existing `stubVideoRepo` (defined at line 976 of that file) and a recording wrapper around it.
+
+```go
+// recordingVideoRepo records the order of repository writes so a test can
+// assert that metadata is persisted before the status flips to ready.
+type recordingVideoRepo struct {
+	stubVideoRepo
+	mu    sync.Mutex
+	calls []string
+}
+
+func (r *recordingVideoRepo) Update(_ context.Context, _ *entity.Video) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls = append(r.calls, "update")
+	return nil
+}
+
+func (r *recordingVideoRepo) UpdateStatus(_ context.Context, _ string, s entity.VideoStatus) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls = append(r.calls, "status:"+string(s))
+	return nil
+}
+
+func (r *recordingVideoRepo) recorded() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.calls...)
+}
+
+// A completed transcode must still mark the video ready when no ffmpeg is
+// configured. s.ffmpeg is a concrete type and cannot be faked, and app.go
+// leaves it nil when the binary is missing, so an unguarded probe call here
+// would panic on a path that has nothing to do with probing.
+func TestFinishJobWithoutFFmpegStillMarksReady(t *testing.T) {
+	repo := &recordingVideoRepo{}
+	s := &TranscodingService{
+		outputPath:   t.TempDir(),
+		logger:       &logger.NopLogger{},
+		videoService: domainservice.NewVideoService(repo),
+		jobs:         make(map[string]*TranscodingJob),
+	}
+
+	job := &TranscodingJob{
+		ID:              "job-nometa",
+		VideoID:         "ns_nometa.mp4",
+		InputPath:       filepath.Join(t.TempDir(), "source.mp4"),
+		Presets:         []string{"720p"},
+		RequiredPresets: []string{"720p"},
+		Status:          JobStatusCompleted,
+		Progress:        100,
+	}
+	s.jobs[job.ID] = job
+
+	s.finishJob(job, false, jobOutcome{status: JobStatusCompleted, progress: 100})
+
+	got := repo.recorded()
+	want := "status:" + string(entity.VideoStatusReady)
+	found := false
+	for _, c := range got {
+		if c == want {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("finishJob calls = %v, want one of them to be %q", got, want)
+	}
+}
+```
+
+- [ ] **Step 2: Run it and confirm the current behaviour**
+
+```bash
+cd mkhls-streamer
+go test ./internal/application/service/ -run TestFinishJobWithoutFFmpegStillMarksReady -v
+```
+
+Expected: PASS on the unmodified code — nothing probes yet, so nothing can panic. This test is a guard against the change you are about to make, not a red test. **Do not skip it**: run it again after Step 3 and confirm it still passes. If it panics after your edit, the nil guard is missing.
+
+- [ ] **Step 3: Wire the probe into the completion path**
+
+In `finishJob`'s `JobStatusCompleted` branch, in the `else` (non-HEVC) arm, replace the three statements that follow the "Transcoding job completed" log:
+
+```go
+			// Persist the probe before anything else touches the video.
+			//
+			// Ordering is load-bearing twice over: GetMediaInfo reads the
+			// source file, so this must happen before maybeDeleteSource can
+			// remove it; and a client polling GetVideo stops as soon as it
+			// sees "ready", so the metadata has to be in place before the
+			// status flips or the poller can capture duration 0 and never
+			// look again.
+			//
+			// s.ffmpeg is nil when no transcoder binary was configured, and
+			// a failed probe is not a reason to fail a transcode that
+			// succeeded — log and carry on either way.
+			if s.ffmpeg != nil {
+				if err := s.UpdateVideoMetadata(context.Background(), job.VideoID); err != nil {
+					s.logger.Warn("Failed to persist probed metadata after transcode",
+						logger.String("video_id", job.VideoID),
+						logger.Error(err),
+					)
+				}
+			}
+
+			// Mark video as ready
+			s.videoService.MarkVideoReady(context.Background(), job.VideoID)
+
+			// Delete the source file if every guard condition holds.
+			s.maybeDeleteSource(job)
+
+			// Queue H.265 background transcode if enabled
+			s.queueHEVCIfNeeded(job.VideoID, job.InputPath)
+```
+
+Leave the HEVC arm alone: an H.265 job runs against a video that is already `ready` with metadata from its H.264 pass, so probing again would be redundant work on a background path.
+
+- [ ] **Step 4: Run the package's tests**
+
+```bash
+go test ./internal/application/service/... -v
+go test ./...
+```
+
+Expected: PASS throughout. `TestFinishJobDoesNotInvertLockOrder` is the one to watch — it builds a service with a nil `ffmpeg` and exercises exactly this code path, so a missing nil guard shows up there as a panic.
+
+- [ ] **Step 5: Verify against the container — this is the real evidence**
+
+```bash
+cd ../aidevixBackend
+docker compose -f docker-compose.dev.yml up -d --build mkhls
+cd backend
+echo "" | node scripts/mkhls-smoke.js ../.data/media/real_test.mp4
+```
+
+Expected: the polling lines now show a non-zero `duration` once the status reaches `ready` — `3` for `real_test.mp4`, whose true length is 3.0 s. Before this change the same run printed `duration=0` at every poll.
+
+Confirm it directly as well, using the admin API:
+
+```bash
+TOKEN=$(curl -sS -X POST http://localhost:8080/admin/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin123"}' | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+curl -sS "http://localhost:8080/admin/videos/<the smoke id>" -H "Authorization: Bearer $TOKEN"
+```
+
+Expected: `duration` is 3, and `width`/`height` are 640/360 rather than 0/0.
+
+- [ ] **Step 6: Log and commit**
+
+Append an entry to `claude_usage_log.txt` in its existing format — files changed, the problem (a complete probe-and-persist path that nothing called), the fix and its two ordering constraints, and the container result. Keep consumer names out of it.
+
+```bash
+cd ../../mkhls-streamer
+git add internal/application/service/transcoding_service.go \
+        internal/application/service/transcoding_service_test.go \
+        claude_usage_log.txt
+git commit -m "fix(vod): persist probed metadata when a transcode completes
+
+UpdateVideoMetadata probes the source and writes duration, dimensions,
+bitrate and codecs — and nothing called it. Every uploaded video kept
+duration 0 forever, and the admin API reported it that way.
+
+The call goes before MarkVideoReady and before maybeDeleteSource, and both
+orderings matter: the probe reads the source file, which delete_source
+removes, and a client polling for readiness stops at the first ready
+response, so metadata written afterwards would never be seen.
+
+Guarded on a nil ffmpeg: app.go runs without a transcoder when the binary
+is missing, and a failed probe must not fail a transcode that succeeded."
+```
+
+No `Co-Authored-By` trailer in this repo.
 
 ---
 

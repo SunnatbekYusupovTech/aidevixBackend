@@ -12,7 +12,19 @@
 // request — from adding hours to a user's totals.
 const MAX_DELTA_SECONDS = 120;
 
-const toSeconds = (value) => {
+/**
+ * Coerces arbitrary request input into a valid watch-position value.
+ * Non-numeric, non-finite (e.g. NaN from `Number("abc")`), or negative
+ * input becomes 0 — the same rule the delta math already relies on, now
+ * exported so callers can sanitize a value BEFORE storing it, not just
+ * before feeding it to computeWatchDelta. A value that fails Mongoose's
+ * cast (NaN) or that violates the "furthest position" invariant (negative)
+ * must never reach the database in the first place.
+ *
+ * @param {*} value raw client input
+ * @returns {number} a finite, non-negative number of seconds
+ */
+const sanitizePosition = (value) => {
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? n : 0;
 };
@@ -23,9 +35,9 @@ const toSeconds = (value) => {
  * @returns {number} seconds to credit — never negative, never above the cap
  */
 const computeWatchDelta = (previousPosition, currentPosition) => {
-  const prev = toSeconds(previousPosition);
-  const now = toSeconds(currentPosition);
+  const prev = sanitizePosition(previousPosition);
+  const now = sanitizePosition(currentPosition);
   return Math.max(0, Math.min(now - prev, MAX_DELTA_SECONDS));
 };
 
-module.exports = { computeWatchDelta, MAX_DELTA_SECONDS };
+module.exports = { computeWatchDelta, sanitizePosition, MAX_DELTA_SECONDS };

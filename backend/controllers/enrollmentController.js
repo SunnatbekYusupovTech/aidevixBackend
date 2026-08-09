@@ -6,7 +6,7 @@ const ActivityLog = require('../models/ActivityLog');
 const Video = require('../models/Video');
 const { awardBadges } = require('../utils/badgeService');
 const { sendEnrollmentEmail, sendCertificateEmail } = require('../utils/emailService');
-const { computeWatchDelta } = require('../utils/watchProgress');
+const { computeWatchDelta, sanitizePosition } = require('../utils/watchProgress');
 const crypto = require('crypto');
 
 /** @desc  Kursga yozilish | @route POST /api/enrollments/:courseId | @access Private */
@@ -62,7 +62,12 @@ const markVideoWatched = async (req, res) => {
     // Shartnoma: frontend JORIY POZITSIYAni yuboradi, delta emas.
     // `watchedSeconds` — eski nom, bir reliz qabul qilinadi (Plan 3 gacha).
     const { positionSeconds, watchedSeconds } = req.body;
-    const position = Number(positionSeconds ?? watchedSeconds ?? 0);
+    // Malformed input (e.g. "abc" -> NaN) or a negative value is sanitized
+    // to 0 here, BEFORE it is ever pushed/assigned onto the document — not
+    // just before it is fed to computeWatchDelta. Storing an un-sanitized
+    // value risks a Mongoose CastError deferred to `save()`, by which point
+    // fire-and-forget side effects below would already have run.
+    const position = sanitizePosition(positionSeconds ?? watchedSeconds);
 
     // PB-005: parallelize independent reads
     const [enrollment, course] = await Promise.all([
@@ -73,26 +78,12 @@ const markVideoWatched = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
 
     const alreadyWatched = enrollment.watchedVideos.find(w => w.videoId.toString() === videoId);
+    const isFirstWatch = !alreadyWatched;
     const previousPosition = alreadyWatched ? alreadyWatched.watchedSeconds || 0 : 0;
     const delta = computeWatchDelta(previousPosition, position);
 
-    if (!alreadyWatched) {
+    if (isFirstWatch) {
       enrollment.watchedVideos.push({ videoId, watchedSeconds: position });
-
-      // viewCount shu yerda oshadi — foydalanuvchi videoni haqiqatan ko'ra
-      // boshlaganda, bir marta. Ilgari u getVideo'da edi va har refresh'da,
-      // hatto video umuman o'ynamaganda ham oshardi.
-      Video.updateOne({ _id: videoId }, { $inc: { viewCount: 1 } })
-        .exec()
-        .catch(err => console.error('[enrollment] viewCount inc:', err.message));
-
-      // ActivityLog: birinchi ko'rishni denormalized log'ga yoz (fire-and-forget)
-      // getHomeStats aggregation'ini tezlashtirish uchun (PB-001)
-      ActivityLog.create({
-        userId: req.user._id,
-        videoId,
-        courseId,
-      }).catch(err => console.error('[ActivityLog] yozishda xato:', err.message));
     } else {
       // Orqaga seek qilish eng uzoq ko'rilgan nuqtani kamaytirmaydi.
       alreadyWatched.watchedSeconds = Math.max(previousPosition, position);
@@ -113,6 +104,27 @@ const markVideoWatched = async (req, res) => {
     }
 
     await enrollment.save();
+
+    // viewCount va ActivityLog faqat save muvaffaqiyatli bo'lgandan keyin
+    // yoziladi — so'rov keyinroq muvaffaqiyatsiz bo'lib qolsa (masalan,
+    // validation xatosi), bu side-effect'lar allaqachon yozilib bo'lmaydi
+    // va retry ularni takror yozmaydi.
+    if (isFirstWatch) {
+      // viewCount shu yerda oshadi — foydalanuvchi videoni haqiqatan ko'ra
+      // boshlaganda, bir marta. Ilgari u getVideo'da edi va har refresh'da,
+      // hatto video umuman o'ynamaganda ham oshardi.
+      Video.updateOne({ _id: videoId }, { $inc: { viewCount: 1 } })
+        .exec()
+        .catch(err => console.error('[enrollment] viewCount inc:', err.message));
+
+      // ActivityLog: birinchi ko'rishni denormalized log'ga yoz (fire-and-forget)
+      // getHomeStats aggregation'ini tezlashtirish uchun (PB-001)
+      ActivityLog.create({
+        userId: req.user._id,
+        videoId,
+        courseId,
+      }).catch(err => console.error('[ActivityLog] yozishda xato:', err.message));
+    }
 
     // Badge tekshiruv
     const newBadges = await awardBadges(req.user._id);

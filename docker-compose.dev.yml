@@ -16,8 +16,12 @@ services:
       # `docker compose up` to queue a transcode job as soon as an upload
       # lands (see AdminHandler.UploadVideo / TranscodingService).
       MKHLS_VOD_TRANSCODE_ON_UPLOAD: "${MKHLS_VOD_TRANSCODE_ON_UPLOAD:-false}"
-      # Deliberately OFF locally: source files are reused across test runs.
-      MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE: "false"
+      # Off by default; export MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE=true before
+      # `docker compose up` to remove the source file once every rendition and
+      # the master playlist are confirmed on disk (see
+      # TranscodingService.shouldDeleteSource). Deliberately OFF locally:
+      # source files are reused across test runs.
+      MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE: "${MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE:-false}"
       # NOTE: the field is auth.secret_key (mapstructure tag), not "jwt_secret".
       # MKHLS_AUTH_JWT_SECRET would silently bind to nothing per viper's env
       # override rules (see internal/infrastructure/config/config.go).

@@ -224,6 +224,27 @@ describe('uploadVideo', () => {
       mkhls.uploadVideo('aidevix/68f.mp4', Readable.from(['abc']), '0')
     ).rejects.toMatchObject({ code: 'INVALID_LENGTH' });
   });
+
+  it('does not retry a 401 mid-upload, since the multipart stream cannot be resent', async () => {
+    // Each interceptor is registered .once(): if uploadVideo retried, the
+    // retry's login (or the retry's upload) would find no matching
+    // interceptor and nock would throw a "no match" error, which does not
+    // satisfy the toMatchObject below — a silent retry fails this test.
+    const loginScope = nock(BASE).post('/admin/login').once().reply(200, loginReply());
+    const uploadScope = nock(BASE)
+      .post('/admin/videos/upload')
+      .once()
+      .reply(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'expired' } });
+
+    await expect(
+      mkhls.uploadVideo('aidevix/68f.mp4', Readable.from(['abc']), 3)
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
+
+    // Each endpoint was hit exactly once — proves no second login and no
+    // second upload attempt were made.
+    expect(loginScope.isDone()).toBe(true);
+    expect(uploadScope.isDone()).toBe(true);
+  });
 });
 
 describe('startTranscode', () => {

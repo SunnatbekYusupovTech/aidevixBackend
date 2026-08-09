@@ -665,19 +665,26 @@ const checkVideoStatus = async (req, res) => {
     try {
       info = await mkhls.getVideoInfo(video.streamPath);
     } catch (err) {
-      if (err.code === 'NOT_FOUND') {
+      if (err.code === 'NOT_FOUND' && video.streamStatus === 'pending') {
         // Yaratilgan, lekin hali yuklanmagan — bu xato emas, kutilgan holat.
+        // Faqat 'pending' uchun: agar avval processing/ready bo'lgan video
+        // mkhls'da topilmasa, bu anomaliya (masalan tashqi o'chirish), yolg'on
+        // 'ready' qaytarish o'rniga pastdagi 502 orqali xato sifatida ko'rsatiladi.
         return res.json({
           success: true,
           data: {
             videoId: video._id,
             streamStatus: video.streamStatus,
             bunnyStatus: video.streamStatus, // DEPRECATED — Plan 3 gacha admin panel uchun
-            isReady: false,
+            isReady: video.streamStatus === 'ready',
             duration: video.duration,
             transcode: null,
           },
         });
+      }
+      if (err.code === 'NOT_FOUND') {
+        console.error('[video] checkVideoStatus: mkhls record missing for non-pending video', video._id.toString(), video.streamStatus);
+        return res.status(502).json({ success: false, message: 'Video mkhls da endi mavjud emas.' });
       }
       console.error('[video] checkVideoStatus mkhls:', err.code, err.message);
       return res.status(502).json({ success: false, message: 'mkhls bilan bog\'lanib bo\'lmadi.' });

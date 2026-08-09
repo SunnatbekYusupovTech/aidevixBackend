@@ -266,7 +266,7 @@ const globalSearch = async (req, res) => {
       Course.find({ title: regex, isActive: true })
         .select('title category isPublished studentsCount thumbnail').limit(6).lean(),
       Video.find({ title: regex, isActive: true })
-        .select('title bunnyStatus course duration')
+        .select('title streamStatus course duration')
         .populate('course', 'title').limit(6).lean(),
     ]);
 

@@ -390,7 +390,20 @@ const deleteVideo = async (req, res) => {
       });
     }
 
-    // Bunny Stream dan ham o'chirish (xato bo'lsa ham davom etamiz)
+    // mkhls'dan ham o'chiramiz. Xato bo'lsa ham davom etamiz: DB yozuvini
+    // qoldirish foydalanuvchiga o'chirilgan darsni ko'rsatib turishdan yomonroq.
+    if (video.streamPath) {
+      try {
+        const removed = await mkhls.deleteVideo(video.streamPath);
+        if (!removed) {
+          console.warn(`[video] mkhls'da yozuv topilmadi: ${video.streamPath}`);
+        }
+      } catch (err) {
+        console.error('[video] mkhls delete:', err.code, err.message);
+      }
+    }
+
+    // Eski Bunny videolari uchun (DEPRECATED — bir reliz).
     if (video.bunnyVideoId) {
       try {
         await deleteBunnyVideo(video.bunnyVideoId);
@@ -805,7 +818,7 @@ const searchVideos = async (req, res) => {
 
     const [videos, total] = await Promise.all([
       Video.find(filter)
-        .select('title description order duration thumbnail course bunnyStatus')
+        .select('title description order duration thumbnail course streamStatus')
         .populate('course', 'title category')
         .sort({ course: 1, order: 1 })
         .skip(skip)

@@ -567,10 +567,10 @@ const getUploadCredentialsForVideo = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Video not found.' });
     }
 
-    if (!video.bunnyVideoId) {
+    if (!video.streamPath) {
       return res.status(400).json({
         success: false,
-        message: 'Bu video Bunny.net ga ulangan emas.',
+        message: 'Bu video mkhls ga ulangan emas.',
       });
     }
 
@@ -580,9 +580,9 @@ const getUploadCredentialsForVideo = async (req, res) => {
       success: true,
       data: {
         videoId: video._id,
-        bunnyVideoId: video.bunnyVideoId,
+        streamPath: video.streamPath,
         ...uploadInfo,
-        note: 'uploadUrl ga (backend proxy) PUT so\'rov yuboring, body = video fayl binary. AccessKey backend\'da qoladi.',
+        note: 'uploadUrl ga (backend proxy) PUT so\'rov yuboring, body = video fayl binary. mkhls admin paroli backend\'da qoladi.',
       },
     });
   } catch (error) {
@@ -590,25 +590,65 @@ const getUploadCredentialsForVideo = async (req, res) => {
   }
 };
 
-// Admin video binary'ni backend orqali Bunny'ga oqizadi (INT-001: AccessKey leak qilinmaydi).
-// req — octet-stream (body-parser tegmaydi), to'g'ridan-to'g'ri Bunny'ga pipe qilinadi.
+// Admin video binary'ni backend orqali mkhls'ga oqizadi.
+// req — octet-stream (body-parser tegmaydi), to'g'ridan-to'g'ri pipe qilinadi:
+// fayl backend diskiga hech qachon tushmaydi (Railway diski efemer).
 const uploadVideoProxy = async (req, res) => {
   try {
-    const video = await Video.findById(req.params.id).select('bunnyVideoId').lean();
+    const video = await Video.findById(req.params.id).select('streamPath streamStatus');
     if (!video) return res.status(404).json({ success: false, message: 'Video not found.' });
-    if (!video.bunnyVideoId) {
-      return res.status(400).json({ success: false, message: 'Bu video Bunny.net ga ulangan emas.' });
+    if (!video.streamPath) {
+      return res.status(400).json({ success: false, message: 'Bu video mkhls ga ulangan emas.' });
     }
 
-    const data = await streamUploadToBunny(video.bunnyVideoId, req, req.headers['content-length']);
-    res.json({ success: true, message: 'Video Bunny.net ga yuklandi.', data });
+    const contentLength = req.headers['content-length'];
+    if (!contentLength) {
+      // Without a length the multipart body cannot be framed without
+      // buffering the whole file first — see utils/mkhls.js uploadVideo.
+      return res.status(411).json({
+        success: false,
+        message: 'Content-Length majburiy (chunked upload qo\'llab-quvvatlanmaydi).',
+      });
+    }
+
+    try {
+      await mkhls.uploadVideo(video.streamPath, req, contentLength);
+    } catch (err) {
+      console.error('[video] upload proxy:', err.code, err.message);
+      video.streamStatus = 'failed';
+      await video.save();
+      return res.status(502).json({ success: false, message: 'mkhls ga yuklashda xato.' });
+    }
+
+    video.streamStatus = 'processing';
+    await video.save();
+
+    // Exactly one side queues the job. When mkhls has transcode_on_upload
+    // enabled it already did; calling again could start a duplicate if that
+    // first job happened to finish in between (mkhls's guard only blocks
+    // jobs that are still pending or running).
+    if (process.env.MKHLS_TRANSCODE_ON_UPLOAD !== 'true') {
+      try {
+        await mkhls.startTranscode(video.streamPath);
+      } catch (err) {
+        // The bytes are safely in mkhls; report the upload as the success it
+        // was and let the admin retry transcoding rather than lose the file.
+        console.error('[video] startTranscode after upload:', err.code, err.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Video mkhls ga yuklandi.',
+      data: { videoId: video._id, streamStatus: video.streamStatus },
+    });
   } catch (error) {
     console.error('[video] upload proxy xato:', error.message);
-    res.status(502).json({ success: false, message: 'Bunny.net ga yuklashda xato.' });
+    res.status(502).json({ success: false, message: 'mkhls ga yuklashda xato.' });
   }
 };
 
-// Video holati tekshirish — Bunny processing tugadimi? (Admin only)
+// Video holati — transcode tugadimi? (Admin only)
 const checkVideoStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -617,22 +657,35 @@ const checkVideoStatus = async (req, res) => {
     if (!video) {
       return res.status(404).json({ success: false, message: 'Video not found.' });
     }
-
-    if (!video.bunnyVideoId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu video Bunny.net ga ulangan emas.',
-      });
+    if (!video.streamPath) {
+      return res.status(400).json({ success: false, message: 'Bu video mkhls ga ulangan emas.' });
     }
 
-    const bunnyInfo = await getBunnyVideoInfo(video.bunnyVideoId);
-    const newStatus = parseBunnyStatus(bunnyInfo.status);
+    let info;
+    try {
+      info = await mkhls.getVideoInfo(video.streamPath);
+    } catch (err) {
+      if (err.code === 'NOT_FOUND') {
+        // Yaratilgan, lekin hali yuklanmagan — bu xato emas, kutilgan holat.
+        return res.json({
+          success: true,
+          data: {
+            videoId: video._id,
+            streamStatus: video.streamStatus,
+            bunnyStatus: video.streamStatus, // DEPRECATED — Plan 3 gacha admin panel uchun
+            isReady: false,
+            duration: video.duration,
+            transcode: null,
+          },
+        });
+      }
+      console.error('[video] checkVideoStatus mkhls:', err.code, err.message);
+      return res.status(502).json({ success: false, message: 'mkhls bilan bog\'lanib bo\'lmadi.' });
+    }
 
-    // DB ni yangilash (agar o'zgangan bo'lsa)
-    if (video.bunnyStatus !== newStatus) {
-      video.bunnyStatus = newStatus;
-      // Bunny dan haqiqiy davomiylikni olamiz
-      if (bunnyInfo.length) video.duration = bunnyInfo.length;
+    if (video.streamStatus !== info.status || (info.duration && video.duration !== info.duration)) {
+      video.streamStatus = info.status;
+      if (info.duration) video.duration = info.duration;
       await video.save();
     }
 
@@ -640,17 +693,18 @@ const checkVideoStatus = async (req, res) => {
       success: true,
       data: {
         videoId: video._id,
-        bunnyStatus: newStatus,
-        isReady: newStatus === 'ready',
-        duration: bunnyInfo.length || video.duration,
-        bunnyRaw: {
-          status: bunnyInfo.status,
-          availableResolutions: bunnyInfo.availableResolutions,
-          encodeProgress: bunnyInfo.encodeProgress,
-        },
+        streamStatus: info.status,
+        // DEPRECATED mirror: the admin panel reads bunnyStatus until Plan 3
+        // renames it, and that panel is how this plan gets verified by hand.
+        bunnyStatus: info.status,
+        isReady: info.status === 'ready',
+        duration: info.duration || video.duration,
+        // progress_percent is deliberately absent — mkhls never advances it.
+        transcode: info.transcode,
       },
     });
   } catch (error) {
+    console.error('[videoController] checkVideoStatus:', error.message);
     res.status(500).json({ success: false, message: 'Error checking video status.' });
   }
 };

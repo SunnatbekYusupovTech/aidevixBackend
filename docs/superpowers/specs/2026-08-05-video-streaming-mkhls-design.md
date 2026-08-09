@@ -8,6 +8,41 @@
 > tashlandi); bepul darslar YouTube'ga ajratildi; original master arxivi majburiy qoida
 > bo'ldi; 9-bo'lim (infratuzilma) qo'shildi; 1 va 2-risklar qayta yozildi.
 
+> **rev. 3 (2026-08-09) — 1-2 bosqich BAJARILDI.** mkhls tomonidagi barcha ish tugadi:
+> `mkhls-streamer` branch `feat/vod-local-pipeline`, 11 commit, push qilinmagan
+> (yangi repo ochilgandan keyin). Ijro spec'dagi bir nechta da'voni rad etdi —
+> quyida ular tuzatildi. **Plan 2 ni boshlashdan oldin 6-bo'limdagi B1 eslatmasini
+> va 15-bo'limni o'qing.**
+
+### rev. 3 da nima o'zgardi va nima uchun
+
+| Spec da'vosi (rev. 2) | Ijroda ma'lum bo'ldi |
+|---|---|
+| A8: presetlar YAML'da sozlanadi, kod kerak emas | **Xato.** `ffmpeg.presets` o'qilardi va validatsiya qilinardi, lekin **hech qachon ishlatilmasdi** — quvur doim hardcoded qiymatlar bilan ishlardi. Wiring yozildi. |
+| A5: upload'ga `path` maydoni qo'shiladi | **Kam edi.** `UploadVideo` S3'ni majburiy talab qilardi (`s3Client == nil` → 500). Lokal disk tarmog'i to'liq yozildi. |
+| A1: S3 presigned transcode kerak | **Kechiktirildi**, o'rniga **A9** kerak bo'ldi (pastga qarang). |
+| 9.3: dars ≈ 1.3 GB/soat, ~170 dars sig'adi | **Qayta hisoblanishi kerak** — 15-bo'limga qarang. |
+| A2 javobi `{job_id, status, presets}` | **Xato.** Javob — JSON tegsiz Go struct. 6-bo'lim B1'ga qarang. |
+
+**Ijro davomida topilgan yangi ishlar (spec'da yo'q edi, bajarildi):**
+
+- **A9 — ffmpeg kirishini media root'ga hal qilish.** `TranscodingService` da media root maydoni umuman yo'q edi va `video.Path` ni to'g'ridan-to'g'ri ffmpeg'ga berardi. Scan yaratgan yozuvlar uchun ishlardi (absolyut yo'l), yuklangan videolar uchun **umuman ishlamasdi**. Ya'ni transcode hech qachon muvaffaqiyatli bo'lmagan.
+- **A10 — scan va upload bir xil ID hisoblasin.** `app.go` har ishga tushishda scan qiladi; scan absolyut, upload nisbiy yo'l saqlardi → bir fayl ikkita yozuv → har qayta ishga tushishda **dubl transcode va 2× disk**.
+- **A11 — o'chirish guard'ini to'liq ladder'ga bog'lash.** Eng jiddiy topilma, quyida.
+
+### ⚠️ Topilgan ma'lumot yo'qolishi (tuzatildi)
+
+`pre_transcode` ikkala config'da ham **default `true`**, lekin `PreTranscodePresets` hech qachon
+to'ldirilmagan edi → JIT hardcoded `{720p, 360p}` ladder'ini ishlatardi → o'chirish guard'i
+"job so'ragan presetlar bormi?" deb so'rardi → **ha** → master fayl o'chirilardi.
+
+Ya'ni: **oddiy tomoshabinning birinchi bosishi original faylni o'chirib, videoni abadiy
+720p bilan cheklardi.** Va bu `transcode_on_upload: false` (default) holatida eng oson
+yuz berardi.
+
+Bu 3-bo'limdagi "original master arxivi majburiy" qoidasi nima uchun mavjudligining
+aniq isboti. Qoida bo'lmaganda bu bug kurslarni yo'q qilardi.
+
 ---
 
 ## 1. Kontekst va maqsad
@@ -359,6 +394,30 @@ parseStreamStatus(mkhlsStatus)               // mkhls status → Aidevix status
 `streamPath` — mkhls'dagi saqlash yo'li va public URL yo'li (`/` bilan). `id` — mkhls'ning ichki
 identifikatori (`_` bilan). Client faqat `streamPath` qabul qiladi, `pathToId` ni ichida
 o'zi qo'llaydi — chaqiruvchi kod bu farqni bilmaydi.
+
+> ### ⚠️ rev. 3 — mkhls javoblarining HAQIQIY shakli
+>
+> Spec'ning A2/A4 bo'limlaridagi `{"job_id": ..., "progress_percent": ...}` misollari
+> **taxminiy edi va noto'g'ri**. Haqiqiy javoblar tekshirildi:
+>
+> **`POST /admin/videos/{id}/transcode` → 202** — bu JSON tegsiz Go struct
+> (`TranscodingJob`), ya'ni kalitlar **Go maydon nomlari**:
+> ```json
+> { "ID": "...", "VideoID": "...", "Status": "pending",
+>   "Presets": ["1080p","720p","480p"], "RequiredPresets": [...],
+>   "Progress": 0, "InputPath": "...", "OutputPath": "..." }
+> ```
+> `job_id` emas — **`ID`**. `utils/mkhls.js` shu nomlarni o'qishi kerak.
+>
+> Muqobil: mkhls'ga json teglari qo'shish (~6 qator, upstream'ga foydali va
+> `InputPath`/`OutputPath` kabi ichki yo'llarni javobdan yashirish imkonini beradi).
+> **Plan 2 boshida shuni hal qiling** — Node tomonda ishlov yozishdan arzonroq.
+>
+> **`transcode.progress_percent` HECH QACHON o'smaydi.** U butun transcode davomida
+> `0`, oxirida `100`. Sabab: `internal/infrastructure/ffmpeg` parseri `Percent` ni
+> to'ldirmaydi. Bu ma'lum va qabul qilingan (loyiha egasi qarori).
+> **`presets_done` / `presets_total` — haqiqiy va monotonik o'sadi.** Admin panelda
+> progress ko'rsatish uchun **faqat shularni** ishlating (Plan 3).
 
 **Status xaritasi:**
 
@@ -819,3 +878,74 @@ ishi bo'lib chiqdi. Qolgani: A6 (bug, birinchi tekshiriladi), A2, A3, A4, A5, A7
    chiqib ketsa, u `yt-dlp` bilan yuklab olinadi va himoya ma'nosini yo'qotadi.
    *Yumshatish:* 1-bo'limdagi qattiq qoida; admin panelda ikki oqim aniq ajratilgan
    bo'lishi kerak (bu 7-bosqichda hisobga olinadi).
+
+---
+
+## 15. rev. 3 — ijrodan kelgan tuzatishlar
+
+### 15.1 Disk hisobi qayta ko'rilishi kerak (9.3 ni almashtiradi)
+
+Haqiqiy o'lchov o'tkazildi. Natija **ikki tomonlama**:
+
+| | GB/soat | Izoh |
+|---|---|---|
+| O'lchangan (deyarli statik namuna) | **0.87–0.93** | Eng yaxshi holat |
+| Konfiguratsiya qilingan **shift** | **1.34–1.43** | 9.3 dagi 1.3 dan yuqori |
+
+Sabab: config'dan kelgan presetlar CRF'siz, sof ABR rejimida ishlaydi — ya'ni byudjetni
+to'liq sarflaydi. O'lchangan namunada 720p va 480p allaqachon byudjetning **96-100%** ini
+ishlatgan, ya'ni real darslarda shiftga yaqin bo'ladi.
+
+rev. 3 da `PresetConfig` ga **`crf` maydoni qo'shildi** va prod presetlariga qaytarildi.
+CRF bilan chiqish shiftdan past bo'ladi, lekin **aniq raqam CRF qiymatlari tanlangandan
+keyin o'lchanishi kerak**.
+
+**Amaliy xulosa:** 9.3 dagi **~170 dars** raqamiga tayanmang. Sig'imni **shiftdan**
+hisoblang (~1.4 GB/soat → 130 GB / 1.4 ≈ 93 soat kontent), keyin real darslar bilan
+o'lchab aniqlashtiring. Bu Contabo tanlovini o'zgartirmaydi, lekin disk alerti
+(9.6) qachon ishlashini o'zgartiradi.
+
+### 15.2 Stage 9 dan oldin hal qilinishi SHART
+
+Uchtasi oldindan mavjud mkhls bug'lari — bu ish ularni faqat ko'rinadigan qildi.
+**Birinchi ikkitasi birga ishlaydi va prod'da oqimni butunlay o'ldiradi:**
+
+1. **`LocalVideoSource.findVideoFile`** (`pkg/storage/video_source.go:108-116`)
+   allaqachon kengaytmasi bor ID'ga yana kengaytma qo'shadi, oldin tekshirmasdan.
+   `S3VideoSource` tekshiradi. Natija: **JIT `source_type: local` da o'lik** — bizning
+   quvurimiz ishlab chiqaradigan har bir ID uchun.
+
+2. **Prod config'ning `${VAR}` placeholder'lari kengaytirilmaydi.** `expandEnvVars`
+   (`config.go:508-528`) `s3.*`, `vod.source_type`, `vod.cache_max_size` ga tegmaydi,
+   va Go'da `:-` sintaksisi yo'q. `vod.source_type` literal string bo'lib qoladi —
+   `"s3"` ham, `"local"` ham emas → jimgina local'ga tushadi → (1) tufayli hech
+   narsani topa olmaydi.
+
+3. **`App.New` endi har qanday validatsiya xatosida to'xtaydi** (ataylab shunday).
+   Prod'da bu `AUTH_SECRET_KEY` o'rnatilmagani va ffmpeg binary yo'qligini ham
+   qamraydi. Ilgari "ishga tushadi-yu buzuq" bo'lgan deployment endi **umuman
+   ishga tushmaydi**. Bu to'g'ri xatti-harakat, lekin deploy oldidan bilib turish kerak.
+
+4. **Birinchi tomosha qimmatlashdi.** JIT pre-transcode endi ikki rung o'rniga to'liq
+   ladder ishlab chiqaradi. To'g'ri, lekin anonim tomoshabin yo'lida real CPU/disk yuki.
+
+### 15.3 Kechiktirilgan (bilib turib qoldirilgan)
+
+- 1080p `-maxrate` 7500k, `DefaultPresets` dagi 7000k o'rniga (+7%, bitta rung).
+  Yopish uchun `max_bitrate`/`buf_size` config maydonlari kerak.
+- `parseBitrate` `"1.5M"` kabi kasrli qiymatlarni noto'g'ri o'qiydi — config'da
+  **`Nk` shaklini** ishlating (`CLAUDE.md` buzuq shaklni o'rgatadi).
+- `DeleteVideo` faqat DB yozuvini o'chiradi; HLS cache papkasi va manba fayl qoladi.
+- VOD cleanup reaper (`cleanup_service.go`) hozir o'chiq, lekin `.ts` fayllarni
+  playlist'larni qoldirib o'chiradi. **`delete_source_after_transcode` bilan birga
+  yoqilsa media butunlay yo'qoladi.** Yoqishdan oldin interlock kerak.
+
+### 15.4 Holat jadvali
+
+| Bosqich | Holat |
+|---|---|
+| 1. Lokal muhit | ✅ `docker-compose.dev.yml`, MinIO'siz |
+| 2. mkhls upstream | ✅ 11 commit, push kutmoqda |
+| 3-5. Backend | ⬜ Plan 2 |
+| 6-7. Frontend | ⬜ Plan 3 |
+| 8-9. Xavfsizlik + deploy | ⬜ Plan 4 (15.2 ni o'z ichiga oladi) |

@@ -1,9 +1,11 @@
+const mongoose = require('mongoose');
 const Video = require('../models/Video');
 const Course = require('../models/Course');
 const VideoLink = require('../models/VideoLink');
 const VideoQuestion = require('../models/VideoQuestion');
 const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
+const mkhls = require('../utils/mkhls');
 const {
   createBunnyVideo,
   deleteBunnyVideo,
@@ -27,12 +29,14 @@ const getCourseVideos = async (req, res) => {
     const { courseId } = req.params;
 
     // PB-008: faqat kerakli fieldlar — questions (embedded massiv) va materials chiqariladi
-    // Public: _id/title/duration/thumbnail/sectionId; Admin: + description/order/bunnyVideoId/bunnyStatus
+    // streamPath is deliberately absent: this endpoint is unauthenticated
+    // and a storage path is a provider identifier (spec §10.4). Only the
+    // coarse status ships, which the admin list needs.
     const videos = await Video.find({
       course: courseId,
       isActive: true
     })
-      .select('_id title description order duration thumbnail viewCount sectionId course bunnyVideoId bunnyStatus')
+      .select('_id title description order duration thumbnail viewCount sectionId course streamStatus')
       .sort({ order: 1 })
       .lean();
 
@@ -266,38 +270,35 @@ const createVideo = async (req, res) => {
       });
     }
 
-    // Bunny Stream da video slot yaratish
-    let bunnyVideoId = null;
-    if (process.env.BUNNY_STREAM_API_KEY && process.env.BUNNY_LIBRARY_ID) {
-      const bunnyVideo = await createBunnyVideo(title);
-      bunnyVideoId = bunnyVideo.guid;
-    }
+    // mkhls needs no slot to be created up front — the storage path is
+    // derived from the document id and the file arrives later via the
+    // upload proxy. Pre-generating the id keeps this to one write.
+    const _id = new mongoose.Types.ObjectId();
+    const streamPath = mkhls.buildStreamPath(_id.toString());
 
     const video = await Video.create({
+      _id,
       title,
       description,
       course: courseId,
       order: order || 0,
       duration: duration || 0,
       thumbnail,
-      bunnyVideoId,
-      bunnyStatus: 'pending',
+      streamPath,
+      streamStatus: 'pending',
     });
 
     // Kursga video qo'shish (atomic — race'da VersionError oldini oladi)
     await Course.updateOne({ _id: courseId }, { $push: { videos: video._id } });
-
-    // Upload proxy ma'lumoti — admin backend orqali yuklaydi (AccessKey leak qilinmaydi)
-    const uploadInfo = bunnyVideoId
-      ? buildProxyUploadInfo(video._id)
-      : null;
 
     res.status(201).json({
       success: true,
       message: 'Video created successfully.',
       data: {
         video,
-        upload: uploadInfo, // admin shu ma'lumot bilan Bunny ga yuklaydi
+        // Always present now: unlike Bunny, mkhls needs no pre-created slot,
+        // so there is no configuration under which upload is unavailable.
+        upload: buildProxyUploadInfo(video._id),
       },
     });
   } catch (error) {
@@ -654,14 +655,15 @@ const checkVideoStatus = async (req, res) => {
   }
 };
 
-// Video ni Bunny ga qayta ulash (eski videolar uchun — Admin only)
-const linkToBunny = async (req, res) => {
+// Mavjud mkhls yo'liga qo'lda bog'lash (Admin only).
+// Eski yoki qo'lda yuklangan videolar uchun: fayl mkhls'da allaqachon bor.
+const linkToStream = async (req, res) => {
   try {
     const { id } = req.params;
-    const { bunnyVideoId } = req.body;
+    const { streamPath } = req.body;
 
-    if (!bunnyVideoId) {
-      return res.status(400).json({ success: false, message: 'bunnyVideoId majburiy.' });
+    if (!streamPath || typeof streamPath !== 'string') {
+      return res.status(400).json({ success: false, message: 'streamPath majburiy.' });
     }
 
     const video = await Video.findById(id);
@@ -669,22 +671,31 @@ const linkToBunny = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Video not found.' });
     }
 
-    // Bunny da mavjudligini tekshirish
-    const bunnyInfo = await getBunnyVideoInfo(bunnyVideoId);
-    const status = parseBunnyStatus(bunnyInfo.status);
+    // mkhls'da haqiqatan bor-yo'qligini tekshiramiz — bo'lmagan yo'lni
+    // bog'lash video'ni jimgina buzuq holatga olib keladi.
+    let info;
+    try {
+      info = await mkhls.getVideoInfo(streamPath);
+    } catch (err) {
+      if (err.code === 'NOT_FOUND') {
+        return res.status(404).json({
+          success: false,
+          message: `mkhls'da bunday video yo'q: ${streamPath}`,
+        });
+      }
+      console.error('[video] linkToStream mkhls:', err.code, err.message);
+      return res.status(502).json({ success: false, message: 'mkhls bilan bog\'lanib bo\'lmadi.' });
+    }
 
-    video.bunnyVideoId = bunnyVideoId;
-    video.bunnyStatus = status;
-    if (bunnyInfo.length) video.duration = bunnyInfo.length;
+    video.streamPath = streamPath;
+    video.streamStatus = info.status;
+    if (info.duration) video.duration = info.duration;
     await video.save();
 
-    res.json({
-      success: true,
-      message: 'Video Bunny.net ga ulandi.',
-      data: { video },
-    });
+    res.json({ success: true, message: 'Video mkhls ga ulandi.', data: { video } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error linking video to Bunny.' });
+    console.error('[videoController] linkToStream:', error.message);
+    res.status(500).json({ success: false, message: 'Error linking video to stream.' });
   }
 };
 
@@ -780,5 +791,5 @@ module.exports = {
   getUploadCredentialsForVideo,
   uploadVideoProxy,
   checkVideoStatus,
-  linkToBunny,
+  linkToStream,
 };

@@ -16,7 +16,7 @@ const {
   getUploadCredentialsForVideo,
   uploadVideoProxy,
   checkVideoStatus,
-  linkToBunny,
+  linkToStream,
   getTopVideos,
 } = require('../controllers/videoController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
@@ -60,7 +60,7 @@ router.put('/:id/upload-proxy', validateObjectId(), authenticate, requireAdmin, 
 
 router.get('/:id/status', validateObjectId(), authenticate, requireAdmin, checkVideoStatus);
 
-router.patch('/:id/link-bunny', validateObjectId(), authenticate, requireAdmin, linkToBunny);
+router.patch('/:id/link-stream', validateObjectId(), authenticate, requireAdmin, linkToStream);
 
 router.get('/:id/questions', validateObjectId(), getVideoQuestions);
 router.post('/:id/questions', validateObjectId(), authenticate, askQuestion);

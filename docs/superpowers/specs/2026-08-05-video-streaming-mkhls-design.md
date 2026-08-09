@@ -14,6 +14,12 @@
 > quyida ular tuzatildi. **Plan 2 ni boshlashdan oldin 6-bo'limdagi B1 eslatmasini
 > va 15-bo'limni o'qing.**
 
+> **rev. 4 (2026-08-10) — Plan 2 oldidan.** mkhls kodi Node client nuqtai nazaridan
+> qatorma-qator tekshirildi. To'rtta ochiq qaror yopildi va bitta **yangi xavfsizlik
+> bug'i** topildi (token cache `path` ni qayta tekshirmaydi — 10-bo'limning 3-bandi
+> hozircha noto'g'ri). Hammasi **16-bo'limda**. Plan 2 ni boshlashdan oldin
+> 16-bo'limni o'qing — u 6-bo'limdagi B1 eslatmasidan ustun turadi.
+
 ### rev. 3 da nima o'zgardi va nima uchun
 
 | Spec da'vosi (rev. 2) | Ijroda ma'lum bo'ldi |
@@ -409,9 +415,8 @@ o'zi qo'llaydi — chaqiruvchi kod bu farqni bilmaydi.
 > ```
 > `job_id` emas — **`ID`**. `utils/mkhls.js` shu nomlarni o'qishi kerak.
 >
-> Muqobil: mkhls'ga json teglari qo'shish (~6 qator, upstream'ga foydali va
-> `InputPath`/`OutputPath` kabi ichki yo'llarni javobdan yashirish imkonini beradi).
-> **Plan 2 boshida shuni hal qiling** — Node tomonda ishlov yozishdan arzonroq.
+> **rev. 4 da hal qilindi (16.2): javob tanasi umuman o'qilmaydi.** `startTranscode`
+> faqat HTTP statusni ishlatadi. Go maydon nomlari ham, json teg ishi ham kerak emas.
 >
 > **`transcode.progress_percent` HECH QACHON o'smaydi.** U butun transcode davomida
 > `0`, oxirida `100`. Sabab: `internal/infrastructure/ffmpeg` parseri `Percent` ni
@@ -754,6 +759,8 @@ tarif siyosati o'zgarib turadi.)
 2. `MKHLS_ADMIN_PASSWORD` faqat backend'da; frontend'ga hech qachon chiqmaydi.
    Foydalanuvchi faqat bitta darsga yaraydigan qisqa muddatli stream token oladi.
 3. Stream token `allowed_path` bilan cheklangan — bir darsning tokeni boshqasini ochmaydi.
+   ⚠️ **Bu da'vo hozir bajarilmayapti** — token cache yo'lini qayta tekshirmaydi (16.4).
+   Plan 2 ning 1-taski shuni tuzatadi; tuzatilgach bu band haqiqiy bo'ladi.
 4. `getCourseVideos` (auth talab qilmaydigan endpoint) dan `streamPath` chiqarilmaydi.
 5. Upload proxy `requireAdmin` ostida qoladi; fayl kengaytmasi va hajmi backend'da
    tekshiriladi (mkhls ham tekshiradi, lekin ikki qatlam yaxshi).
@@ -949,3 +956,142 @@ Uchtasi oldindan mavjud mkhls bug'lari — bu ish ularni faqat ko'rinadigan qild
 | 3-5. Backend | ⬜ Plan 2 |
 | 6-7. Frontend | ⬜ Plan 3 |
 | 8-9. Xavfsizlik + deploy | ⬜ Plan 4 (15.2 ni o'z ichiga oladi) |
+
+---
+
+## 16. rev. 4 — Plan 2 oldidan: kod bo'yicha tekshiruv va qarorlar
+
+15-bo'lim mkhls ijrosidan kelgan topilmalar edi. Bu bo'lim boshqa narsa: mkhls kodi
+**Node client yozadigan odam nuqtai nazaridan** o'qildi. Natijada 6-bo'limdagi
+uchta jimgina taxmin noto'g'ri chiqdi va bitta yangi xavfsizlik bug'i topildi.
+
+### 16.1 Barcha admin javoblari `{success, data}` bilan o'raladi
+
+`internal/interfaces/http/response/response.go` — har bir `response.JSON(c, status, x)`
+chaqiruvi `{"success": true, "data": x}` yuboradi. Xatolarda esa
+`{"success": false, "error": {"code": "...", "message": "..."}}`.
+
+Spec'ning 5 va 6-bo'limlaridagi javob misollarida bu o'ram **ko'rsatilmagan**. Ya'ni
+haqiqiy javob:
+
+```json
+{ "success": true, "data": { "id": "aidevix_68f….mp4", "status": "processing",
+                             "duration": 2412, "transcode": { … } } }
+```
+
+`utils/mkhls.js` bitta joyda `res.data.data` ni yechib, chaqiruvchi kodga faqat
+foydali yukni beradi. Xato javoblarida `error.code` log uchun saqlanadi.
+
+### 16.2 Transcode javobi o'qilmaydi (QAROR)
+
+6-bo'lim B1 dagi ochiq savol yopildi. `POST /admin/videos/{id}/transcode` javobi —
+json tegsiz `TranscodingJob` struct'i. **Yechim: uni umuman o'qimaslik.**
+
+`startTranscode` faqat HTTP statusni qaytaradi:
+
+| Status | Ma'no | Client harakati |
+|---|---|---|
+| `202` | navbatga qo'yildi | `streamStatus = 'processing'` |
+| `409` | allaqachon transcode qilinmoqda | xato emas — `processing` deb hisoblanadi |
+| `404` | mkhls'da bunday video yo'q | `streamStatus = 'failed'` |
+| `503` | transcoder yo'q (ffmpeg topilmadi) | `502` qaytariladi, log yoziladi |
+
+Sabab: `job_id` hech qayerda kerak emas — holat baribir `GET /admin/videos/{id}`
+orqali pollinq qilinadi. Go maydon nomlari Node kodiga kirmaydi va upstream keyin
+json teg qo'shsa client buzilmaydi.
+
+### 16.3 `GET /admin/videos/{id}` ID ni normallashtirmaydi
+
+`TranscodeVideo` `entity.NormalizeVideoID(c.Param("id"))` chaqiradi, lekin
+`GetVideo` va `DeleteVideo` **xom `c.Param("id")` bilan ishlaydi**
+(`admin_handler.go:1500`, `:457`).
+
+Ya'ni normalizatsiya **client mas'uliyati**: `utils/mkhls.js` har bir chaqiruvda
+`pathToId(streamPath)` ni qo'llaydi, istisnosiz. Bu 6-bo'limdagi B1 shartnomasini
+kuchaytiradi — `pathToId` "qulaylik" emas, **majburiy**.
+
+Asimmetriyaning o'zi mkhls'ning kichik nomuvofiqligi; upstream tozalash sifatida
+keyinroq yopiladi, Plan 2 unga tayanmaydi.
+
+### 16.4 ⚠️ Yangi xavfsizlik bug'i — token cache `path` ni tekshirmaydi
+
+`internal/interfaces/http/middleware/auth.go:125-142`:
+
+```go
+if cached := cfg.TokenCache.Get(token); cached != nil {
+    if cached.IP == "" || cached.IP == clientIP {   // ← faqat IP
+        c.Next()                                    // ← path tekshirilmadi
+        return
+    }
+}
+```
+
+To'liq validatsiya yo'li (`ValidateStreamToken`) `pathMatches(claims.Path, requestPath)`
+ni chaqiradi, **cache yo'li esa chaqirmaydi**. Cache `app.go:597` da yoqilgan,
+TTL **30 soniya**.
+
+**Amaldagi oqibat:** obunachi o'zining haqiqiy tokeni bilan bitta darsni ochadi;
+keyingi 30 soniya ichida **o'sha token bilan istalgan boshqa darsni** ham ochadi.
+Bu 10-bo'limning 3-bandini va 6-bo'limdagi `allowed_path` cheklovining ma'nosini
+bekor qiladi.
+
+`client_ip` bo'sh qoldirilgani (3-bo'lim qarori) buni yanada osonlashtiradi —
+`cached.IP == ""` sharti doim rost.
+
+**Qaror: Plan 2 ning birinchi taski shuni tuzatadi**, mkhls repo'sida
+(`feat/vod-local-pipeline` branch'ida, 12-commit). Tuzatish — cache tarmog'ida ham
+`pathMatches` ni chaqirish (~3 qator) va jadval testi. Generic bug, Aidevix'ga
+bog'liq emas.
+
+Nima uchun kechiktirilmaydi: Plan 2 ning B3 qismi to'g'ridan-to'g'ri "token faqat
+shu darsga yaraydi" kafolatiga tayanadi. Kafolat yo'q bo'lsa Plan 2 buzuq asosga
+quriladi va Plan 4 da qayta tekshirish kerak bo'ladi.
+
+### 16.5 Lokal E2E harness — Mongo compose'ga qo'shiladi (QAROR)
+
+1-2 bosqichda qo'lda uchdan-uchgacha tekshirish sakkizta jiddiy bug topdi; ularning
+yarmini test ham, review ham tutmagan bo'lardi. Plan 2 da shu usul saqlanadi, lekin
+buning uchun Node backend'i **haqiqiy Mongo** bilan ishlashi kerak.
+
+`docker-compose.dev.yml` ga `mongo` servisi qo'shiladi va `backend/.env` (lokal,
+git'ga tushmaydi) `MONGODB_URI` bilan to'ldiriladi. Backend host'da (`npm run dev`)
+ishlaydi, mkhls va Mongo konteynerda.
+
+Shundan keyin har task oxirida haqiqiy zanjir tekshiriladi:
+`POST /api/videos` → `PUT /api/videos/:id/upload-proxy` (haqiqiy mp4) →
+transcode → `GET /api/videos/:id/status` → `GET /api/videos/:id` → brauzerda
+`master.m3u8` o'ynatish.
+
+### 16.6 Bunny kodi — bir reliz deprecated (QAROR)
+
+`utils/bunny.js`, `adminController.bulkLinkBunny`, `scripts/link-bunny.js` va
+`bunnyVideoId`/`bunnyStatus` schema maydonlari **Plan 2 da o'chirilmaydi** —
+deprecated izohi bilan joyida qoladi (6-bo'lim B2 dagi qoida). Orqaga qaytish yo'li
+ochiq qoladi.
+
+Istisno: ildizdagi `fetch_bunny.html` — unda haqiqiy API kalit bor, u
+**8-bosqichda (Plan 4)** o'chiriladi, 10-bo'limning 1-bandiga muvofiq.
+
+### 16.7 Node tomonidagi yangi bog'liqliklar
+
+| Paket | Turi | Nima uchun |
+|---|---|---|
+| `form-data` | dependency | mkhls `POST /admin/videos/upload` multipart talab qiladi |
+| `nock` | devDependency | 12-bo'limdagi `utils/mkhls.js` testlari uchun |
+
+Muhim tafsilot: multipart oqimida hajm oldindan ma'lum bo'lishi kerak
+(`form.append('file', stream, { knownLength: size })`), aks holda `form-data`
+`Content-Length` ni hisoblay olmaydi va butun faylni buferlashga urinadi. Bu
+4-bo'limdagi "backend faylni diskka yozmaydi" qoidasini buzardi.
+
+### 16.8 Progress bug'i ikkita joyda (5-bosqich qamrovi kengaydi)
+
+6-bo'lim B5 faqat bitta call site'ni ko'rsatgan edi. Aslida frontend kumulyativ
+qiymatni **ikki** joydan yuboradi:
+
+- `frontend/src/app/videos/[id]/page.tsx:147`
+- `frontend/src/app/videos/[id]/playground/page.tsx:217`
+
+Backend shartnomasi (`positionSeconds`) Plan 2 da o'zgaradi va eski `watchedSeconds`
+nomi bir reliz qabul qilinadi — shu sababli ikkala frontend call site Plan 3 gacha
+buzilmasdan ishlaydi. Plan 3 ikkalasini ham ko'chirishi shart.

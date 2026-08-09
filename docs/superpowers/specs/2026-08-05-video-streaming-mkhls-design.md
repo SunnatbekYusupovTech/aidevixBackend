@@ -1,7 +1,12 @@
 # Video streaming: Bunny Stream → mkhls-streamer
 
-**Sana:** 2026-08-05
+**Sana:** 2026-08-05 (rev. 2 — 2026-08-09: infratuzilma qarori)
 **Holat:** Dizayn tasdiqlangan, implementatsiya rejasi kutilmoqda
+
+> **rev. 2 o'zgarishlari:** hosting Contabo VPS deb belgilandi; storage MinIO/S3 o'rniga
+> lokal disk; presetlar screencast uchun qayta hisoblandi (1080p qo'shildi, 360p olib
+> tashlandi); bepul darslar YouTube'ga ajratildi; original master arxivi majburiy qoida
+> bo'ldi; 9-bo'lim (infratuzilma) qo'shildi; 1 va 2-risklar qayta yozildi.
 
 ---
 
@@ -14,6 +19,21 @@ to'ldirilmaydi va "Video tayyorlanmoqda" ekrani ko'rsatiladi.
 
 **Maqsad:** Bunny Stream'ni o'z infratuzilmamizdagi **mkhls-streamer** (Go, HLS media server)
 bilan almashtirish va Aidevix'da to'liq ishlaydigan video oqim yo'lini qurish.
+
+### Kontent bo'linishi (rev. 2)
+
+Barcha video mkhls orqali o'tmaydi:
+
+| Kontent | Qayerda | Sabab |
+|---|---|---|
+| **Bepul darsliklar** | YouTube (public) | Trafikning katta qismi shu yerda; Google bepul ko'taradi. Ustiga SEO va discovery. |
+| **Pullik darslar** | mkhls (o'z VPS'imiz) | Himoya kerak; token bilan cheklangan oqim. |
+
+Bu bo'linish infratuzilma talabini keskin kamaytiradi — o'z serverimiz faqat pullik
+kontentni tarqatadi.
+
+**Qattiq qoida:** pullik dars hech qachon YouTube'ga chiqmaydi, hatto `unlisted` bo'lsa ham.
+Unlisted havola tarqaladi va `yt-dlp` bilan yuklab olinadi.
 
 ### Mahsulot konteksti
 
@@ -57,16 +77,35 @@ Bu spec quyidagilarni **qamrab olmaydi**:
 |---|---|---|
 | Streaming provayder | mkhls-streamer | Bunny pullik; mkhls o'zimizniki va tayyor |
 | Aidevix ↔ mkhls munosabati | Mijoz / HTTP API | mkhls alohida mahsulot bo'ladi |
-| Hosting | Avval lokal, deploy keyin | Kod o'zgarmaydi, faqat URL |
-| Storage | VPS diski + MinIO (S3 API) | Xalqaro karta kerak emas; keyin R2'ga ko'chish oson |
-| Original mp4 arxivi | Google Drive / Yandex Disk (qo'lda) | Bepul sovuq arxiv; jonli oqim manbai EMAS |
+| Bepul kontent | YouTube | Trafikning katta qismini Google bepul ko'taradi |
+| Hosting | **Contabo VPS** (150 GB, 200 Mbit/s, unlimited traffic) | O'zgaruvchi xarajat nol; disk va trafik shu ish yuki uchun eng mos |
+| Storage | **Lokal VPS diski** | 150 GB yetadi; S3 qatlami hozir keraksiz murakkablik |
+| Original mp4 arxivi | Tashqi disk / Drive (VPS'dan tashqarida) | **Majburiy** — pastdagi qoidaga qarang |
 | Transcode vaqti | Oldindan, yuklashda bir marta | Kuchsiz VPS JIT'da ko'p tomoshabinni ko'tara olmaydi |
+| Presetlar | **1080p + 720p + 480p** | Screencast: kod o'qilishi kerak; 360p'da kod umuman o'qilmaydi |
 | Frontend player | Vidstack | HLS + sifat/tezlik/PiP/klaviatura tayyor |
 | Token IP bog'lanishi | **Yo'q** (boshida) | Mobil internetda IP o'zgaradi va player o'ladi |
 
+### Original master arxivi — majburiy qoida
+
+Transcode tugagach original mp4 **VPS diskidan o'chiriladi** (joy tejash uchun), lekin
+**VPS'dan tashqarida nusxasi qolishi shart**. Original butunlay yo'q qilinsa:
+
+1. Keyinchalik yangi preset qo'shib bo'lmaydi (masalan 1440p) — manba yo'q
+2. Transcode xatosi (noto'g'ri audio trek, kesilgan oxiri) qaytarib bo'lmas bo'ladi
+3. **VPS o'lsa yoki akkaunt to'xtatilsa, butun pullik kurs kutubxonasi yo'qoladi** —
+   bu mahsulotning o'zi
+
+Amaliy yechim ($0): darsni yozgan odam master faylni o'zida (tashqi HDD yoki Drive)
+saqlaydi — fayllar allaqachon unda bor. Buni **jarayon qoidasi** qilish kerak, tasodifga
+qoldirmaslik.
+
+Operatsion shart: `streamStatus === 'ready'` bo'lgandan **keyin** original o'chiriladi,
+undan oldin emas.
+
 ### Nima uchun Google Drive origin sifatida rad etildi
 
-- mkhls S3 protokolini biladi; Drive/Yandex API'si boshqacha → mahsulotga shubhali adapter
+- mkhls lokal fayl va S3 biladi; Drive/Yandex API'si boshqacha → mahsulotga shubhali adapter
   yozish kerak bo'lardi
 - Transcode manbadan range request (seek) talab qiladi; Drive katta fayllarda
   "download quota exceeded" va virus-scan interstitial qaytaradi
@@ -80,15 +119,19 @@ sifat presetlari o'zgarganda qayta transcode uchun.
 ## 4. Arxitektura
 
 ```
-ADMIN brauzer            Aidevix backend (Railway)          mkhls-streamer (VPS)        MinIO
-                                                                                        │
-  mp4 ──PUT octet-stream──▶ /api/videos/:id/upload-proxy ──multipart──▶ POST /admin/videos/upload ──▶ aidevix/{id}.mp4
+ADMIN brauzer            Aidevix backend (Railway)          mkhls-streamer (Contabo VPS)
+                                                                          │
+  mp4 ──PUT octet-stream──▶ /api/videos/:id/upload-proxy ──multipart──▶ POST /admin/videos/upload
+                                     │                                    └─▶ {media}/aidevix/{id}.mp4
                                      │                                        │
                                      │                          POST /admin/videos/{path}/transcode
                                      │                                        │
-                                     │                                  ffmpeg (presigned URL)
+                                     │                                  ffmpeg (lokal fayl)
                                      │                                        ▼
-                                     │                          {cache}/vod/aidevix/{id}.mp4/{720p,480p,360p}/*.ts
+                                     │                    {cache}/vod/aidevix/{id}.mp4/{1080p,720p,480p}/*.ts
+                                     │                                        │
+                                     │                          ready → original mp4 o'chiriladi
+                                     │                                  (tashqi arxivda nusxasi bor)
                                      │
                              GET /api/videos/:id/status ◀── GET /admin/videos/{path}  (polling)
 
@@ -111,21 +154,50 @@ Railway'ning efemer diski muammo bo'lmaydi.
 Bu o'zgarishlar AlloPlay'dagi mkhls repo'sida bajariladi. Hammasi generic — istalgan
 mijozga kerak.
 
-### A1. S3 manbadan transcode
+**Ish nusxasi:** `C:\Users\ASUS\Documents\MyPros\AiDeVix\mkhls-streamer` (`main` @ `51dd410`).
+Aidevix repo'sidan tashqarida — 1-bo'limdagi "mijoz, klonuvchi emas" qoidasiga muvofiq.
 
-**Muammo:** `internal/application/service/transcoding_service.go:180` ffmpeg kirishi
-sifatida `video.Path` ni ishlatadi — bu lokal fayl yo'li. S3 rejimida `video.Path` bu S3
-kaliti va ffmpeg uni o'qiy olmaydi. Natijada `admin_handler.go:513` da S3 videolar
-shunchaki `ready` deb belgilanadi va faqat JIT'ga qoldiriladi.
+**Remote holati (qasddan shunday):**
 
-**Yechim:** `TranscodingService` manba turini hisobga olsin. S3 manbada obyekt uchun
-**presigned URL** olinadi va ffmpeg'ga kirish sifatida beriladi (HTTP range'ni
-qo'llab-quvvatlaydi, lokal nusxa kerak emas).
+```
+origin  github.com/alloplay-org/mkhls-streamer   (fetch)
+origin  PUSH-DISABLED--fork-qiling-spec-5-bolim  (push)   ← push bloklangan
+```
 
-- `StartTranscoding` da `video.Path` o'rniga `resolveInputURL(ctx, video)` ishlatiladi
-- `resolveInputURL`: local manbada — fayl yo'li; s3 manbada — `PresignedGetObject` (TTL
-  transcode davomiyligidan katta, masalan 6 soat)
-- `GetMediaInfo` ham xuddi shu URL bilan chaqiriladi
+Fetch ishlaydi (upstream yangilanishlarini olish mumkin), push esa `fatal` bilan to'xtaydi.
+Sabab: AlloPlay repo'siga tasodifiy push bo'lmasligi kerak.
+
+**Reja:** A-seriya ishi shu lokal nusxada commit qilinadi, **push qilinmaydi**. Keyinchalik
+mkhls **alohida repo**ga ko'chiriladi — commitlar va tarix saqlanadi, faqat remote va repo
+yangi bo'ladi. Ya'ni ko'chirish `git remote set-url` darajasidagi ish, tarixni qayta qurish emas.
+
+Shu paytgacha ish `main` da emas, `feat/...` branch'ida olib boriladi, toki `main`
+upstream'ning toza nusxasi bo'lib qolsin va ko'chirishda farq aniq ko'rinsin.
+
+> ⚠️ **Push yo'q ekan, bu papka yagona nusxa.** `AiDeVix\mkhls-streamer` yo'qolsa,
+> A-seriya ishi ham yo'qoladi. Alohida repoga ko'chirish kechiktirilmasin yoki papka
+> zaxiralansin. (Bu 14-bo'limdagi 6-riskning aynan o'sha shakli.)
+
+**Fayl yo'llari haqida ikkita aniqlik (rev. 2 da tekshirildi):**
+
+- Handler'larning haqiqiy yo'li — `internal/interfaces/http/handler/admin_handler.go`
+  (quyida `handler/` tushib qolgan joylar bor)
+- Repo'da `internal/interface/http/` **va** `internal/interfaces/http/` — ikkalasi ham bor.
+  A-seriyani boshlashdan oldin qaysi biri tirik ekanini aniqlash kerak; o'lik nusxa bo'lsa
+  alohida commit bilan o'chiriladi (bu ham upstream tozalash).
+
+### A1. S3 manbadan transcode — **KECHIKTIRILDI (rev. 2)**
+
+rev. 1 da storage MinIO (S3) edi, shuning uchun ffmpeg'ni S3 manbaga ulash kerak edi.
+rev. 2 da storage **lokal disk**, ya'ni `transcoding_service.go` dagi `video.Path` allaqachon
+to'g'ri ishlaydi va bu ish **hozir kerak emas**.
+
+Kelajakda R2/S3'ga ko'chilganda qaytariladi. O'shanda yechim: `StartTranscoding` da
+`video.Path` o'rniga `resolveInputURL(ctx, video)` — local manbada fayl yo'li, s3 manbada
+`PresignedGetObject` (ffmpeg HTTP range'ni qo'llab-quvvatlaydi). `GetMediaInfo` ham
+xuddi shu URL bilan.
+
+> Bu 2-bosqichni sezilarli qisqartiradi. A6 esa baribir kerak.
 
 ### A2. Video uchun transcode'ni ishga tushirish endpointi
 
@@ -134,7 +206,7 @@ Bitta videoni nishonlab bo'lmaydi.
 
 ```
 POST /admin/videos/{id}/transcode
-Body: { "presets": ["720p","480p","360p"] }   // ixtiyoriy, bo'sh bo'lsa avtomatik
+Body: { "presets": ["1080p","720p","480p"] }   // ixtiyoriy, bo'sh bo'lsa avtomatik
 → 202 { "job_id": "...", "status": "pending", "presets": [...] }
 ```
 
@@ -190,13 +262,13 @@ qilib foydalanuvchiga ko'rsata olsin:
   "id": "aidevix/68f….mp4",
   "status": "processing",
   "duration": 2412,
-  "transcode": { "progress_percent": 42, "presets_done": ["360p"], "presets_total": 3 }
+  "transcode": { "progress_percent": 42, "presets_done": ["480p"], "presets_total": 3 }
 }
 ```
 
 ### A5. Yuklash yo'lini (kalitni) boshqarish
 
-`UploadVideo` hozir S3 kaliti sifatida `header.Filename` ni ishlatadi. Mijoz kalitni aniq
+`UploadVideo` hozir saqlash yo'li sifatida `header.Filename` ni ishlatadi. Mijoz yo'lni aniq
 belgilay olishi kerak (namespace uchun):
 
 ```
@@ -207,6 +279,34 @@ POST /admin/videos/upload
 
 `path` berilmasa — hozirgidek `filename`. Yo'l tozalanadi (`..`, absolyut yo'l, boshidagi
 `/` rad etiladi).
+
+### A7. Transcode'dan keyin manbani o'chirish (yangi, rev. 2)
+
+Repo'da bunday imkoniyat **yo'q** (`delete_source` / `remove_source` bo'yicha qidiruv bo'sh).
+150 GB disk uchun bu kerak — original mp4 transcode chiqishidan katta va tayyor bo'lgach
+serverda turishi shart emas.
+
+```yaml
+vod:
+  delete_source_after_transcode: false   # default false — orqaga moslik
+```
+
+Shartlar (ehtiyotkorlik muhim — bu qaytarib bo'lmas amal):
+
+- faqat **barcha** presetlar muvaffaqiyatli tugagandan va status `ready` bo'lgandan keyin
+- transcode chiqishi tekshirilgandan keyin (master playlist mavjud, har preset'da
+  segmentlar bor, `duration > 0`)
+- biror preset `failed` bo'lsa — manba **saqlanadi**
+- o'chirish alohida log yozuvi qoldiradi
+
+Bu generic feature — istalgan mijozga kerak.
+
+### A8. Preset sozlamalari — kod o'zgarishi kerak emas
+
+`internal/infrastructure/config/config.go:127` `Presets []PresetConfig` — presetlar
+YAML'da to'liq sozlanadi (`name`, `width`, `height`, `video_bitrate`, `audio_bitrate`).
+Screencast bitrate'lari **config orqali** beriladi, upstream kodga tegilmaydi.
+Qiymatlar 9-bo'limda.
 
 ---
 
@@ -230,7 +330,7 @@ deleteVideo(streamPath)                      // DELETE /admin/videos/{id}
 parseStreamStatus(mkhlsStatus)               // mkhls status → Aidevix status
 ```
 
-`streamPath` — S3 kaliti va public URL yo'li (`/` bilan). `id` — mkhls'ning ichki
+`streamPath` — mkhls'dagi saqlash yo'li va public URL yo'li (`/` bilan). `id` — mkhls'ning ichki
 identifikatori (`_` bilan). Client faqat `streamPath` qabul qiladi, `pathToId` ni ichida
 o'zi qo'llaydi — chaqiruvchi kod bu farqni bilmaydi.
 
@@ -414,12 +514,22 @@ Polling'ga transcode progressi (`transcode.progress_percent`) qo'shiladi.
 
 ```yaml
 services:
-  minio:        # S3 API :9000, konsol :9001, bucket "aidevix-media"
-  mkhls:        # AlloPlay'dagi mkhls-streamer image, :8080
-                # VOD_SOURCE_TYPE=s3, S3_ENDPOINT=minio:9000
-                # VOD_CACHE_PATH=/cache, VOD_CACHE_MAX_SIZE=20GB
+  mkhls:        # mkhls-streamer image, :8080
+                # VOD_SOURCE_TYPE=local
+                # VOD_MEDIA_PATH=/media          (original mp4)
+                # VOD_CACHE_PATH=/cache          (HLS chiqishi)
                 # transcode_on_upload=true
+                # delete_source_after_transcode=false   ← lokalda O'CHIQ
+    volumes:
+      - ./.data/media:/media
+      - ./.data/cache:/cache
 ```
+
+MinIO **olib tashlandi** (rev. 2) — prod'da ham, lokalda ham lokal disk ishlatiladi, ya'ni
+lokal muhit prod'ga o'xshaydi.
+
+Lokalda `delete_source_after_transcode` **o'chiq** bo'lishi shart: sinov paytida
+manba faylni qayta-qayta ishlatish kerak bo'ladi.
 
 mkhls image AlloPlay repo'sidan quriladi (`deployments/docker/`), Aidevix repo'sida faqat
 compose fayli va `.env.example` bo'ladi.
@@ -429,7 +539,129 @@ belgilanadi.
 
 ---
 
-## 9. Xavfsizlik
+## 9. Infratuzilma (rev. 2)
+
+### 9.1 Server
+
+**Contabo VPS** — 150 GB disk, 200 Mbit/s port, unlimited traffic, ~€6/oy. Germaniya DC
+(O'zbekistonga xalqaro tranzit odatda Yevropa orqali o'tadi).
+
+Bu **yagona takrorlanuvchi xarajat**. O'zgaruvchi xarajat nol: 10 ta ham, 500 ta ham
+o'quvchi bo'lsa hisob bir xil. Bunny'ga nisbatan 10–50 barobar arzon va o'quvchi soni
+oshgani bilan o'smaydi.
+
+Contabo'ning ikkita ma'lum kamchiligi, ikkalasi ham bu ish yuki uchun chidasa bo'ladi:
+
+- **Shared (oversubscribed) vCPU** → ffmpeg ajratilgan vCPU'ga qaraganda ~1.5–2× sekin.
+  Yuklash siyrak bo'lgani uchun ahamiyatsiz (14-bo'lim, 1-risk).
+- **Backup ichida yo'q** → 3-bo'limdagi arxiv qoidasi shuning uchun majburiy.
+
+### 9.2 Asosiy cheklov: port, trafik emas
+
+"Unlimited traffic" chalg'itadi. Cheklaydigan narsa **200 Mbit/s port**, va u hajmni emas,
+**bir vaqtdagi tomoshabinlar sonini** cheklaydi:
+
+| Preset | Bitrate | Nazariy concurrent |
+|---|---|---|
+| 1080p | 1.5 Mbps | ~130 |
+| 720p | 0.9 Mbps | ~220 |
+| 480p | 0.5 Mbps | ~400 |
+| **ABR aralash (real)** | ~1.0 Mbps | ~200 → **xavfsiz ~140** |
+
+Xavfsiz raqam pastroq, chunki HLS burst bilan yuklaydi (segment tez tortiladi, keyin
+pauza) — o'rtacha bitrate emas, peak muhim.
+
+**Bu chegara qattiq:** undan oshganda hisob o'smaydi, **hamma birdaniga buferlanadi**.
+Shuning uchun concurrent ulanishlar boshidanoq kuzatiladi (9.6).
+
+Pullik kontent uchun bu yetarli: ~300 pullik obunachida peak concurrent odatda 15–30.
+Chegaraga yetish uchun ~1500+ faol pullik obunachi kerak.
+
+### 9.3 Disk byudjeti
+
+```
+150 GB − OS/Docker/loglar (~20 GB) = ~130 GB
+1 soatlik dars (3 preset)  ≈ 1.3 GB
+1 ta o'rtacha dars (35 daq) ≈ 0.76 GB
+→ sig'im ≈ 170 dars
+```
+
+Bu **qattiq devor** va jimgina to'lmaydi — disk 100% bo'lganda transcode ham, oqim ham
+buziladi. 80% da alert (9.6).
+
+### 9.4 Preset sozlamalari — screencast uchun
+
+Dasturlash darsi deyarli statik ekran. Standart konfigdagi qiymatlar (1080p = 5000k)
+oddiy video uchun mo'ljallangan va bu yerda 3× ortiqcha:
+
+| Preset | O'lcham | Video bitrate | Audio | Sabab |
+|---|---|---|---|---|
+| 1080p | 1920×1080 | **1500k** | 128k | Kod o'qilishi uchun kerak |
+| 720p | 1280×720 | **900k** | 96k | Asosiy preset, ABR ko'pincha shuni tanlaydi |
+| 480p | 854×480 | **500k** | 64k | Sekin internet uchun fallback |
+
+**360p olib tashlandi** — 360p'da kod umuman o'qilmaydi, ya'ni u foydasiz preset:
+disk va transcode vaqtini yeydi, lekin hech kimga yaramaydi.
+
+ffmpeg tomonda: `-preset slow -crf 23 -g 48 -sc_threshold 0`. Sekinroq encode, lekin
+sezilarli kichik fayl va yaxshi sifat — yuklash siyrak bo'lgani uchun sekinlik muhim emas.
+
+Bu qiymatlar **prod config YAML'ida** beriladi (A8), upstream kodga tegilmaydi.
+
+### 9.5 Tarmoq va xavfsizlik konturi
+
+```
+stream.aidevix.uz  →  nginx (TLS, Let's Encrypt)  →  mkhls :8080
+                        ├── /vod/*    public (token bilan)
+                        ├── /health   public
+                        └── /admin/*  DENY — faqat localhost / IP allowlist
+```
+
+`MKHLS_PUBLIC_URL=https://stream.aidevix.uz`, `MKHLS_BASE_URL` — Railway'dan admin API'ga.
+Admin API internetga ochilmaydi (10-bo'lim, 6-band), shuning uchun Railway backend'i uchun
+IP allowlist yoki alohida himoyalangan yo'l kerak — bu deploy bosqichida hal qilinadi.
+
+> **Cloudflare haqida ogohlantirish:** `stream.aidevix.uz` ni Cloudflare'ga qaratib
+> **orange-cloud (proxy) yoqmaslik kerak**. Bepul/Pro tarifda oddiy CDN orqali video
+> tarqatish ToS 2.8 ga zid va akkaunt to'xtatilishi mumkin. DNS-only (grey cloud).
+> R2'dan egress esa bunga kirmaydi — 9.7 dagi o'sish yo'liga qarang.
+
+### 9.6 Monitoring (yangi — deploy bosqichining bir qismi)
+
+AlloPlay'da tayyor stack bor: `alloplay-infra/configs/grafana/dashboards/mkhls-streamer.json`
+va Prometheus/Loki/AlertManager konfiglari. Aidevix shuni qayta ishlatadi.
+
+Majburiy alertlar:
+
+| Alert | Chegara | Nima uchun |
+|---|---|---|
+| Disk to'lishi | >80% | 9.3 dagi qattiq devor |
+| Concurrent ulanishlar | >100 | 9.2 dagi port chegarasiga yaqinlashuv |
+| Transcode navbati | >3 ish yoki >2 soat | Yuklash tiqilib qolgan |
+| mkhls `/health` | 2 daq javob yo'q | Xizmat o'lgan |
+
+### 9.7 O'sish yo'li — qachon nima qilinadi
+
+Hozir hech biri qilinmaydi. Har biri **o'lchov natijasida** ishga tushadi, taxmin bilan emas:
+
+| Signal | Harakat | Narx |
+|---|---|---|
+| Disk >80% | Contabo block storage yoki plan oshirish | ~€3.5/250 GB |
+| Concurrent >120 muntazam | Cloudflare **R2 + Worker** delivery qatlami | ~$2/oy, egress $0 |
+| Toshkentda peak-soat buferlanish shikoyati | Xuddi shu R2+Worker (CF'da Toshkent PoP bor) | ~$2/oy |
+| UZ auditoriya yetakchi bo'lsa | **TAS-IX edge node** (`internal/cluster/edge.go`) | UZ VPS narxi |
+
+Uchalasi ham `stream.aidevix.uz` domenini saqlaydi → **frontend va Aidevix backend kodiga
+tegilmaydi**. Migratsiya narxi shuning uchun past va hozir qaror qilish shart emas.
+
+TAS-IX alohida qiymatga ega: ko'p UZ operatorlarida TAS-IX ichidagi trafik foydalanuvchi
+tarifidan yechilmaydi — ya'ni o'quvchi darsni ko'rganda mobil internetini sarflamaydi.
+Bu infratuzilma emas, **mahsulot ustunligi**. (Operatorlar bilan tasdiqlash kerak —
+tarif siyosati o'zgarib turadi.)
+
+---
+
+## 10. Xavfsizlik
 
 1. **`fetch_bunny.html` o'chiriladi.** Faylda haqiqiy Bunny API kaliti
    (`164b15f1-…`) va library ID hardcode qilingan va git tarixiga tushgan.
@@ -445,7 +677,7 @@ belgilanadi.
 
 ---
 
-## 10. Xatoliklarni boshqarish
+## 11. Xatoliklarni boshqarish
 
 | Holat | Backend | Frontend |
 |---|---|---|
@@ -463,10 +695,12 @@ polling bo'ladi va tayyor bo'lganda player o'zi paydo bo'ladi.
 
 ---
 
-## 11. Test rejasi
+## 12. Test rejasi
 
 **mkhls (upstream):**
-- `TranscodingService` — S3 manbada presigned URL hosil qilinishi (table-driven)
+- `delete_source_after_transcode` (A7) — barcha presetlar `ready` bo'lgandagina o'chirish;
+  biror preset `failed` bo'lsa manba **saqlanishi** (bu eng muhim test — amal qaytarib
+  bo'lmas)
 - `POST /admin/videos/{id}/transcode` — 202, 409 (allaqachon ishlayapti), 404
 - Upload'da `path` maydonini tozalash — `..`, absolyut yo'l, bo'sh qiymat
 - `NormalizeVideoID` — ichma-ich yo'l (`a/b.mp4`) uchun VOD handler, transcode chiqishi va
@@ -491,35 +725,41 @@ polling bo'ladi va tayyor bo'lganda player o'zi paydo bo'ladi.
 
 ---
 
-## 12. Bosqichlar
+## 13. Bosqichlar
 
 | # | Bosqich | Natija |
 |---|---|---|
-| 1 | Lokal muhit | `docker compose up` bilan mkhls + MinIO ishlaydi, `/health` javob beradi |
-| 2 | mkhls upstream (A1–A5) | S3 manbadan pre-transcode ishlaydi, testlar o'tadi |
+| 1 | Lokal muhit | `docker compose up` bilan mkhls ishlaydi (lokal disk, MinIO'siz), `/health` javob beradi |
+| 2 | mkhls upstream (A2, A6, A3, A4, A5, A7) | Ichma-ich yo'l bilan pre-transcode ishlaydi, testlar o'tadi |
 | 3 | Backend client + model | `utils/mkhls.js` + `Video` schema + unit testlar |
 | 4 | Backend controller | upload/status/getVideo/delete oqimi to'liq |
 | 5 | Bug fixlar | progress delta, viewCount, `rating`, `getCourseVideos` leak |
 | 6 | Frontend player | `LessonPlayer` + `page.tsx` + slice/types |
 | 7 | Admin panel | nomlar + transcode progressi |
 | 8 | Xavfsizlik tozalash | `fetch_bunny.html` o'chirish, Bunny kalitini bekor qilish |
-| 9 | Deploy | VPS + nginx + SSL + `MKHLS_PUBLIC_URL` |
+| 9 | Deploy | Contabo + nginx + TLS + preset config + monitoring (9-bo'lim) |
 
 1–8 lokalda to'liq bajariladi va tekshiriladi; 9 alohida.
 
+**rev. 2 da 2-bosqich qisqardi:** A1 (S3 presigned transcode) kechiktirildi va A8 config
+ishi bo'lib chiqdi. Qolgani: A6 (bug, birinchi tekshiriladi), A2, A3, A4, A5, A7.
+
 ---
 
-## 13. Ochiq risklar
+## 14. Ochiq risklar
 
-1. **VPS CPU** — pre-transcode 40 daqiqalik videoni 3 presetga o'girish 2 vCPU'da
-   ~15-25 daqiqa oladi. Adminlar buni bilishi kerak; yuklash navbati ketma-ket bo'ladi.
-   *Yumshatish:* admin panelda aniq progress ko'rsatiladi; kerak bo'lsa preset soni
-   kamaytiriladi (720p + 480p).
+1. **Transcode sekinligi** — Contabo'ning shared vCPU'sida 40 daqiqalik darsni 3 presetga
+   o'girish ~40–60 daqiqa olishi mumkin.
+   *Baho: past.* Ta'lim platformasida yuklash siyrak va to'p-to'p — kurs bir marta
+   yuklanadi, keyin oylar davomida ko'riladi. Hech kim darsni yuklangan zahoti ko'rmaydi.
+   *Yumshatish:* ketma-ket navbat + admin panelda aniq progress (A4). Katta kurs
+   ko'chirilayotganda serverni vaqtincha kattalashtirish mumkin (Contabo soatbay emas —
+   bu Hetzner'dagidek arzon emas, shuning uchun oddiy yechim: kechasi yuklash).
 
-2. **Disk hajmi** — dars ≈ 690 MB (720p+480p). 100 dars ≈ 69 GB. Hetzner CX22 da 40 GB.
-   *Yumshatish:* transcode tugagach original mp4 MinIO'dan o'chiriladi (Drive'da arxiv
-   qoladi); disk to'lganda volume qo'shiladi (arzon) yoki R2'ga ko'chiriladi — S3 API
-   bir xil bo'lgani uchun kod o'zgarmaydi.
+2. **Disk 150 GB — qattiq devor** — sig'im ≈ 170 dars (9.3). Disk 100% bo'lganda transcode
+   ham, oqim ham buziladi.
+   *Yumshatish:* 80% da alert (9.6); transcode tugagach original o'chiriladi (A7);
+   devorga yaqinlashganda block storage yoki R2 (9.7). Hech biri shoshilinch qaror emas.
 
 3. **Aidevix backend Railway'da, mkhls VPS'da** — upload trafigi Railway orqali o'tadi
    (proxy). Katta fayllarda Railway timeout/limitlariga urilishi mumkin.
@@ -533,3 +773,23 @@ polling bo'ladi va tayyor bo'lganda player o'zi paydo bo'ladi.
 5. **Vidstack bundle hajmi** — Next.js sahifasiga ~100 KB qo'shadi.
    *Yumshatish:* `next/dynamic` bilan `ssr: false` yuklanadi (loyihada `IntegratedPlayground`
    uchun shu naqsh allaqachon ishlatilgan).
+
+6. **Bitta VPS — yagona nosozlik nuqtasi (eng jiddiy risk).** Contabo diski buzilsa,
+   akkaunt to'xtatilsa yoki to'lov o'tmasa, pullik kurslar **butunlay yo'qoladi** — bu
+   mahsulotning o'zi. Contabo'da backup ichida yo'q.
+   *Yumshatish:* 3-bo'limdagi **majburiy** original master arxivi. Bu risk texnik emas,
+   **jarayon** riski — arxiv qoidasi buzilsa, yumshatish ham yo'q. Transcode chiqishi
+   yo'qolsa, masterlardan qayta transcode qilish og'riqli lekin mumkin; masterlar yo'qolsa
+   — hech narsa qilib bo'lmaydi.
+   Keyingi qadam (ixtiyoriy, ~$2/oy): `rclone` bilan haftalik R2'ga sync — serving uchun
+   emas, faqat arxiv, kod o'zgarishisiz.
+
+7. **200 Mbit/s port — concurrent chegara** (9.2). Chegaradan oshganda hisob o'smaydi,
+   **hamma birdaniga buferlanadi**, ya'ni nosozlik jimgina emas, keskin bo'ladi.
+   *Yumshatish:* concurrent ulanishlar alerti (9.6) chegaradan oldin ogohlantiradi;
+   o'sish yo'li 9.7 da tayyor.
+
+8. **Bepul/pullik chegara buzilishi** — pullik dars xato bilan YouTube'ga (hatto unlisted)
+   chiqib ketsa, u `yt-dlp` bilan yuklab olinadi va himoya ma'nosini yo'qotadi.
+   *Yumshatish:* 1-bo'limdagi qattiq qoida; admin panelda ikki oqim aniq ajratilgan
+   bo'lishi kerak (bu 7-bosqichda hisobga olinadi).

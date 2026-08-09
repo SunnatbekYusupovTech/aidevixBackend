@@ -7,6 +7,7 @@
  * streamPath ("aidevix/{videoId}.mp4") and the four Aidevix statuses.
  */
 const axios = require('axios');
+const FormData = require('form-data');
 
 // Read env per call, never at import time: jest's setup.js runs before test
 // files, and freezing config at require() makes tests order-dependent.
@@ -187,6 +188,106 @@ const generateStreamToken = async (streamPath, ttlSeconds = TOKEN_TTL()) => {
   return { token: data.token, expiresAt: new Date(Number(data.expires_at) * 1000) };
 };
 
+// ─── Video operations ────────────────────────────────────────────────────────
+
+/**
+ * Streams a video into mkhls. The bytes never touch the backend's disk.
+ *
+ * contentLength is mandatory: form-data computes Content-Length up front and,
+ * given a stream of unknown length, buffers the entire file to do it. On an
+ * ephemeral-disk host with a multi-GB lesson that is fatal, so a missing or
+ * zero length is rejected here rather than discovered at OOM time.
+ */
+const uploadVideo = async (streamPath, sourceStream, contentLength) => {
+  const size = Number(contentLength);
+  if (!Number.isFinite(size) || size <= 0) {
+    throw new MkhlsError('mkhls: upload requires a positive Content-Length', {
+      code: 'INVALID_LENGTH',
+    });
+  }
+  // Validates the path before a single byte is sent.
+  pathToId(streamPath);
+
+  const form = new FormData();
+  form.append('path', streamPath);
+  form.append('file', sourceStream, {
+    filename: streamPath.split('/').pop(),
+    contentType: 'video/mp4',
+    knownLength: size,
+  });
+
+  await authedData({
+    method: 'post',
+    url: '/admin/videos/upload',
+    data: form,
+    headers: form.getHeaders(),
+    timeout: 0, // large files: no timeout
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
+};
+
+/**
+ * Queues transcoding. The 202 body is an untagged Go struct (spec §16.2) and
+ * is deliberately never read — status is polled through getVideoInfo, so no
+ * job id is needed and no Go field name leaks into this codebase.
+ *
+ * 409 is a success shape: a job is already running, which is what the caller
+ * wanted. That makes this call idempotent under retry.
+ */
+const startTranscode = async (streamPath, presets = []) => {
+  const id = pathToId(streamPath);
+  const res = await authedRequest({
+    method: 'post',
+    url: `/admin/videos/${encodeURIComponent(id)}/transcode`,
+    data: presets.length ? { presets } : {},
+    validateStatus: (s) => s === 202 || s === 409,
+  });
+  return { queued: res.status === 202, alreadyRunning: res.status === 409 };
+};
+
+/**
+ * Current mkhls state for a video.
+ *
+ * transcode.progress_percent is dropped on purpose: mkhls never advances it
+ * (it is 0 until the job ends, then 100). presets_done / presets_total are
+ * real and monotonic, so those are the only progress numbers exposed.
+ */
+const getVideoInfo = async (streamPath) => {
+  const data = await authedData({
+    method: 'get',
+    url: `/admin/videos/${encodeURIComponent(pathToId(streamPath))}`,
+  });
+  return {
+    status: parseStreamStatus(data.status),
+    mkhlsStatus: data.status,
+    duration: Math.round(Number(data.duration) || 0),
+    transcode: data.transcode
+      ? {
+          presetsDone: data.transcode.presets_done || [],
+          presetsTotal: data.transcode.presets_total || 0,
+        }
+      : null,
+  };
+};
+
+/**
+ * Removes the video from mkhls. Returns false when mkhls had no such record —
+ * a delete whose goal is already met is not an error for the caller.
+ *
+ * Note (spec §15.3): mkhls's DeleteVideo removes only the database row; the
+ * HLS cache directory and the source file are left behind. Reclaiming that
+ * disk is a stage-9 concern.
+ */
+const deleteVideo = async (streamPath) => {
+  const res = await authedRequest({
+    method: 'delete',
+    url: `/admin/videos/${encodeURIComponent(pathToId(streamPath))}`,
+    validateStatus: (s) => s === 200 || s === 404,
+  });
+  return res.status === 200;
+};
+
 module.exports = {
   MkhlsError,
   pathToId,
@@ -197,5 +298,9 @@ module.exports = {
   generateStreamToken,
   authedRequest,
   authedData,
+  uploadVideo,
+  startTranscode,
+  getVideoInfo,
+  deleteVideo,
   _resetAuthCache,
 };

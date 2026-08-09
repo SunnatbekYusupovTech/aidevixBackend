@@ -190,3 +190,143 @@ describe('generateStreamToken', () => {
     });
   });
 });
+
+const { Readable } = require('stream');
+
+describe('uploadVideo', () => {
+  it('posts multipart with the path field and the declared length', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+
+    let seenBody = '';
+    nock(BASE)
+      .post('/admin/videos/upload', (body) => {
+        seenBody = typeof body === 'string' ? body : JSON.stringify(body);
+        return true;
+      })
+      .matchHeader('content-type', /multipart\/form-data/)
+      .reply(201, { success: true, data: { id: 'aidevix_68f.mp4', status: 'processing' } });
+
+    await mkhls.uploadVideo('aidevix/68f.mp4', Readable.from(['abc']), 3);
+
+    // This nock version (^13.5.6) hands multipart bodies over already
+    // decoded as plain text, not hex-encoded — assert on seenBody directly.
+    expect(seenBody).toContain('name="path"');
+    expect(seenBody).toContain('aidevix/68f.mp4');
+    expect(seenBody).toContain('name="file"');
+  });
+
+  it('refuses an upload with no usable Content-Length', async () => {
+    await expect(
+      mkhls.uploadVideo('aidevix/68f.mp4', Readable.from(['abc']), undefined)
+    ).rejects.toMatchObject({ code: 'INVALID_LENGTH' });
+
+    await expect(
+      mkhls.uploadVideo('aidevix/68f.mp4', Readable.from(['abc']), '0')
+    ).rejects.toMatchObject({ code: 'INVALID_LENGTH' });
+  });
+});
+
+describe('startTranscode', () => {
+  it('treats 202 as queued and never reads the body', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .post('/admin/videos/aidevix_68f.mp4/transcode', {})
+      .reply(202, { ID: 'job-1', InputPath: '/media/aidevix/68f.mp4' });
+
+    await expect(mkhls.startTranscode('aidevix/68f.mp4')).resolves.toEqual({
+      queued: true,
+      alreadyRunning: false,
+    });
+  });
+
+  it('sends explicit presets when given some', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .post('/admin/videos/aidevix_68f.mp4/transcode', { presets: ['1080p', '720p'] })
+      .reply(202, {});
+
+    await expect(mkhls.startTranscode('aidevix/68f.mp4', ['1080p', '720p'])).resolves.toEqual({
+      queued: true,
+      alreadyRunning: false,
+    });
+  });
+
+  it('treats 409 as already running, not as a failure', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .post('/admin/videos/aidevix_68f.mp4/transcode')
+      .reply(409, { success: false, error: { code: 'ALREADY_TRANSCODING', message: 'busy' } });
+
+    await expect(mkhls.startTranscode('aidevix/68f.mp4')).resolves.toEqual({
+      queued: false,
+      alreadyRunning: true,
+    });
+  });
+
+  it('propagates 404 and 503', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .post('/admin/videos/aidevix_68f.mp4/transcode')
+      .reply(404, { success: false, error: { code: 'NOT_FOUND', message: 'no' } });
+
+    await expect(mkhls.startTranscode('aidevix/68f.mp4')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      status: 404,
+    });
+  });
+});
+
+describe('getVideoInfo', () => {
+  it('maps status, rounds duration and keeps only the honest progress fields', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .get('/admin/videos/aidevix_68f.mp4')
+      .reply(200, {
+        success: true,
+        data: {
+          id: 'aidevix_68f.mp4',
+          status: 'processing',
+          duration: 2412.47,
+          transcode: { progress_percent: 0, presets_done: ['480p'], presets_total: 3 },
+        },
+      });
+
+    await expect(mkhls.getVideoInfo('aidevix/68f.mp4')).resolves.toEqual({
+      status: 'processing',
+      mkhlsStatus: 'processing',
+      duration: 2412,
+      transcode: { presetsDone: ['480p'], presetsTotal: 3 },
+    });
+  });
+
+  it('returns null transcode when mkhls reports no job', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .get('/admin/videos/aidevix_68f.mp4')
+      .reply(200, { success: true, data: { id: 'aidevix_68f.mp4', status: 'ready', duration: 60 } });
+
+    const info = await mkhls.getVideoInfo('aidevix/68f.mp4');
+    expect(info.status).toBe('ready');
+    expect(info.transcode).toBeNull();
+  });
+});
+
+describe('deleteVideo', () => {
+  it('reports true when mkhls deleted it', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .delete('/admin/videos/aidevix_68f.mp4')
+      .reply(200, { success: true, data: { deleted: true } });
+
+    await expect(mkhls.deleteVideo('aidevix/68f.mp4')).resolves.toBe(true);
+  });
+
+  it('reports false when mkhls never had it, rather than throwing', async () => {
+    nock(BASE).post('/admin/login').reply(200, loginReply());
+    nock(BASE)
+      .delete('/admin/videos/aidevix_68f.mp4')
+      .reply(404, { success: false, error: { code: 'NOT_FOUND', message: 'no' } });
+
+    await expect(mkhls.deleteVideo('aidevix/68f.mp4')).resolves.toBe(false);
+  });
+});

@@ -57,6 +57,12 @@ const mockVideo = (overrides) => {
         materials: [],
         viewCount: 7,
         isActive: true,
+        // Deliberately defined (no schema field backs this): if the response
+        // were to bring `rating` back via `rating: video.rating`, a defined
+        // source value shows up in the JSON. `undefined` would not — JSON.stringify
+        // drops undefined keys, so an always-undefined source can't tell "the
+        // field was removed" apart from "the field exists but is empty" (spec §12).
+        rating: 4.5,
         course: { _id: COURSE_ID, category: 'general', title: 'Kurs' },
         streamPath: `aidevix/${VIDEO_ID}.mp4`,
         streamStatus: 'ready',
@@ -163,8 +169,11 @@ describe('GET /api/videos/:id', () => {
     mockVideo();
     mkhls.generateStreamToken.mockResolvedValue({ token: 'tok-1', expiresAt: new Date() });
 
-    await request(app).get(`/api/videos/${VIDEO_ID}`);
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}`);
 
+    // Without this, the assertion below would also pass on a 404 that never
+    // reached the controller — findByIdAndUpdate is uncalled either way.
+    expect(res.status).toBe(200);
     expect(Video.findByIdAndUpdate).not.toHaveBeenCalled();
   });
 });

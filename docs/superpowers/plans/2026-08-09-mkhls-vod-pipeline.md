@@ -1150,6 +1150,130 @@ Append to `claude_usage_log.txt`.
 
 ---
 
+### Task 5b: Resolve the transcoder's ffmpeg input path
+
+**Added during execution.** Task 5's manual verification revealed that transcoding never succeeds for uploaded videos, which makes Task 8 unreachable and silently undermines Tasks 4 and 5.
+
+`TranscodingService` has **no media-root field at all** — `outputPath` is the HLS cache root, a different thing. It passes `video.Path` straight to ffmpeg as the input at six sites (`transcoding_service.go:181, 202, 548, 569, 671, 750`). That works for scan-created entities, because `ScanVideos` walks the media root and stores an openable absolute path. It fails for upload-created entities, because Task 3 stores a **root-relative** path (`ns/abc.mp4`) — and it must, since the entity ID is derived from exactly that value.
+
+So ffprobe is handed `ns/abc.mp4`, cannot open it, and the job fails before it starts.
+
+**Files:**
+- Modify: `internal/application/service/transcoding_service.go`
+- Modify: `internal/application/app.go` (wire the media root)
+- Modify: `internal/application/service/transcoding_service_test.go`
+
+**Interfaces:**
+- Consumes: `config.VOD.RootPath` (already wired to `AdminHandler` as `videoRootPath`)
+- Produces: `TranscodingService.mediaRoot string` and `(*TranscodingService).inputPath(v *entity.Video) string`
+
+- [ ] **Step 1: Write the failing test**
+
+```go
+func TestInputPath(t *testing.T) {
+	tests := []struct {
+		name      string
+		mediaRoot string
+		videoPath string
+		want      string
+	}{
+		{"relative path joins the media root", "/media", "ns/abc.mp4", filepath.Join("/media", "ns/abc.mp4")},
+		{"flat relative path joins too", "/media", "movie.mp4", filepath.Join("/media", "movie.mp4")},
+		{"absolute path is used as-is", "/media", filepath.Join(string(filepath.Separator), "media", "ns", "abc.mp4"), filepath.Join(string(filepath.Separator), "media", "ns", "abc.mp4")},
+		{"empty media root leaves relative path unchanged", "", "ns/abc.mp4", filepath.Join("ns/abc.mp4")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &TranscodingService{mediaRoot: tt.mediaRoot}
+			if got := s.inputPath(&entity.Video{Path: tt.videoPath}); got != tt.want {
+				t.Errorf("inputPath(%q) with root %q = %q, want %q", tt.videoPath, tt.mediaRoot, got, tt.want)
+			}
+		})
+	}
+}
+```
+
+The absolute-path case is written with `filepath.Join(string(filepath.Separator), ...)` rather than a literal `/media/...` so it is genuinely absolute on Windows too, where `/media/ns/abc.mp4` is not. Check the assertion holds on this host before assuming the test is right.
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `go test ./internal/application/service/ -run TestInputPath -v`
+Expected: FAIL — `undefined: inputPath` and `unknown field mediaRoot`
+
+- [ ] **Step 3: Implement**
+
+Add the field to the struct and to `TranscodingConfig`, then:
+
+```go
+// inputPath returns the path ffmpeg should open for this video.
+//
+// Entities created by a directory scan already hold an openable absolute
+// path, because the scan walks the media root. Entities created by upload
+// hold a path relative to the media root, because that same value is the
+// storage key the video ID is derived from. Both must resolve here.
+func (s *TranscodingService) inputPath(v *entity.Video) string {
+	if filepath.IsAbs(v.Path) || s.mediaRoot == "" {
+		return v.Path
+	}
+	return filepath.Join(s.mediaRoot, v.Path)
+}
+```
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `go test ./internal/application/service/ -run TestInputPath -v`
+Expected: PASS
+
+- [ ] **Step 5: Replace all six call sites**
+
+`transcoding_service.go:181, 548, 671, 750` pass `video.Path` to `GetMediaInfo`; `:202` and `:569` set `InputPath:` on the job. Replace each with `s.inputPath(video)`.
+
+Read each site before changing it — confirm the variable in scope really is the `*entity.Video` and not something else with a `Path` field. If a site turns out to have a different meaning, leave it and report why.
+
+- [ ] **Step 6: Wire the media root**
+
+In `internal/application/app.go`, where `TranscodingConfig` is built with `OutputPath: a.config.VOD.CachePath` (around line 470), add `MediaRoot: a.config.VOD.RootPath`.
+
+- [ ] **Step 7: Verify end to end**
+
+This is the real test of the task. Rebuild the container, upload with `transcode_on_upload` enabled, and confirm transcoding **completes** rather than failing at ffprobe:
+
+```bash
+cd aidevixBackend
+MKHLS_VOD_TRANSCODE_ON_UPLOAD=true docker compose -f docker-compose.dev.yml up -d --build
+# upload to ns/probe.mp4, then poll:
+curl -sS http://localhost:8080/admin/videos/ns_probe.mp4 -H "Authorization: Bearer $TOKEN"
+ls -la .data/cache/vod/ns_probe.mp4/
+```
+
+Expected: status reaches `ready`, and the cache directory contains `master.m3u8` and per-preset segment directories. Before this fix the job fails at ffprobe and the status never leaves `processing`/`failed`.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add internal/application/service/transcoding_service.go \
+        internal/application/service/transcoding_service_test.go \
+        internal/application/app.go
+git commit -m "fix(vod): resolve ffmpeg input against the media root
+
+TranscodingService passed video.Path straight to ffmpeg. That works for
+entities created by a directory scan, which hold an openable absolute path,
+but not for entities created by upload, which hold a path relative to the
+media root — the same value the video ID is derived from.
+
+Uploaded videos therefore failed at ffprobe before transcoding started, both
+via the transcode endpoint and via transcode-on-upload.
+
+Resolve the input through inputPath: absolute paths are used unchanged, so
+scan-created entities and existing deployments are unaffected; relative paths
+join the configured media root."
+```
+
+Append to `claude_usage_log.txt`.
+
+---
+
 ### Task 6: Expose transcode progress (spec A4)
 
 A client polling upload status needs to show progress, not just a status string. `GET /admin/videos/{id}` currently returns neither progress nor preset counts.

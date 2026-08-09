@@ -266,10 +266,36 @@ qilib foydalanuvchiga ko'rsata olsin:
 }
 ```
 
-### A5. Yuklash yo'lini (kalitni) boshqarish
+### A5. Lokal diskka yuklash + yo'lni boshqarish (rev. 2 da kengaytirildi)
 
-`UploadVideo` hozir saqlash yo'li sifatida `header.Filename` ni ishlatadi. Mijoz yo'lni aniq
-belgilay olishi kerak (namespace uchun):
+**Kutilmagan topilma:** `admin_handler.go:624-627` da `UploadVideo` **S3'ni majburiy talab
+qiladi** — `h.s3Client == nil` bo'lsa `500 STORAGE_ERROR` qaytaradi. Lokal disk uchun
+yuklash yo'li **umuman yo'q**. `s3Client` konkret tur (`*storage.S3Client`), interfeys emas,
+va `VideoSource` degan abstraksiya e'lon qilinmagan — ya'ni "plug qilish" mumkin emas,
+handler'ga yangi tarmoq yozish kerak.
+
+Bu MinIO qarorini bekor qilmaydi: S3'ga qaytish A1 **plus** MinIO ops yukini qaytaradi,
+lokal yuklash esa bitta handler tarmog'i. Ustiga, S3siz yuklay olmaydigan media server
+mustaqil mahsulot bo'la olmaydi — bu upstream'ga baribir kerak bo'ladigan generic feature.
+
+Shuning uchun A5 ikkita ishni qamraydi:
+
+**A5a — lokal disk tarmog'i:**
+
+```go
+if h.s3Client != nil {
+    h.s3Client.Upload(ctx, storagePath, file, header.Size, contentType)
+} else {
+    dst := filepath.Join(h.mediaPath, storagePath)
+    os.MkdirAll(filepath.Dir(dst), 0755)
+    // multipart oqimni faylga yozish (butun faylni xotiraga olmasdan)
+}
+```
+
+`AdminHandler` ga `mediaPath` maydoni qo'shiladi (`config.VOD` dan). Ikkalasi ham
+sozlanmagan bo'lsa — aniq xato.
+
+**A5b — yo'lni mijoz belgilashi:**
 
 ```
 POST /admin/videos/upload

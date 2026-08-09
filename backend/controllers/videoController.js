@@ -853,7 +853,13 @@ const getTopVideos = async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
+    // streamPath is deliberately absent: like getCourseVideos, this endpoint
+    // is unauthenticated and a storage path is a provider identifier (spec
+    // §10.4). Schema fields added for mkhls leak through an unfiltered
+    // .lean() otherwise — this route predates the migration and was never
+    // touched by it, so it kept returning every field, streamPath included.
     const videos = await Video.find({ isActive: true })
+      .select('_id title description order duration thumbnail viewCount sectionId course streamStatus')
       .sort({ viewCount: -1 })
       .limit(limit)
       .populate('course', 'title category')

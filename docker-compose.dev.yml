@@ -12,6 +12,10 @@ services:
       MKHLS_VOD_ROOT_PATH: "/media"
       MKHLS_VOD_CACHE_PATH: "/cache"
       MKHLS_VOD_PRE_TRANSCODE: "true"
+      # Off by default; export MKHLS_VOD_TRANSCODE_ON_UPLOAD=true before
+      # `docker compose up` to queue a transcode job as soon as an upload
+      # lands (see AdminHandler.UploadVideo / TranscodingService).
+      MKHLS_VOD_TRANSCODE_ON_UPLOAD: "${MKHLS_VOD_TRANSCODE_ON_UPLOAD:-false}"
       # Deliberately OFF locally: source files are reused across test runs.
       MKHLS_VOD_DELETE_SOURCE_AFTER_TRANSCODE: "false"
       # NOTE: the field is auth.secret_key (mapstructure tag), not "jwt_secret".

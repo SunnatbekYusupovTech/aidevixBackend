@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import HLS from 'hls.js';
 import {
   MediaPlayer,
@@ -47,13 +47,11 @@ export default function LessonPlayer({
 }: LessonPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
 
-  // Har bir manba uchun bitta resume. Token yangilanganda `hlsUrl` almashadi va
-  // `can-play` qaytadan chiqadi — bu ref bo'lmasa player bitta tomosha davomida
-  // ikki marta seek qilardi.
+  // Oxirgi marta qaysi `hlsUrl` uchun resume qilinganini saqlaydi. Shu
+  // qiymat joriy `hlsUrl`ga teng bo'lmaguncha resume "hali qilinmagan"
+  // hisoblanadi — token yangilanib `hlsUrl` almashganda ham, bitta manba
+  // ichida qayta `can-play` kelganda ham to'g'ri ishlaydi.
   const resumedForRef = useRef<string | null>(null);
-  useEffect(() => {
-    resumedForRef.current = null;
-  }, [hlsUrl]);
 
   const handleProviderChange = (provider: MediaProviderAdapter | null) => {
     if (isHLSProvider(provider)) {

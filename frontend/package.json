@@ -28,7 +28,7 @@
     "@reduxjs/toolkit": "^2.2.7",
     "@sankyu/react-circle-flags": "^1.6.7",
     "@sentry/nextjs": "^10.62.0",
-    "@vidstack/react": "^1.15.6",
+    "@vidstack/react": "1.15.6",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
@@ -47,7 +47,7 @@
     "recharts": "^3.8.1",
     "socket.io-client": "^4.8.3",
     "swiper": "^12.2.0",
-    "vidstack": "^1.15.6"
+    "vidstack": "1.15.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

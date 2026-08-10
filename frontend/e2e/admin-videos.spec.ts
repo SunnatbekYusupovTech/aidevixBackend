@@ -106,3 +106,54 @@ test.describe('Admin — dars statuslari', () => {
     await expect(page.locator('body')).not.toContainText(/\d+\s*%/);
   });
 });
+
+test.describe('Admin — qo\'lda ulash va tozalash', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAdmin(page);
+  });
+
+  test('tahrirlash modalida mkhls yo\'li maydoni bor, Bunny GUID emas', async ({ page }) => {
+    await mockCourseVideos(page, 'pending');
+    await page.goto(`/admin/courses/${COURSE_ID}`);
+    await expect(page.getByText('1-Dars: Test')).toBeVisible({ timeout: 20_000 });
+
+    await page.getByText('1-Dars: Test').hover();
+    await page.locator('button[title="mkhls yo\'liga ulash"]').first().click();
+
+    await expect(page.getByPlaceholder(/aidevix\//)).toBeVisible();
+    await expect(page.locator('body')).not.toContainText(/bunny guid/i);
+  });
+
+  test('link-stream endpointi chaqiriladi', async ({ page }) => {
+    await mockCourseVideos(page, 'pending');
+    await page.route(new RegExp(`/videos/${VIDEO_ID}$`), (route) =>
+      json(route, { success: true, data: {} }),
+    );
+
+    let linkBody: Record<string, unknown> | null = null;
+    await page.route(new RegExp(`/videos/${VIDEO_ID}/link-stream`), (route) => {
+      linkBody = JSON.parse(route.request().postData() || '{}');
+      return json(route, { success: true, message: 'ok', data: {} });
+    });
+
+    await page.goto(`/admin/courses/${COURSE_ID}`);
+    await expect(page.getByText('1-Dars: Test')).toBeVisible({ timeout: 20_000 });
+    await page.getByText('1-Dars: Test').hover();
+    await page.locator('button[title="mkhls yo\'liga ulash"]').first().click();
+
+    await page.getByPlaceholder(/aidevix\//).fill(`aidevix/${VIDEO_ID}.mp4`);
+    // exact:true — the page also has a "Kursni saqlash" button whose
+    // accessible name substring-matches "Saqlash" and triggers a strict-mode
+    // violation otherwise.
+    await page.getByRole('button', { name: 'Saqlash', exact: true }).click();
+
+    await expect.poll(() => linkBody, { timeout: 10_000 }).not.toBeNull();
+    expect(linkBody).toEqual({ streamPath: `aidevix/${VIDEO_ID}.mp4` });
+  });
+
+  test('tools sahifasida bulk Bunny bo\'limi yo\'q', async ({ page }) => {
+    await page.goto('/admin/tools');
+    await expect(page.locator('body')).not.toContainText(/bunnyVideoId/i);
+    await expect(page.locator('body')).not.toContainText(/bulk.*bunny/i);
+  });
+});

@@ -33,7 +33,12 @@ export const updateVideo           = (id, data)          => axiosInstance.put(`v
 export const deleteVideo           = (id)                => axiosInstance.delete(`videos/${id}`)
 export const getUploadCredentials  = (id)                => axiosInstance.get(`videos/${id}/upload-credentials`)
 export const getVideoStatus        = (id)                => axiosInstance.get(`videos/${id}/status`)
-export const linkVideoToBunny      = (id, bunnyVideoId)  => axiosInstance.patch(`videos/${id}/link-bunny`, { bunnyVideoId })
+/**
+ * Mavjud mkhls yo'liga qo'lda bog'lash. Faqat eski yoki qo'lda yuklangan
+ * fayllar uchun — normal oqimda `createVideo` streamPath'ni o'zi hisoblaydi.
+ */
+export const linkVideoToStream = (id: string, streamPath: string) =>
+  axiosInstance.patch(`videos/${id}/link-stream`, { streamPath })
 
 // ─── Users (detail) ──────────────────────────────────────────────────────────
 export const getUserDetail = (id: string) => axiosInstance.get(`admin/users/${id}`)
@@ -51,10 +56,6 @@ export const getCourseEnrollmentStats = (courseId: string) =>
 // ─── Telegram ────────────────────────────────────────────────────────────────
 export const sendTelegramMessage = (message: string, parseMode?: string) =>
   axiosInstance.post('admin/telegram', { message, parseMode })
-
-// ─── Bulk Bunny GUID link ─────────────────────────────────────────────────────
-export const bulkLinkBunny = (links: { videoId: string; bunnyVideoId: string }[]) =>
-  axiosInstance.post('admin/videos/bulk-link', { links })
 
 // ─── Reorder videos ──────────────────────────────────────────────────────────
 export const reorderVideos = (videos: { id: string; order: number }[]) =>

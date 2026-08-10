@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getCourseById, updateCourse,
   getCourseVideos, createVideo, updateVideo, deleteVideo,
-  getUploadCredentials, getVideoStatus, linkVideoToBunny,
+  getUploadCredentials, getVideoStatus, linkVideoToStream,
   uploadThumbnail, uploadVideoBinary,
   unwrapAdmin,
 } from '@/api/adminApi';
@@ -97,13 +97,12 @@ export default function EditCoursePage() {
   const [file, setFile]             = useState<File | null>(null);
   const [dragOver, setDragOver]     = useState(false);
   const fileRef  = useRef<HTMLInputElement>(null);
-  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Edit modal
   const [editVid, setEditVid] = useState<VideoRow | null>(null);
   const [editForm, setEditForm] = useState({
-    title: '', description: '', order: 0, durationMin: 0, bunnyGuid: '',
+    title: '', description: '', order: 0, durationMin: 0, streamPath: '',
   });
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -129,7 +128,6 @@ export default function EditCoursePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => () => {
-    if (pollRef.current) clearInterval(pollRef.current);
     if (phaseTimeoutRef.current) clearTimeout(phaseTimeoutRef.current);
   }, []);
 
@@ -170,7 +168,7 @@ export default function EditCoursePage() {
     setProgress(0);
 
     try {
-      // 1️⃣ DB + Bunny slot yaratish
+      // 1️⃣ DB yozuvi va mkhls stream yo'lini yaratish
       const cRes = await createVideo({
         title: autoTitle,
         description: desc.trim() || `${autoTitle} — mashg'ulot`,
@@ -187,52 +185,38 @@ export default function EditCoursePage() {
       const upload  = payload.upload;
 
       if (!upload?.uploadUrl) {
-        toast.error('Upload URL olishda xato — BUNNY_STREAM_API_KEY tekshiring');
+        toast.error('Upload URL olishda xato — mkhls sozlamalarini tekshiring');
         setPhase('error');
         return;
       }
 
-      // 2️⃣ Faylni backend proxy orqali Bunny ga yuklash (AccessKey leak qilinmaydi)
+      // 2️⃣ Faylni backend proxy orqali mkhls ga yuklash
       setPhase('uploading');
       await uploadVideoBinary(upload.uploadUrl, file, setProgress);
 
-      // 3️⃣ Bunny encoding tugashini kutish (har 5 sekundda tekshirish)
-      setPhase('processing');
-      await new Promise<void>((resolve, reject) => {
-        let attempts = 0;
-        pollRef.current = setInterval(async () => {
-          attempts++;
-          try {
-            const sRes = await getVideoStatus(videoId);
-            const d = unwrapAdmin<{ bunnyStatus: string; isReady: boolean }>(sRes);
-            setVideos(prev =>
-              prev.map(v => v._id === videoId ? { ...v, bunnyStatus: d.bunnyStatus } : v)
-            );
-            if (d.isReady || d.bunnyStatus === 'ready') {
-              clearInterval(pollRef.current!);
-              resolve();
-            } else if (d.bunnyStatus === 'failed' || d.bunnyStatus === 'error') {
-              clearInterval(pollRef.current!);
-              reject(new Error('Bunny encoding muvaffaqiyatsiz'));
-            } else if (attempts > 72) {
-              clearInterval(pollRef.current!);
-              reject(new Error('Timeout — 6 daqiqa kutildi'));
-            }
-          } catch {
-            if (attempts > 72) { clearInterval(pollRef.current!); reject(new Error('Timeout')); }
-          }
-        }, 5000);
-      });
-
+      // 3️⃣ Transcode navbatga qo'yildi. Kutmaymiz.
+      //
+      // Ilgari bu yerda 6 daqiqalik polling turardi va undan keyin "Timeout"
+      // xatosi tashlanardi. Bunny uchun to'g'ri edi; mkhls'da 40 daqiqalik dars
+      // 40-60 daqiqa transcode bo'ladi (spec §14.1), ya'ni har bir haqiqiy dars
+      // sog'-salomat ishlanayotgan holda "Timeout" deb ko'rsatilardi.
+      // Kuzatishni ro'yxat qatori o'z polling'i bilan bajaradi.
       setPhase('done');
-      toast.success(`${autoTitle} — muvaffaqiyatli yuklandi!`);
+      toast.success(`${autoTitle} — yuklandi, transcode navbatga qo'yildi`);
       setTopic(''); setDesc(''); setFile(null);
       setShowUpload(false);
       phaseTimeoutRef.current = setTimeout(() => setPhase('idle'), 1500);
       fetchData();
     } catch (err: any) {
       setPhase('error');
-      toast.error(err.message || 'Yuklashda xato');
+      // Backend `startTranscode` muvaffaqiyatsiz bo'lsa streamStatus='failed'
+      // yozib 502 qaytaradi — fayl yuklangan, lekin transcode boshlanmagan.
+      // Bu umumiy "Yuklashda xato"dan butunlay boshqa vaziyat.
+      if (err?.response?.status === 502) {
+        toast.error('Fayl yuklandi, lekin transcode boshlanmadi — mkhls ni tekshiring');
+      } else {
+        toast.error(err?.message || 'Yuklashda xato');
+      }
     }
   };
 
@@ -244,7 +228,11 @@ export default function EditCoursePage() {
       description: vid.description || '',
       order: vid.order,
       durationMin: vid.duration ? Math.round(vid.duration / 60) : 0,
-      bunnyGuid: vid.bunnyVideoId || '',
+      // Faqat-yozish: streamPath ochiq `videos/course/:id` endpointidan ataylab
+      // olib tashlangan (provayder identifikatori, spec §10.4), shuning uchun
+      // uni ko'rsatadigan ma'lumot bu yerda yo'q. Yo'l determinlashgan —
+      // placeholder uni eslatib turadi.
+      streamPath: '',
     });
   };
 
@@ -257,9 +245,9 @@ export default function EditCoursePage() {
         order: editForm.order,
         duration: Math.round((Number(editForm.durationMin) || 0) * 60),
       });
-      const newGuid = editForm.bunnyGuid.trim();
-      if (newGuid && newGuid !== editVid.bunnyVideoId) {
-        await linkVideoToBunny(editVid._id, newGuid);
+      const path = editForm.streamPath.trim();
+      if (path) {
+        await linkVideoToStream(editVid._id, path);
       }
       toast.success('Video yangilandi');
       setEditVid(null);
@@ -356,10 +344,10 @@ export default function EditCoursePage() {
   // ── Phase labels ───────────────────────────────────────────────────────────
   const phaseLabel: Record<UploadPhase, string> = {
     idle:       'Yuklashni boshlash',
-    creating:   'Slot yaratilmoqda…',
+    creating:   'Yozuv yaratilmoqda…',
     uploading:  `Yuklanmoqda ${progress}%`,
-    processing: 'Bunny kodlayapti…',
-    done:       '✓ Tayyor!',
+    processing: 'Transcode navbatga qo\'yilmoqda…',
+    done:       '✓ Yuklandi',
     error:      'Qayta urinish',
   };
 
@@ -385,7 +373,18 @@ export default function EditCoursePage() {
             <FiArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="font-display text-lg font-bold leading-tight text-white">{course?.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-lg font-bold leading-tight text-white">{course?.title}</h1>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  course?.isFree
+                    ? 'border-sky-500/30 bg-sky-500/10 text-sky-300'
+                    : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                }`}
+              >
+                {course?.isFree ? 'Bepul kurs' : 'Pullik kurs'}
+              </span>
+            </div>
             <p className="mt-0.5 text-xs text-slate-500">{videos.length} ta dars</p>
           </div>
         </div>
@@ -608,7 +607,7 @@ export default function EditCoursePage() {
                         </div>
                         {phase === 'processing' && (
                           <p className="text-center text-xs text-slate-500">
-                            Bunny.net video kodlayapti — 1–3 daqiqa kuting…
+                            mkhls transcode navbatiga qo'yilmoqda…
                           </p>
                         )}
                       </div>
@@ -702,10 +701,10 @@ export default function EditCoursePage() {
                           <FiRefreshCw className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      {!vid.bunnyVideoId && (
+                      {vid.streamStatus === 'pending' && (
                         <button
                           onClick={() => openEdit(vid)}
-                          title="Bunny GUID ulash"
+                          title="mkhls yo'liga ulash"
                           className="rounded-lg p-2 text-sky-400 hover:bg-sky-500/10"
                         >
                           <FiLink className="h-3.5 w-3.5" />
@@ -773,11 +772,11 @@ export default function EditCoursePage() {
                     />
                   </Field>
                 </div>
-                <Field label="Bunny GUID (ulash yoki yangilash)">
+                <Field label="mkhls yo'li (qo'lda ulash — ixtiyoriy)">
                   <input
-                    value={editForm.bunnyGuid}
-                    onChange={e => setEditForm({ ...editForm, bunnyGuid: e.target.value })}
-                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    value={editForm.streamPath}
+                    onChange={e => setEditForm({ ...editForm, streamPath: e.target.value })}
+                    placeholder={`aidevix/${editVid?._id ?? '<videoId>'}.mp4`}
                     className={`${inp} font-mono text-xs`}
                   />
                 </Field>

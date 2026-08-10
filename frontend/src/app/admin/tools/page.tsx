@@ -4,14 +4,13 @@ import React, { useState } from 'react';
 import {
   createDailyChallenge,
   sendTelegramMessage,
-  bulkLinkBunny,
   getAiNewsAdmin,
   createAiNewsAdmin,
   updateAiNewsAdmin,
   deleteAiNewsAdmin,
 } from '@/api/adminApi';
 import toast from 'react-hot-toast';
-import { FiSend, FiLink, FiActivity, FiTrash2, FiRefreshCcw } from 'react-icons/fi';
+import { FiSend, FiActivity, FiTrash2, FiRefreshCcw } from 'react-icons/fi';
 
 const TYPES = [
   { value: 'watch_video', label: "Video ko'rish" },
@@ -190,71 +189,6 @@ function TelegramSection() {
           {sending ? 'Yuborilmoqda…' : 'Kanalga yuborish'}
         </button>
       </form>
-    </div>
-  );
-}
-
-function BulkLinkSection() {
-  const [raw, setRaw] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ succeeded: number; failed: { error: string }[] } | null>(null);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const links = lines.map((l) => {
-      const [videoId, bunnyVideoId] = l.split(',').map((s) => s.trim());
-      return { videoId, bunnyVideoId };
-    }).filter((x) => x.videoId && x.bunnyVideoId);
-
-    if (links.length === 0) { toast.error('Hech qanday juft topilmadi'); return; }
-    setLoading(true);
-    try {
-      const res = await bulkLinkBunny(links);
-      const d = (res.data as { data: { succeeded: { videoId: string }[]; failed: { error: string }[] } }).data;
-      setResult({ succeeded: d.succeeded.length, failed: d.failed });
-      toast.success(`${d.succeeded.length} ta video ulandi`);
-      if (d.failed.length > 0) toast.error(`${d.failed.length} ta xato`);
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || 'Xato yuz berdi');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#111726] p-6 shadow-xl">
-      <div className="mb-5 flex items-center gap-2">
-        <FiLink className="text-violet-400" />
-        <h3 className="font-display text-lg font-bold text-white">Bulk Bunny GUID ulash</h3>
-      </div>
-      <p className="mb-4 text-sm text-slate-400">
-        Har qatorda: <code className="rounded bg-slate-800 px-1.5 text-xs text-amber-200">videoId,bunnyVideoId</code>
-      </p>
-      <form onSubmit={submit} className="space-y-4">
-        <textarea
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          rows={6}
-          placeholder={"6748f3a1c2d3e4f5a6b7c8d9,03bda3b1-c05e-4a36-9edc-d1772ffa1312\n..."}
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-white placeholder:font-sans placeholder:text-slate-600 focus:border-violet-500/50 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={loading || !raw.trim()}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-600 px-6 py-3 font-semibold text-white shadow-lg shadow-violet-500/25 disabled:opacity-50"
-        >
-          <FiLink className="h-4 w-4" />
-          {loading ? 'Ulanmoqda…' : "Hammasini ulash"}
-        </button>
-      </form>
-      {result && (
-        <div className="mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 text-sm">
-          <p className="text-emerald-400">{result.succeeded} ta muvaffaqiyatli</p>
-          {result.failed.map((f, i) => (
-            <p key={i} className="text-red-400">{f.error}</p>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -514,14 +448,13 @@ export default function AdminToolsPage() {
       <div>
         <h2 className="font-display text-2xl font-bold text-white">Vositalar</h2>
         <p className="mt-1 text-sm text-slate-400">
-          Kunlik vazifalar, Telegram xabar yuborish va Bunny.net bulk GUID ulash.
+          Kunlik vazifalar, Telegram xabar yuborish va AI News banner boshqaruvi.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChallengeSection />
         <TelegramSection />
       </div>
-      <BulkLinkSection />
       <AiNewsSection />
     </div>
   );

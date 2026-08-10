@@ -953,8 +953,8 @@ Uchtasi oldindan mavjud mkhls bug'lari — bu ish ularni faqat ko'rinadigan qild
 |---|---|
 | 1. Lokal muhit | ✅ `docker-compose.dev.yml`, MinIO'siz |
 | 2. mkhls upstream | ✅ 11 commit, push kutmoqda |
-| 3-5. Backend | ⬜ Plan 2 |
-| 6-7. Frontend | ⬜ Plan 3 |
+| 3-5. Backend | ✅ Plan 2, alohida butun-branch review + tuzatish to'lqinidan o'tgan |
+| 6-7. Frontend | ✅ Plan 3 (`feat/plan3-frontend-player`, push kutmoqda), qo'lda uchdan-uchgacha tekshirildi — batafsili: `docs/superpowers/HANDOFF.md` |
 | 8-9. Xavfsizlik + deploy | ⬜ Plan 4 (15.2 ni o'z ichiga oladi) |
 
 ---

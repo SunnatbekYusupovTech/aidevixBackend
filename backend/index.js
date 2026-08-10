@@ -621,14 +621,39 @@ io.on('connection', (socket) => {
 
 
 // ═══════════════════════════════════════════════════════════════════
-// Slowloris / Slow-POST DDoS himoyasi
-// Hujumchi sekin asta byte yuborib socket'larni egallashga uringanida
-// kerakli timeoutlar bilan ulanish uziladi.
+// Slowloris himoyasi va nima uchun BODY uchun muddat yo'q
+//
+// Slowloris — bu sekin HEADER hujumi: hujumchi header'larni tomchilatib
+// yuborib socket'larni egallab turadi. Undan himoya qiluvchi qiymat
+// headersTimeout, va u o'z joyida qoladi.
+//
+// requestTimeout esa boshqa narsa: u BUTUN so'rovni, ya'ni body bilan
+// birga, o'qish uchun muddat. Shu sababli u admin yuklaydigan katta darsni
+// ham o'ldirardi: PUT /api/videos/:id/upload-proxy orqali kelayotgan 100 MB
+// lik fayl Node v22.13.1 da HTTP 408 bilan 90.0 soniyada uzilgan (60s
+// muddat + connectionsCheckingInterval ning 30s tekshiruv qadami, ya'ni
+// haqiqiy chegara 60-90s). 2 GB lik dars hech qachon yetib kela olmasdi.
+//
+// Bitta route uchun uni chetlab o'tishning hujjatlashtirilgan yo'li Node'da
+// yo'q — req.setTimeout(0)/res.setTimeout(0) socket'ning idle taymerini
+// boshqaradi, requestTimeout'ni emas (o'lchab tekshirilgan: barchasi
+// qo'llanganda ham o'sha 408, o'sha 90.0s). Shuning uchun body uchun muddat
+// butunlay olib tashlandi.
+//
+// Aynan shu qaror mkhls (Go) serverida ham qabul qilingan va aynan shu
+// sabab bilan: u yerda ham read_timeout endi ReadHeaderTimeout sifatida
+// qo'llanadi, ReadTimeout/WriteTimeout esa 0 (internal/application/app.go).
+// Ikkala server bir xil muammoni bir xil usulda hal qiladi.
+//
+// Qabul qilingan xavf: sekin BODY yuboruvchi hujumchi ulanishni ushlab
+// tura oladi. Bu ongli ravishda qabul qilingan — headersTimeout,
+// maxConnections va socket idle taymeri (server.timeout) o'z kuchida
+// qoladi, ya'ni haqiqatan to'xtab qolgan uzatish baribir uziladi.
 // ═══════════════════════════════════════════════════════════════════
 server.keepAliveTimeout = 65_000;        // 65s — Railway proxy idle limit dan kichik
-server.headersTimeout   = 70_000;        // headers'ni shu vaqt ichida olib bo'lish kerak
-server.requestTimeout   = 60_000;        // butun so'rov 60s ichida tugashi kerak
-server.timeout          = 60_000;        // legacy socket timeout
+server.headersTimeout   = 70_000;        // slowloris himoyasi: header'lar shu vaqt ichida kelishi shart
+server.requestTimeout   = 0;             // body uchun muddat YO'Q (katta video yuklash) — yuqoriga qarang
+server.timeout          = 60_000;        // socket idle taymeri: 60s jim qolgan uzatish uziladi
 server.maxConnections   = 10_000;        // bitta instansiyada max connection (DoS himoyasi)
 
 // Graceful shutdown — Railway restart paytida ochiq so'rovlarni tugatish

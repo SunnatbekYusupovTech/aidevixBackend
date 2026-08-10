@@ -28,16 +28,24 @@ import {
 } from 'react-icons/io5';
 import { FaTerminal, FaCode, FaBook } from 'react-icons/fa';
 import { BsLightningChargeFill } from 'react-icons/bs';
-import { useVideos } from '@hooks/useVideos';
 import { useUserStats } from '@hooks/useUserStats';
 import { useSubscription } from '@hooks/useSubscription';
+import { useLessonStream } from '@hooks/useLessonStream';
 import { selectIsLoggedIn, selectUser } from '@store/slices/authSlice';
 import { selectInstagramSub, selectTelegramSub } from '@store/slices/subscriptionSlice';
 import { userApi } from '@/api/userApi';
-import { videoApi } from '@/api/videoApi';
 import SubscriptionGate from '@/components/subscription/SubscriptionGate';
 import { useLang } from '@/context/LangContext';
 import SiteLogoMark from '@components/common/SiteLogoMark';
+
+const LessonPlayer = dynamic(() => import('@/components/videos/LessonPlayer'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-black">
+      <span className="loading loading-spinner loading-md text-primary" />
+    </div>
+  ),
+});
 
 interface OutputLine {
   type: 'log' | 'error' | 'info';
@@ -106,12 +114,14 @@ export default function VideoPlaygroundPage() {
   const { t } = useLang();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { current: video, player, loading, fetchById } = useVideos();
   const { xp } = useUserStats();
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const user = useSelector(selectUser);
   const { instagram, telegram, allVerified } = useSubscription();
   const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
+  const { video, isInitialLoading, playerProps } = useLessonStream(id, {
+    reportProgress: isLoggedIn && isSubscribed,
+  });
   const [showModal, setShowModal] = useState<boolean>(false);
   const wasSubscribedRef = useRef(isSubscribed);
 
@@ -129,8 +139,6 @@ export default function VideoPlaygroundPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'vertical' | 'horizontal'>('vertical');
   const [isCompact, setIsCompact] = useState(false);
-  const watchedSecondsRef = useRef<number>(0);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const sandboxIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -186,14 +194,9 @@ export default function VideoPlaygroundPage() {
     }
   }, [code, category]);
 
-  // fetchById is recreated each render — stabilise via ref (same pattern as runCodeRef below)
-  const fetchByIdRef = useRef(fetchById);
-  useEffect(() => { fetchByIdRef.current = fetchById; }, [fetchById]);
-
   useEffect(() => {
     setIsMounted(true);
-    if (id) fetchByIdRef.current(id);
-  }, [id]);
+  }, []);
 
   useEffect(() => {
     const updateCompact = () => setIsCompact(window.innerWidth < 1024);
@@ -208,19 +211,6 @@ export default function VideoPlaygroundPage() {
       setLayoutMode('vertical');
     }
   }, [isCompact]);
-
-  // Track watch progress every 10s and save to backend
-  useEffect(() => {
-    const courseId = typeof video?.course === 'object' ? video.course?._id : undefined;
-    if (!isLoggedIn || !isSubscribed || !id || !courseId) return;
-    progressTimerRef.current = setInterval(() => {
-      watchedSecondsRef.current += 10;
-      videoApi.saveProgress(courseId, id, watchedSecondsRef.current).catch(() => {});
-    }, 10_000);
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [id, isLoggedIn, isSubscribed, video?.course]);
 
   // Obuna bekor qilinganda avtomatik gate ochish
   useEffect(() => {
@@ -368,7 +358,7 @@ export default function VideoPlaygroundPage() {
     setQuestion('');
   };
 
-  if (!isMounted || loading) {
+  if (!isMounted || isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0E1A]">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -462,30 +452,16 @@ export default function VideoPlaygroundPage() {
             <span className="text-white truncate">{videoTitle}</span>
           </div>
 
-          {/* Video Player — Bunny.net iframe */}
+          {/* Video Player — mkhls HLS oqimi */}
           <div className="relative mx-3 sm:mx-5 aspect-video shrink-0 overflow-hidden rounded-2xl border border-white/5 bg-black shadow-xl" role="region" aria-label={t('playground.videoRegion')}>
-            {player?.embedUrl ? (
-              <iframe
-                src={player.embedUrl}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={t('playground.videoTitle')}
-              />
+            {playerProps ? (
+              <LessonPlayer {...playerProps} />
             ) : (
-              /* Placeholder */
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-                <div className="absolute inset-0 opacity-15 overflow-hidden text-[9px] leading-4 font-mono text-green-400 p-4 select-none pointer-events-none">
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <div key={i} className="whitespace-nowrap">
-                      {`${String(i + 1).padStart(2, ' ')}  ${['def salom_ber(ism):', '  return f"Salom, {ism}!"', 'foydalanuvchi = "O\'quvchi"', 'print(salom_ber(foydalanuvchi))', 'yosh = 25; bal = 95.5'][i % 5]}`}
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="relative z-10 w-16 h-16 rounded-full bg-primary/80 hover:bg-primary border border-primary/40 flex items-center justify-center shadow-2xl shadow-primary/30 transition-all hover:scale-110" aria-label={t('playground.videoTitle')}>
-                  <IoPlay size={22} className="ml-1" aria-hidden />
-                </button>
-                <p className="relative z-10 text-xs text-slate-500 mt-3">{t('playground.videoLoading')}</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31] text-center">
+                <span className="mb-3 text-3xl">⏳</span>
+                <p className="px-6 text-sm text-slate-400">
+                  {t('playground.videoPreparing')}
+                </p>
               </div>
             )}
           </div>

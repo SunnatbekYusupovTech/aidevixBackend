@@ -105,6 +105,50 @@ test.describe('Dars player — ulanish', () => {
   });
 });
 
+test.describe('Playground sahifasi — player', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultNavigationTimeout(90_000);
+    await mockSubscribedUser(page);
+    await page.route('**/master.m3u8*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.apple.mpegurl',
+        body: '#EXTM3U\n#EXT-X-VERSION:3\n',
+      }),
+    );
+  });
+
+  test('playground ham HLS player ishlatadi', async ({ page }) => {
+    // `/videos/[id]/playground` — Monaco + Pyodide script tag + vidstack +
+    // hls.js + framer-motion — bu faylning shu marshrutga birinchi tashrifi
+    // bo'lsa, sovuq Next.js dev server kompilyatsiyasi (`reuseExistingServer:
+    // false`) yolg'iz o'zi 30-40s olishi mumkin. Yuqoridagi
+    // 'tayyor video uchun player mount bo'ladi' testidagi kabi kengaytirilgan
+    // budjet kerak — bu takrorlanuvchi holat, flakilik emas.
+    test.setTimeout(150_000);
+    await mockVideoDetail(page, TEST_VIDEO_ID, [readyVideoBody()]);
+    const playlistRequest = page.waitForRequest('**/master.m3u8*', { timeout: 60_000 });
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}/playground`);
+
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 30_000 });
+    await playlistRequest;
+  });
+
+  test('playground ko\'r taymeri progress yubormaydi', async ({ page }) => {
+    await mockVideoDetail(page, TEST_VIDEO_ID, [readyVideoBody()]);
+    const posts = await captureProgressPosts(page);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}/playground`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 30_000 });
+
+    // Eski kod har 10 soniyada video o'ynayotganini bilmay POST qilardi.
+    await page.clock.install();
+    await page.clock.fastForward('00:45');
+    expect(posts.length).toBe(0);
+  });
+});
+
 test.describe('Dars player — tayyorlanish va xato holatlari', () => {
   test.beforeEach(async ({ page }) => {
     // Xuddi yuqoridagi describe'dagi kabi: sovuq Next.js dev server

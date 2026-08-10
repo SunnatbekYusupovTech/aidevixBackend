@@ -159,6 +159,7 @@ const uz: Record<string, string> = {
     'playground.videoRegion': 'Dars videosi',
     'playground.videoTitle': 'Dars videosi',
     'playground.videoLoading': 'Video yuklanmoqda…',
+    'playground.videoPreparing': 'Dars tayyorlanmoqda…',
     'playground.lessonFallback': 'Ushbu darsda amaliy mashq va asosiy tushunchalar bo‘yida ishlaymiz.',
     'playground.durationMin': '{n} daqiqa',
     'playground.markDone': 'Yakunladim',

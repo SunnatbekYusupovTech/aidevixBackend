@@ -152,6 +152,7 @@ const ru: Record<string, string> = {
     'playground.videoRegion': 'Видео урока',
     'playground.videoTitle': 'Видео урока',
     'playground.videoLoading': 'Загрузка видео…',
+    'playground.videoPreparing': 'Урок готовится…',
     'playground.lessonFallback': 'На этом уроке — практика и ключевые концепции.',
     'playground.durationMin': '{n} мин',
     'playground.markDone': 'Урок пройден',

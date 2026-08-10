@@ -152,6 +152,7 @@ const en: Record<string, string> = {
     'playground.videoRegion': 'Lesson video',
     'playground.videoTitle': 'Lesson video',
     'playground.videoLoading': 'Loading video…',
+    'playground.videoPreparing': 'The lesson is being prepared…',
     'playground.lessonFallback': 'In this lesson we practice key concepts and exercises.',
     'playground.durationMin': '{n} min',
     'playground.markDone': 'Mark complete',

@@ -35,7 +35,7 @@ type VideoRow = {
  */
 type TranscodeInfo = { presetsDone: string[]; presetsTotal: number } | null;
 
-type UploadPhase = 'idle' | 'creating' | 'uploading' | 'processing' | 'done' | 'error';
+type UploadPhase = 'idle' | 'creating' | 'uploading' | 'done' | 'error';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const inp =
@@ -209,14 +209,15 @@ export default function EditCoursePage() {
       fetchData();
     } catch (err: any) {
       setPhase('error');
-      // Backend `startTranscode` muvaffaqiyatsiz bo'lsa streamStatus='failed'
-      // yozib 502 qaytaradi — fayl yuklangan, lekin transcode boshlanmagan.
-      // Bu umumiy "Yuklashda xato"dan butunlay boshqa vaziyat.
-      if (err?.response?.status === 502) {
-        toast.error('Fayl yuklandi, lekin transcode boshlanmadi — mkhls ni tekshiring');
-      } else {
-        toast.error(err?.message || 'Yuklashda xato');
-      }
+      // Backend proxy uch xil sababdan 502 qaytarishi mumkin
+      // (videoController.js:780, 813, 827) — mkhls.uploadVideo umuman
+      // muvaffaqiyatsiz bo'lishi (fayl hech qachon yetib bormagan bo'lishi
+      // mumkin), startTranscode muvaffaqiyatsiz bo'lishi (fayl yuklangan,
+      // lekin transcode boshlanmagan), yoki tashqi umumiy xato. Uchalasi
+      // ham boshqa-boshqa holat, shuning uchun bitta status kodga bitta
+      // frontend xabarini bog'lash noto'g'ri bo'lardi — backend har biriga
+      // aniq xabar yuboradi, shuni ko'rsatamiz.
+      toast.error(err?.response?.data?.message || err?.message || 'Yuklashda xato');
     }
   };
 
@@ -346,7 +347,6 @@ export default function EditCoursePage() {
     idle:       'Yuklashni boshlash',
     creating:   'Yozuv yaratilmoqda…',
     uploading:  `Yuklanmoqda ${progress}%`,
-    processing: 'Transcode navbatga qo\'yilmoqda…',
     done:       '✓ Yuklandi',
     error:      'Qayta urinish',
   };
@@ -358,7 +358,7 @@ export default function EditCoursePage() {
     </div>
   );
 
-  const busy = phase === 'creating' || phase === 'uploading' || phase === 'processing';
+  const busy = phase === 'creating' || phase === 'uploading';
 
   return (
     <div className="space-y-8 pb-20">
@@ -592,7 +592,7 @@ export default function EditCoursePage() {
                     </div>
 
                     {/* Progress bar */}
-                    {(phase === 'uploading' || phase === 'processing' || phase === 'creating') && (
+                    {(phase === 'uploading' || phase === 'creating') && (
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs text-slate-400">
                           <span>{phaseLabel[phase]}</span>
@@ -600,16 +600,11 @@ export default function EditCoursePage() {
                         </div>
                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                           <motion.div
-                            className={`h-full rounded-full ${phase === 'processing' ? 'animate-pulse bg-amber-400' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}
-                            animate={{ width: phase === 'uploading' ? `${progress}%` : phase === 'processing' ? '100%' : '8%' }}
+                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                            animate={{ width: phase === 'uploading' ? `${progress}%` : '8%' }}
                             transition={{ duration: 0.4 }}
                           />
                         </div>
-                        {phase === 'processing' && (
-                          <p className="text-center text-xs text-slate-500">
-                            mkhls transcode navbatiga qo'yilmoqda…
-                          </p>
-                        )}
                       </div>
                     )}
 

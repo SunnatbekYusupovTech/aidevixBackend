@@ -18,6 +18,13 @@ const PLAYER_SELECTOR = '[data-media-player]';
 
 test.describe('Dars player — ulanish', () => {
   test.beforeEach(async ({ page }) => {
+    // `page.goto` ning standart 30s navigatsiya limiti bu marshrut uchun kam:
+    // Playwright har chaqiruvda yangi dev server ko'taradi
+    // (`reuseExistingServer: false`), shuning uchun `/videos/[id]` (vidstack +
+    // hls.js + framer-motion, ~4.5k modul) SOVUQ kompilyatsiya qilinadi va
+    // `load` hodisasi 30s dan kech kelishi mumkin. Bu kutilgan, takrorlanuvchi
+    // holat — ilova xatosi emas.
+    page.setDefaultNavigationTimeout(90_000);
     await mockSubscribedUser(page);
     // Master playlist so'rovini ushlaymiz: haqiqiy oqim kerak emas, bizga
     // player manbani so'raganini bilish yetarli.
@@ -33,7 +40,7 @@ test.describe('Dars player — ulanish', () => {
   test('tayyor video uchun player mount bo\'ladi va manbani so\'raydi', async ({ page }) => {
     // Kengaytirilgan kutishlar (pastga qarang) global 60s test-timeout'iga
     // yetib qolishi mumkin — shu test uchun ayricha kengaytiramiz.
-    test.setTimeout(90_000);
+    test.setTimeout(150_000);
     await mockVideoDetail(page, TEST_VIDEO_ID, [readyVideoBody()]);
 
     // Bu shu faylning birinchi testi bo'lgani uchun `/videos/[id]` marshrutini

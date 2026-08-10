@@ -25,6 +25,12 @@ export async function mockSubscribedUser(page: Page) {
   );
   await page.addInitScript(() => {
     sessionStorage.setItem('daily_reward_dismissed', new Date().toISOString().slice(0, 10));
+    // BetaWelcomeModal `requestIdleCallback` orqali (timeout 3000ms) mount
+    // bo'ladi va yana 850ms dan keyin ochiladi, ya'ni u sahifa yuklangandan
+    // KEYIN, oldindan aytib bo'lmaydigan onda to'liq ekranli backdrop qo'yadi
+    // va player tugmalariga bosishni to'sadi. Bu darsga aloqasi yo'q flakilik
+    // manbai — modalni oldindan "ko'rilgan" deb belgilaymiz.
+    localStorage.setItem('aidevix_beta_welcome_dismissed', '1');
   });
 }
 

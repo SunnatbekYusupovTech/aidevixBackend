@@ -39,7 +39,7 @@ export default function VideoPage() {
   const instagram = useSelector(selectInstagramSub);
   const telegram = useSelector(selectTelegramSub);
   const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
-  const { video, videoLink, loading, error, playerProps, isPreparing, hasFailed, refetch } =
+  const { video, videoLink, isInitialLoading, error, playerProps, isPreparing, hasFailed, refetch } =
     useLessonStream(id, { reportProgress: isLoggedIn && isSubscribed });
   const { t, lang } = useLang();
   const localText = {
@@ -198,7 +198,10 @@ export default function VideoPage() {
     }
   };
 
-  if (!isMounted || loading) {
+  // Faqat BIRINCHI yuklashda to'liq ekranli spinner. Fon refetch'lari (token
+  // yangilash, poll, xato-refetch) ham `loading` ni ko'taradi — o'shalarda bu
+  // shox o'ynayotgan player'ni unmount qilib, qayta buferlashga majburlardi.
+  if (!isMounted || isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
         <motion.div 

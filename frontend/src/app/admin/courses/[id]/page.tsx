@@ -16,6 +16,7 @@ import {
   FiArrowLeft, FiSave, FiPlus, FiTrash2, FiEdit2,
   FiVideo, FiUploadCloud, FiClock, FiRefreshCw, FiLink,
 } from 'react-icons/fi';
+import type { StreamStatus } from '@/types/video';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type VideoRow = {
@@ -24,9 +25,15 @@ type VideoRow = {
   description?: string;
   order: number;
   duration: number;
-  bunnyVideoId: string | null;
-  bunnyStatus: string;
+  streamStatus: StreamStatus;
 };
+
+/**
+ * mkhls'dan keladigan yagona haqiqiy progress ko'rsatkichi.
+ * `progress_percent` ataylab yo'q: mkhls uni hech qachon oshirmaydi
+ * (transcode davomida 0, oxirida 100).
+ */
+type TranscodeInfo = { presetsDone: string[]; presetsTotal: number } | null;
 
 type UploadPhase = 'idle' | 'creating' | 'uploading' | 'processing' | 'done' | 'error';
 
@@ -43,11 +50,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: StreamStatus }) {
   const cls =
     status === 'ready' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-    : status === 'failed' || status === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-300'
-    : status === 'encoding' || status === 'processing' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+    : status === 'failed' ? 'border-red-500/30 bg-red-500/10 text-red-300'
+    : status === 'processing' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
     : 'border-slate-600/30 bg-slate-700/20 text-slate-400';
   return (
     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cls}`}>
@@ -72,6 +79,7 @@ export default function EditCoursePage() {
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [thumbUploading, setThumbUploading] = useState(false);
+  const [transcode, setTranscode] = useState<Record<string, TranscodeInfo>>({});
   const thumbRef = useRef<HTMLInputElement>(null);
 
   // Course form
@@ -274,22 +282,60 @@ export default function EditCoursePage() {
   };
 
   // ── Refresh single video status ────────────────────────────────────────────
+  const readStatus = useCallback(async (videoId: string) => {
+    const res = await getVideoStatus(videoId);
+    const d = unwrapAdmin<{
+      streamStatus: StreamStatus;
+      duration?: number;
+      transcode: TranscodeInfo;
+    }>(res);
+    setVideos(prev =>
+      prev.map(v =>
+        v._id === videoId
+          ? { ...v, streamStatus: d.streamStatus, duration: d.duration ?? v.duration }
+          : v,
+      ),
+    );
+    setTranscode(prev => ({ ...prev, [videoId]: d.transcode }));
+    return d;
+  }, []);
+
   const refreshStatus = async (vid: VideoRow) => {
     try {
-      const res = await getVideoStatus(vid._id);
-      const d   = unwrapAdmin<{ bunnyStatus: string; duration?: number }>(res);
-      setVideos(prev =>
-        prev.map(v =>
-          v._id === vid._id
-            ? { ...v, bunnyStatus: d.bunnyStatus, duration: d.duration ?? v.duration }
-            : v
-        )
-      );
-      toast.success(`Status: ${d.bunnyStatus}`);
+      const d = await readStatus(vid._id);
+      toast.success(`Status: ${d.streamStatus}`);
     } catch {
       toast.error('Status olishda xato');
     }
   };
+
+  // `processing` qatorlarini kuzatib turadi.
+  //
+  // Uchta cheklov ataylab: faqat processing qatorlari, 20 soniya, va faqat tab
+  // ko'rinib turganda. Bu endpoint student poll'idan farq qiladi —
+  // `checkVideoStatus`da hech qanday cooldown yo'q, har chaqiruv to'g'ridan-to'g'ri
+  // mkhls'ga boradi. Bir kurs ommaviy yuklanayotganda o'nlab qator bir vaqtda
+  // processing bo'lishi mumkin va ochiq qoldirilgan tab soatlab mkhls'ni urardi.
+  useEffect(() => {
+    const processingIds = videos.filter(v => v.streamStatus === 'processing').map(v => v._id);
+    if (processingIds.length === 0) return;
+
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return;
+      processingIds.forEach(vid => { readStatus(vid).catch(() => {}); });
+    };
+
+    tick();
+    const timer = setInterval(tick, 20_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+    // `videos` o'rniga uning processing id'lari — har bir duration yangilanishida
+    // interval qayta ishga tushmasligi uchun.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos.map(v => (v.streamStatus === 'processing' ? v._id : '')).join(','), readStatus]);
 
   // ── Thumbnail upload ───────────────────────────────────────────────────────
   const handleThumbUpload = async (file: File) => {
@@ -618,18 +664,36 @@ export default function EditCoursePage() {
                           <FiClock className="h-3 w-3" />
                           {fmtDur(vid.duration)}
                         </span>
-                        <StatusBadge status={vid.bunnyStatus || 'pending'} />
-                        {vid.bunnyVideoId && (
-                          <span className="font-mono text-[10px] text-slate-600">
-                            {vid.bunnyVideoId.slice(0, 8)}…
-                          </span>
-                        )}
+                        <StatusBadge status={vid.streamStatus || 'pending'} />
                       </div>
+                      {vid.streamStatus === 'processing' &&
+                        (transcode[vid._id]?.presetsTotal ?? 0) > 0 && (
+                          <div className="mt-2 max-w-xs">
+                            <div className="h-1 overflow-hidden rounded-full bg-slate-800">
+                              <div
+                                className="h-full rounded-full bg-amber-500 transition-all"
+                                style={{
+                                  width: `${
+                                    (transcode[vid._id]!.presetsDone.length /
+                                      transcode[vid._id]!.presetsTotal) *
+                                    100
+                                  }%`,
+                                }}
+                              />
+                            </div>
+                            <p className="mt-1 text-[10px] text-slate-500">
+                              {transcode[vid._id]!.presetsDone.length}/
+                              {transcode[vid._id]!.presetsTotal} preset
+                              {transcode[vid._id]!.presetsDone.length > 0 &&
+                                ` — ${transcode[vid._id]!.presetsDone.join(', ')} tayyor`}
+                            </p>
+                          </div>
+                        )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                      {(vid.bunnyStatus === 'encoding' || vid.bunnyStatus === 'processing') && (
+                      {vid.streamStatus === 'processing' && (
                         <button
                           onClick={() => refreshStatus(vid)}
                           title="Statusni yangilash"

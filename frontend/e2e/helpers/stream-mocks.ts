@@ -11,8 +11,11 @@ const json = (route: Route, body: unknown, status = 200) =>
 
 /** Login qilgan va ikkala kanalga obuna bo'lgan foydalanuvchi. */
 export async function mockSubscribedUser(page: Page) {
+  // User to'g'ridan-to'g'ri `data` ostida bo'lishi kerak, `data: { user }`
+  // emas — `checkAuthStatus` `return { user: data.data }` qiladi, shuning
+  // uchun qo'shimcha nesting `state.user`ni `{ user: {...} }` qilib qo'yadi.
   await page.route('**/api/**/auth/me*', (route) =>
-    json(route, { success: true, data: { user: MOCK_USER } }),
+    json(route, { success: true, data: MOCK_USER }),
   );
   await page.route('**/api/**/auth/csrf*', (route) =>
     json(route, { success: true, data: { token: 'test-csrf' } }),

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
-import { IoPlay, IoTime, IoEye, IoArrowBack, IoCodeSlash, IoStar, IoDocumentText } from 'react-icons/io5';
+import { IoPlay, IoTime, IoEye, IoArrowBack, IoCodeSlash, IoDocumentText } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
 import { selectInstagramSub, selectTelegramSub } from '@/store/slices/subscriptionSlice';
 import { useSubscription } from '@hooks/useSubscription';
@@ -63,10 +63,10 @@ export default function VideoPage() {
           : "AI videolar (Cursor, Claude va boshqa agent darslari) faqat Pro foydalanuvchilar uchun ochiq. Narxi: 99 000 so'm.",
     busyDesc:
       lang === 'en'
-        ? 'The video is still processing on Bunny.net or has not finished uploading yet. Please try again later.'
+        ? 'The lesson is still being prepared for streaming. Please try again shortly.'
         : lang === 'ru'
-          ? 'Видео еще обрабатывается в Bunny.net или не завершило загрузку. Попробуйте позже.'
-          : "Video Bunny.net da hali qayta ishlanmoqda yoki yuklanmagan. Iltimos, keyinroq qayta urinib ko'ring.",
+          ? 'Урок ещё готовится к трансляции. Попробуйте немного позже.'
+          : "Dars hali oqim uchun tayyorlanmoqda. Iltimos, birozdan keyin urinib ko'ring.",
     notFoundDesc:
       lang === 'en'
         ? 'This video does not exist or has been removed.'
@@ -107,7 +107,20 @@ export default function VideoPage() {
           : "Ushbu darsni ko'rish uchun quyidagi tugmani bosing va biz taqdim etgan havola orqali videoga o'ting.",
     watchVideoBtn: lang === 'en' ? 'Watch video' : lang === 'ru' ? 'Смотреть видео' : "Videoni ko'rish",
     processingTitle: lang === 'en' ? 'Video is processing' : lang === 'ru' ? 'Видео обрабатывается' : 'Video tayyorlanmoqda',
-    processingDesc: lang === 'en' ? 'The video is still being processed. Please wait a little.' : lang === 'ru' ? 'Видео еще обрабатывается. Пожалуйста, подождите.' : 'Video hali ishlanmoqda. Iltimos, bir oz kuting.',
+    processingDesc:
+      lang === 'en'
+        ? 'The lesson is being prepared. This page updates itself — no need to reload.'
+        : lang === 'ru'
+          ? 'Урок готовится. Страница обновится сама — перезагружать не нужно.'
+          : 'Dars tayyorlanmoqda. Sahifa o\'zi yangilanadi — qayta yuklash shart emas.',
+    failedTitle:
+      lang === 'en' ? 'Something went wrong' : lang === 'ru' ? 'Произошла ошибка' : 'Xatolik yuz berdi',
+    failedDesc:
+      lang === 'en'
+        ? 'This lesson could not be prepared for streaming. Please contact an administrator.'
+        : lang === 'ru'
+          ? 'Этот урок не удалось подготовить к трансляции. Обратитесь к администратору.'
+          : "Bu darsni oqim uchun tayyorlab bo'lmadi. Administratorga murojaat qiling.",
     refresh: lang === 'en' ? 'Refresh' : lang === 'ru' ? 'Обновить' : 'Yangilash',
     lessonMaterials: lang === 'en' ? 'Lesson materials' : lang === 'ru' ? 'Материалы урока' : 'Dars Materiallari',
     qaTitle: lang === 'en' ? 'Questions & Answers' : lang === 'ru' ? 'Вопросы и ответы' : 'Savol va Javoblar',
@@ -329,12 +342,6 @@ export default function VideoPage() {
                 {(video.viewCount ?? video.views ?? 0).toLocaleString()} {localText.viewsLabel}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-slate-400">
-              <IoStar className="text-yellow-400" />
-              <span className="text-sm font-medium">
-                {(video as { rating?: { average?: number } }).rating?.average?.toFixed(1) || '0.0'}
-              </span>
-            </div>
           </div>
         </motion.div>
 
@@ -425,8 +432,17 @@ export default function VideoPage() {
                 ▶ {localText.watchVideoBtn}
               </a>
             </div>
+          ) : hasFailed ? (
+            /* Transcode buzilgan — kutish foydasiz */
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31]">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-red-500/30 bg-red-500/20">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="mb-2 text-xl font-bold text-white">{localText.failedTitle}</h2>
+              <p className="max-w-md px-8 text-center text-slate-400">{localText.failedDesc}</p>
+            </div>
           ) : (
-            /* Subscribed but no link — video processing */
+            /* Tayyorlanmoqda — sahifa har 30 soniyada o'zini yangilaydi */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31]">
               <div className="w-20 h-20 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mb-6">
                 <span className="text-3xl">⏳</span>
@@ -436,7 +452,7 @@ export default function VideoPage() {
                 {localText.processingDesc}
               </p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={refetch}
                 className="btn btn-outline text-white border-white/20 rounded-full px-8 hover:bg-white/10"
               >
                 🔄 {localText.refresh}

@@ -5,6 +5,7 @@ import {
   mockVideoDetail,
   mockPlayableHls,
   readyVideoBody,
+  preparingVideoBody,
   captureProgressPosts,
 } from './helpers/stream-mocks';
 
@@ -101,5 +102,86 @@ test.describe('Dars player — ulanish', () => {
     await expect.poll(() => posts.length, { timeout: 10_000 }).toBeGreaterThan(0);
     expect(posts[0]).toHaveProperty('positionSeconds');
     expect(posts[0]).not.toHaveProperty('watchedSeconds');
+  });
+});
+
+test.describe('Dars player — tayyorlanish va xato holatlari', () => {
+  test.beforeEach(async ({ page }) => {
+    // Xuddi yuqoridagi describe'dagi kabi: sovuq Next.js dev server
+    // kompilyatsiyasi standart 30s navigatsiya limitidan oshib ketishi mumkin.
+    page.setDefaultNavigationTimeout(90_000);
+    await mockSubscribedUser(page);
+    await page.route('**/master.m3u8*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.apple.mpegurl',
+        body: '#EXTM3U\n#EXT-X-VERSION:3\n',
+      }),
+    );
+  });
+
+  test('processing video 30s dan keyin o\'zi qayta so\'raladi va player paydo bo\'ladi', async ({ page }) => {
+    test.setTimeout(60_000);
+    // Dev serverda `next.config.mjs`ning `reactStrictMode: true`si dastlabki
+    // fetch effektini ATAYLAB ikki marta chaqiradi (mount → cleanup → mount),
+    // shuning uchun ro'yxatda faqat bitta 'processing' tana bo'lsa, u shu
+    // ikkilanishning o'zidayoq iste'mol qilinadi va "tayyorlanmoqda" ekrani
+    // umuman ko'rinmay, to'g'ridan-to'g'ri 'ready'ga sakraydi — bu poll haqida
+    // hech narsa isbotlamaydi. Bir nechta 'processing' tana bilan bufer
+    // qo'yamiz.
+    const counter = await mockVideoDetail(page, TEST_VIDEO_ID, [
+      preparingVideoBody('processing'),
+      preparingVideoBody('processing'),
+      preparingVideoBody('processing'),
+      readyVideoBody(),
+    ]);
+
+    // `clock.install()` `page.goto`dan OLDIN chaqiriladi: aks holda sahifa
+    // yuklanishi paytida yaratilgan 30s poll `setInterval`ini soxta soat
+    // qamrab ololmay qoladi (Playwright'ning virtual soati faqat o'zi
+    // o'rnatilgandan keyin yaratilgan taymerlarni kuzatadi).
+    await page.clock.install();
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    // `getByText` emas: `processingDesc`ning o'zida ham "tayyorlanmoqda" so'zi
+    // bor (Task 3), shuning uchun matn qidiruvi ikki elementga (sarlavha +
+    // paragraf) mos kelib strict-mode xatosini beradi. Sarlavhaga aniq qarab
+    // ikkilanishni yo'qotamiz.
+    await expect(page.getByRole('heading', { name: /tayyorlanmoqda/i })).toBeVisible({ timeout: 20_000 });
+    const callsAfterSettle = counter.calls;
+
+    // `clock.fastForward` hujjatga ko'ra navbatdagi har bir taymerni FAQAT BIR
+    // MARTA otkazadi ("laptop qopqog'ini bir muddat yopib, keyin ochish"
+    // simulyatsiyasi) — StrictMode'ning ikkilangan dastlabki so'rovi nechta
+    // bo'lganini oldindan aniq bilib bo'lmagani uchun, player ko'rinmaguncha
+    // bir necha marta 30+ soniyalik sakrash qilamiz.
+    for (let i = 0; i < 4 && !(await page.locator(PLAYER_SELECTOR).isVisible()); i++) {
+      await page.clock.fastForward('00:35');
+    }
+
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 5_000 });
+    expect(counter.calls).toBeGreaterThan(callsAfterSettle);
+  });
+
+  test('failed video xato ekranini ko\'rsatadi va pollinqni to\'xtatadi', async ({ page }) => {
+    const counter = await mockVideoDetail(page, TEST_VIDEO_ID, [preparingVideoBody('failed')]);
+
+    await page.clock.install();
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.getByText(/administratorga murojaat/i)).toBeVisible({ timeout: 20_000 });
+
+    const callsAfterLoad = counter.calls;
+    await page.clock.fastForward('01:10');
+    expect(counter.calls).toBe(callsAfterLoad);
+  });
+
+  test('kutish ekranida Bunny.net so\'zi yo\'q', async ({ page }) => {
+    await mockVideoDetail(page, TEST_VIDEO_ID, [preparingVideoBody('processing')]);
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    // `getByText` emas: `processingDesc`ning o'zida ham "tayyorlanmoqda" so'zi
+    // bor (Task 3), shuning uchun matn qidiruvi ikki elementga (sarlavha +
+    // paragraf) mos kelib strict-mode xatosini beradi. Sarlavhaga aniq qarab
+    // ikkilanishni yo'qotamiz.
+    await expect(page.getByRole('heading', { name: /tayyorlanmoqda/i })).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('body')).not.toContainText(/bunny/i);
   });
 });

@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   selectCourseVideos, selectTopVideos, selectCurrentVideo,
-  selectVideoLink, selectVideoPlayer, selectVideoLoading, selectVideoError,
+  selectVideoLink, selectVideoPlayer, selectVideoProgress, selectStreamStatus,
+  selectVideoLoading, selectVideoError,
   fetchCourseVideos, fetchVideo, fetchTopVideos, clearCurrentVideo,
 } from '@store/slices/videoSlice'
 
@@ -15,6 +16,8 @@ export function useVideos() {
     current:       useSelector(selectCurrentVideo),
     videoLink:     useSelector(selectVideoLink),
     player:        useSelector(selectVideoPlayer),
+    progress:      useSelector(selectVideoProgress),
+    streamStatus:  useSelector(selectStreamStatus),
     loading:       useSelector(selectVideoLoading),
     error:         useSelector(selectVideoError),
 

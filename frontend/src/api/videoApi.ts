@@ -17,11 +17,13 @@ export const videoApi = {
   rate: (id, rating) => api.post(`videos/${id}/rate`, { rating }),
 
   /**
-   * POST /enrollments/:courseId/watch/:videoId - save watch progress
-   * Backend progress endpoint enrollment modulida joylashgan.
+   * POST /enrollments/:courseId/watch/:videoId — joriy pozitsiyani saqlash.
+   * Shartnoma: JORIY POZITSIYA yuboriladi, delta emas — backend deltani o'zi
+   * hisoblaydi. Eski `watchedSeconds` nomi backend'da bir reliz qabul qilinadi,
+   * lekin frontend uni endi yubormaydi.
    */
-  saveProgress: (courseId: string, videoId: string, watchedSeconds: number) =>
-    api.post(`enrollments/${courseId}/watch/${videoId}`, { watchedSeconds }),
+  saveProgress: (courseId: string, videoId: string, positionSeconds: number) =>
+    api.post(`enrollments/${courseId}/watch/${videoId}`, { positionSeconds }),
 
   /** GET /videos/:id/rating - get video rating stats */
   getRating: (id) => api.get(`videos/${id}/rating`),

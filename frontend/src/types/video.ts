@@ -12,23 +12,33 @@ export interface Video {
     title: string;
     category?: string;
   };
-  rating?: {
-    average: number;
-    count: number;
-  };
   views?: number;
 }
 
+/** mkhls transcode holati. Backend har bir `GET /videos/:id` javobida qaytaradi. */
+export type StreamStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
+/**
+ * Video tayyor bo'lgandagina keladi. `hlsUrl` ichida qisqa muddatli stream
+ * token bor; mkhls playlist'ni qayta yozib, tokenni segmentlarga ham
+ * tarqatadi, shuning uchun uni player'ga o'zgarishsiz berish yetarli.
+ */
 export interface Player {
-  embedUrl: string;
+  type: 'hls';
+  hlsUrl: string;
   expiresAt: string;
-  telegramLink?: string;
+}
+
+export interface Progress {
+  lastPositionSeconds: number;
 }
 
 export interface VideoResponse {
   success: boolean;
   data: {
     video: Video;
-    player: Player;
+    player: Player | null;
+    progress: Progress | null;
+    streamStatus: StreamStatus;
   };
 }

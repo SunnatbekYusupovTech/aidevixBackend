@@ -103,9 +103,12 @@ test.describe('Video Detail — Subscription Gate', () => {
             video: MOCK_VIDEOS.data.videos[0],
             videoLink: null,
             player: {
-              embedUrl: 'https://iframe.mediadelivery.net/embed/test-lib/test-video-id',
+              type: 'hls',
+              hlsUrl: 'https://stream.test/vod/aidevix/test-video-id/master.m3u8?token=t1',
               expiresAt: new Date(Date.now() + 7200000).toISOString(),
             },
+            progress: null,
+            streamStatus: 'ready',
           },
         }),
       }),
@@ -113,11 +116,20 @@ test.describe('Video Detail — Subscription Gate', () => {
     await loggedInPage.route('**/api/**/videos/video-1/rating*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { rating: 4.5 } }) }),
     );
+    await loggedInPage.route('**/master.m3u8*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.apple.mpegurl',
+        body: '#EXTM3U\n#EXT-X-VERSION:3\n',
+      }),
+    );
 
     await loggedInPage.goto('/videos/video-1');
     await waitForPageReady(loggedInPage);
 
-    await expect(loggedInPage.locator('iframe[title]')).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
+    // Vidstack's React <MediaPlayer> renders as a plain <div data-media-player>
+    // wrapper in this build, not a literal <media-player> custom element.
+    await expect(loggedInPage.locator('[data-media-player]')).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
     const url = loggedInPage.url();
     expect(url).toContain('/videos/video-1');
   });

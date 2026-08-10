@@ -73,8 +73,12 @@ const initialState = {
   topVideos:    [],
   current:      null,
   videoLink:    null,
-  /** Bunny.net Stream: { embedUrl, expiresAt } */
+  /** mkhls HLS: { type, hlsUrl, expiresAt } — video tayyor bo'lmasa null */
   player:       null,
+  /** { lastPositionSeconds } — enrollment yo'q bo'lsa null */
+  progress:     null,
+  /** 'pending' | 'processing' | 'ready' | 'failed' */
+  streamStatus: null,
   loading:      false,
   linkLoading:  false,
   error:        null,
@@ -86,10 +90,12 @@ const videoSlice = createSlice({
   initialState,
   reducers: {
     clearCurrentVideo: (state) => {
-      state.current   = null
-      state.videoLink = null
-      state.player     = null
-      state.error     = null
+      state.current      = null
+      state.videoLink    = null
+      state.player       = null
+      state.progress     = null
+      state.streamStatus = null
+      state.error        = null
     },
     clearVideoError: (state) => { state.error = null },
   },
@@ -106,11 +112,12 @@ const videoSlice = createSlice({
 
       .addCase(fetchVideo.pending,   (state) => { state.loading = true; state.error = null })
       .addCase(fetchVideo.fulfilled, (state, action) => {
-        state.loading   = false
-        state.current   = action.payload.video
-        // API returns { video, player: { embedUrl, expiresAt } }
-        state.videoLink = action.payload.videoLink ?? null
-        state.player    = action.payload.player ?? null
+        state.loading      = false
+        state.current      = action.payload.video
+        state.videoLink    = action.payload.videoLink ?? null
+        state.player       = action.payload.player ?? null
+        state.progress     = action.payload.progress ?? null
+        state.streamStatus = action.payload.streamStatus ?? null
       })
       .addCase(fetchVideo.rejected,  (state, action) => {
         state.loading = false; state.error = action.payload
@@ -140,6 +147,8 @@ export const selectTopVideos    = (state) => state.videos.topVideos
 export const selectCurrentVideo = (state) => state.videos.current
 export const selectVideoLink    = (state) => state.videos.videoLink
 export const selectVideoPlayer  = (state) => state.videos.player
+export const selectVideoProgress = (state) => state.videos.progress
+export const selectStreamStatus  = (state) => state.videos.streamStatus
 export const selectVideoLoading = (state) => state.videos.loading
 export const selectVideoError   = (state) => state.videos.error
 export const selectRatings      = (state) => state.videos.ratings

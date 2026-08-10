@@ -7,7 +7,6 @@ import { useSelector } from 'react-redux';
 import { IoPlay, IoTime, IoEye, IoArrowBack, IoCodeSlash, IoStar, IoDocumentText } from 'react-icons/io5';
 import { selectIsLoggedIn } from '@/store/slices/authSlice';
 import { selectInstagramSub, selectTelegramSub } from '@/store/slices/subscriptionSlice';
-import { useVideos } from '@hooks/useVideos';
 import { useSubscription } from '@hooks/useSubscription';
 import { useLang } from '@/context/LangContext';
 import { formatDuration } from '@utils/formatDuration';
@@ -17,17 +16,31 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import VideoComments from '@/components/videos/VideoComments';
+import { useLessonStream } from '@hooks/useLessonStream';
 
 const IntegratedPlayground = dynamic(
   () => import('@/components/videos/IntegratedPlayground'),
   { ssr: false, loading: () => <div className="rounded-lg bg-slate-900/40 p-8 text-center text-sm text-slate-400">Playground yuklanmoqda...</div> }
 );
 
+const LessonPlayer = dynamic(() => import('@/components/videos/LessonPlayer'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-black">
+      <span className="loading loading-spinner loading-lg text-primary" />
+    </div>
+  ),
+});
+
 export default function VideoPage() {
   const { id }: { id: string } = useParams();
   const router = useRouter();
-  const { current: video, videoLink, player, loading, error, fetchById } = useVideos();
-  const embedUrl = player && typeof player === 'object' && 'embedUrl' in player ? (player as { embedUrl?: string }).embedUrl : undefined;
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const instagram = useSelector(selectInstagramSub);
+  const telegram = useSelector(selectTelegramSub);
+  const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
+  const { video, videoLink, loading, error, playerProps, isPreparing, hasFailed, refetch } =
+    useLessonStream(id, { reportProgress: isLoggedIn && isSubscribed });
   const { t, lang } = useLang();
   const localText = {
     needLoginTitle: lang === 'en' ? 'Sign in required' : lang === 'ru' ? 'Требуется вход' : 'Tizimga kirish talab qilinadi',
@@ -100,13 +113,10 @@ export default function VideoPage() {
     qaTitle: lang === 'en' ? 'Questions & Answers' : lang === 'ru' ? 'Вопросы и ответы' : 'Savol va Javoblar',
     qaPlaceholder: lang === 'en' ? 'Any questions about this lesson?' : lang === 'ru' ? 'Есть вопросы по уроку?' : "Dars bo'yicha savolingiz bormi?",
     send: lang === 'en' ? 'Send' : lang === 'ru' ? 'Отправить' : 'Yuborish',
+    resumeToast: lang === 'en' ? 'Resumed from' : lang === 'ru' ? 'Продолжаем с' : 'Davom ettirildi:',
   };
   useSubscription();
-  const isLoggedIn = useSelector(selectIsLoggedIn);
-  const instagram = useSelector(selectInstagramSub);
-  const telegram = useSelector(selectTelegramSub);
 
-  const isSubscribed = !!(isLoggedIn && instagram?.subscribed && telegram?.subscribed);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [question, setQuestion] = useState('');
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
@@ -116,18 +126,9 @@ export default function VideoPage() {
   const wasSubscribedRef = useRef(isSubscribed);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  // Progress tracking: har 10 soniyada POST /api/videos/{id}/progress
-  const watchedSecondsRef = useRef<number>(0);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // fetchById is recreated each render — stabilise via ref so the effect deps stay correct
-  const fetchByIdRef = useRef(fetchById);
-  useEffect(() => { fetchByIdRef.current = fetchById; }, [fetchById]);
-
   useEffect(() => {
     setIsMounted(true);
-    if (id) fetchByIdRef.current(id);
-  }, [id]);
+  }, []);
 
   useEffect(() => {
     const updateWidth = () => setViewportWidth(window.innerWidth);
@@ -136,22 +137,11 @@ export default function VideoPage() {
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Video ko'rilayotganda progress saqlash (faqat login + obuna bo'lsa)
-  useEffect(() => {
-    const courseId =
-      typeof video?.course === 'object' ? video.course?._id : undefined;
-    const canWatch = isLoggedIn && isSubscribed && !!embedUrl && !!courseId;
-    if (!canWatch || !id || !courseId) return;
-
-    progressTimerRef.current = setInterval(() => {
-      watchedSecondsRef.current += 10;
-      videoApi.saveProgress(courseId, id, watchedSecondsRef.current).catch(() => {});
-    }, 10_000);
-
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [id, isLoggedIn, isSubscribed, embedUrl, video?.course]);
+  const handleResume = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = String(Math.floor(seconds % 60)).padStart(2, '0');
+    toast.success(`${localText.resumeToast} ${mins}:${secs}`);
+  };
 
   // Sticky video logic
   useEffect(() => {
@@ -338,7 +328,9 @@ export default function VideoPage() {
             </div>
             <div className="flex items-center gap-2 text-slate-400">
               <IoStar className="text-yellow-400" />
-              <span className="text-sm font-medium">{video.rating?.average?.toFixed(1) || '0.0'}</span>
+              <span className="text-sm font-medium">
+                {(video as { rating?: { average?: number } }).rating?.average?.toFixed(1) || '0.0'}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -406,15 +398,9 @@ export default function VideoPage() {
                 🔓 {localText.unlockSub}
               </button>
             </div>
-          ) : embedUrl ? (
-            /* Subscribed + Bunny Stream */
-            <iframe
-              title={t('video.playerTitle')}
-              src={embedUrl}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+          ) : playerProps ? (
+            /* Obuna bor + mkhls HLS oqimi tayyor */
+            <LessonPlayer {...playerProps} onResume={handleResume} />
           ) : (videoLink as any)?.telegramLink ? (
             /* Subscribed + Telegram link */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-tr from-[#111726] to-[#161D31] px-3 text-center">

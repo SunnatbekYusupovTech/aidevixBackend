@@ -28,12 +28,50 @@ export async function mockSubscribedUser(page: Page) {
   );
   await page.addInitScript(() => {
     sessionStorage.setItem('daily_reward_dismissed', new Date().toISOString().slice(0, 10));
-    // BetaWelcomeModal `requestIdleCallback` orqali (timeout 3000ms) mount
-    // bo'ladi va yana 850ms dan keyin ochiladi, ya'ni u sahifa yuklangandan
-    // KEYIN, oldindan aytib bo'lmaydigan onda to'liq ekranli backdrop qo'yadi
-    // va player tugmalariga bosishni to'sadi. Bu darsga aloqasi yo'q flakilik
-    // manbai — modalni oldindan "ko'rilgan" deb belgilaymiz.
+    // Bu ikkalasi visual "backdrop" muammosini yopadi (DailyRewardModal va
+    // BetaWelcomeModal ochilib, to'liq ekranli qoplama bilan player
+    // tugmalariga bosishni to'smasligi uchun) — lekin komponentning o'zi
+    // baribir mount bo'ladi, chunki dismiss tekshiruvi shu komponentlarning
+    // ICHIDAGI effektda, JSX render shartida emas: `next/dynamic()` chunk
+    // so'rovi baribir yuboriladi. Uzoq `page.clock.fastForward` chaqiradigan
+    // testlar uchun `suppressMarketingChromeTimers()`ga qarang — u shu
+    // qoldiq muammoni yopadi.
     localStorage.setItem('aidevix_beta_welcome_dismissed', '1');
+  });
+}
+
+/**
+ * `ClientLayoutWrapper` yettita marketing-chrome komponentini
+ * (DailyRewardModal, LiveActivityTicker, AICoach, ExitIntentModal,
+ * BetaWelcomeModal, PWAInstallPrompt, InstallAppFab) `requestIdleCallback`
+ * orqali kechiktirib mount qiladi — bularning darslar bilan aloqasi yo'q.
+ * `page.clock.install()` shu API'ni ham soxtalashtiradi, shuning uchun uzoq
+ * `fastForward` chaqirilganda bu komponentlar deyarli zudlik bilan mount
+ * bo'ladi va `next/dynamic()` orqali haqiqiy tarmoq so'rovi bilan chunk
+ * so'raydi. Agar `fastForward` virtual vaqtni webpack'ning ICHKI
+ * chunk-yuklash taymeridan (standart 120s, endi u ham soxta soat ostida)
+ * oshirib yuborsa — chunk hali kelmasdan turib reject bo'ladi va
+ * `ChunkLoadError` bilan Next dev-overlay butun sahifani "o'ldiradi". Bu
+ * qaysi komponentda sodir bo'lishi tasodifiy (qaysi tarmoq so'rovi
+ * sekinroq bo'lsa) — bu ikki xil komponentda (`LiveActivityTicker`,
+ * `BetaWelcomeModal`) kuzatilgan, shuning uchun bitta komponentni
+ * localStorage bilan "dismiss" qilish yetarli emas: mount hali ham sodir
+ * bo'ladi.
+ *
+ * `requestIdleCallback`ni hech qachon chaqirilmaydigan no-op bilan
+ * almashtirib, bu yettala komponentning umuman mount bo'lmasligini
+ * ta'minlaymiz — `setTimeout`/`setInterval` (haqiqiy poll shularga
+ * tayanadi) tegilmagan holda qoladi.
+ *
+ * `page.clock.install()`DAN KEYIN chaqirilishi SHART: Playwright klok
+ * o'zining fake `requestIdleCallback`ini kontekst darajasidagi init-skript
+ * sifatida RO'YXATDAN O'TKAZILGAN vaqti bo'yicha qo'llaydi (daraja emas) —
+ * shu funksiya oldinroq chaqirilsa, keyin ro'yxatdan o'tadigan klok skripti
+ * ustidan yozib, bu no-op'ni asl (funksional) versiyaga qaytarib qo'yadi.
+ */
+export async function suppressMarketingChromeTimers(page: Page) {
+  await page.addInitScript(() => {
+    window.requestIdleCallback = () => 0;
   });
 }
 

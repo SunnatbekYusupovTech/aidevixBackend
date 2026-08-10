@@ -7,6 +7,7 @@ import {
   readyVideoBody,
   preparingVideoBody,
   captureProgressPosts,
+  suppressMarketingChromeTimers,
 } from './helpers/stream-mocks';
 
 // Vidstack's React `<MediaPlayer>` renders a plain `<div data-media-player>`
@@ -185,6 +186,14 @@ test.describe('Dars player — tayyorlanish va xato holatlari', () => {
     // qamrab ololmay qoladi (Playwright'ning virtual soati faqat o'zi
     // o'rnatilgandan keyin yaratilgan taymerlarni kuzatadi).
     await page.clock.install();
+    // `next/dynamic()` orqali kechiktirib mount bo'ladigan marketing-chrome
+    // komponentlari (LiveActivityTicker, BetaWelcomeModal va h.k.) darsga
+    // aloqasi yo'q, lekin ularning `requestIdleCallback` taymeri ham soxta
+    // soat ostida — pastdagi 140s'gacha fastForward webpack'ning ICHKI
+    // chunk-yuklash taymeridan (120s) oshib ketadi va ular hali
+    // yuklanmasdan turib `ChunkLoadError` bilan Next dev-overlay butun
+    // sahifani "o'ldiradi". Batafsili uchun helper'dagi izohga qarang.
+    await suppressMarketingChromeTimers(page);
     await page.goto(`/videos/${TEST_VIDEO_ID}`);
     // `getByText` emas: `processingDesc`ning o'zida ham "tayyorlanmoqda" so'zi
     // bor (Task 3), shuning uchun matn qidiruvi ikki elementga (sarlavha +

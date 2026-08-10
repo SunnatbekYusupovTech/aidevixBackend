@@ -6,6 +6,14 @@ import { MOCK_USER, MOCK_SUBSCRIPTION_STATUS } from '../fixtures/mock-data';
 export const TEST_VIDEO_ID = 'vid-stream-1';
 export const TEST_COURSE_ID = 'course-stream-1';
 
+// Vidstack's React `<MediaPlayer>` renders a plain `<div data-media-player>`
+// wrapper in this build — not a literal `<media-player>` custom element tag
+// (no Custom Elements registry is wired up). `[data-media-player]` is the
+// selector that actually matches the rendered DOM; a tag-name locator finds
+// nothing and every assertion built on it would time out regardless of app
+// behaviour.
+export const PLAYER_SELECTOR = '[data-media-player]';
+
 const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
@@ -113,6 +121,14 @@ export function preparingVideoBody(streamStatus: 'pending' | 'processing' | 'fai
   };
 }
 
+// `/api/` prefix — not just `/videos/${videoId}` — matters here: the app's
+// own page route is also `/videos/${videoId}` (no `/api/` segment), and an
+// unscoped pattern intercepts that top-level navigation too, serving raw
+// JSON as the document instead of the app shell.
+export function videoDetailPattern(videoId: string) {
+  return new RegExp(`/api/.*/videos/${videoId}(?:[?#]|$)`);
+}
+
 /**
  * `GET /videos/:id` ni mock qiladi. `bodies` ketma-ketligi: birinchi so'rov
  * birinchi tanani oladi, ikkinchisi ikkinchisini va hokazo; ro'yxat tugagach
@@ -121,12 +137,7 @@ export function preparingVideoBody(streamStatus: 'pending' | 'processing' | 'fai
  */
 export async function mockVideoDetail(page: Page, videoId: string, bodies: unknown[]) {
   const counter = { calls: 0 };
-  // `/api/` prefix — not just `/videos/${videoId}` — matters here: the app's
-  // own page route is also `/videos/${videoId}` (no `/api/` segment), and an
-  // unscoped pattern intercepts that top-level navigation too, serving raw
-  // JSON as the document instead of the app shell.
-  const pattern = new RegExp(`/api/.*/videos/${videoId}(?:[?#]|$)`);
-  await page.route(pattern, (route) => {
+  await page.route(videoDetailPattern(videoId), (route) => {
     const body = bodies[Math.min(counter.calls, bodies.length - 1)];
     counter.calls += 1;
     return json(route, body);
@@ -163,6 +174,67 @@ export async function mockPlayableHls(page: Page) {
       route.fulfill({ status: 200, contentType: 'video/mp2t', body }),
     );
   }
+}
+
+const HLS_LONG_SAMPLE_DIR = path.join(__dirname, '..', 'fixtures', 'hls-sample-long');
+
+/**
+ * Same idea as `mockPlayableHls`, but backed by a real ~40s/4-segment
+ * ffmpeg-generated stream (`testsrc`+`sine`, 10s segments, exact 40.000s
+ * total — see the directory for the generating command in the task report)
+ * instead of the ~4s sample.
+ *
+ * The resume-guard's 15s end margin (`END_GUARD_SECONDS` in
+ * `LessonPlayer.tsx`) can only be pinned against a stream whose real
+ * duration makes `duration - 15` meaningfully positive. The ~4s sample's
+ * `duration - 15` is negative, so with that fixture *every* `startAt > 5`
+ * is rejected regardless of what the margin actually is — changing
+ * `END_GUARD_SECONDS` from 15 to 0 would leave a test built on the short
+ * fixture green. This fixture exists so a resume position inside the final
+ * 15 real seconds can be told apart from one that merely exceeds the whole
+ * duration.
+ */
+export async function mockLongPlayableHls(page: Page) {
+  const playlist = fs.readFileSync(path.join(HLS_LONG_SAMPLE_DIR, 'stream.m3u8'));
+  await page.route('**/master.m3u8*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/vnd.apple.mpegurl', body: playlist }),
+  );
+  for (const seg of ['seg0.bin', 'seg1.bin', 'seg2.bin', 'seg3.bin']) {
+    const body = fs.readFileSync(path.join(HLS_LONG_SAMPLE_DIR, seg));
+    await page.route(`**/${seg}`, (route) =>
+      route.fulfill({ status: 200, contentType: 'video/mp2t', body }),
+    );
+  }
+}
+
+/**
+ * Vidstack sets this boolean attribute on the `[data-media-player]` wrapper
+ * once the media has genuinely reached a playable state — the same moment
+ * `handleCanPlay` in `LessonPlayer.tsx` runs and, if the resume guard
+ * allows it, performs the seek. Gating on the attribute (instead of a flat
+ * wall-clock wait) avoids a vacuous pass: `react-hot-toast`'s default
+ * success duration is ~2s plus ~1s of exit animation, so a flat 2s wait can
+ * land inside that window on a fast run and outside it — after the toast
+ * has already come and gone — on a loaded machine, making a "no toast"
+ * assertion pass whether or not a seek happened.
+ */
+export async function waitForCanPlay(page: Page, timeout = 20_000) {
+  await page.waitForSelector(`${PLAYER_SELECTOR}[data-can-play]`, { timeout });
+}
+
+/**
+ * Reads the underlying native `<video>` element's `currentTime` directly.
+ * The resume guard's observable effect is `player.currentTime = startAt`
+ * (`LessonPlayer.tsx`); asserting on the toast alone leaves open whether
+ * vidstack's `currentTime` setter silently no-ops or throws for a value
+ * past the media's real duration — in which case `onResume` would never
+ * fire and a "no toast" assertion would pass for a reason unrelated to the
+ * guard. Reading `currentTime` settles that directly.
+ */
+export function playerCurrentTime(page: Page) {
+  return page
+    .locator(`${PLAYER_SELECTOR} video`)
+    .evaluate((el) => (el as HTMLVideoElement).currentTime);
 }
 
 /** Progress POST'larini ushlaydi va yuborilgan tanalarni to'playdi. */

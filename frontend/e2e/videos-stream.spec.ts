@@ -1,22 +1,19 @@
 import { test, expect } from '@playwright/test';
 import {
   TEST_VIDEO_ID,
+  PLAYER_SELECTOR,
   mockSubscribedUser,
   mockVideoDetail,
+  videoDetailPattern,
   mockPlayableHls,
+  mockLongPlayableHls,
+  waitForCanPlay,
+  playerCurrentTime,
   readyVideoBody,
   preparingVideoBody,
   captureProgressPosts,
   suppressMarketingChromeTimers,
 } from './helpers/stream-mocks';
-
-// Vidstack's React `<MediaPlayer>` renders a plain `<div data-media-player>`
-// wrapper in this build — not a literal `<media-player>` custom element tag
-// (no Custom Elements registry is wired up). `[data-media-player]` is the
-// selector that actually matches the rendered DOM; a tag-name locator finds
-// nothing and every assertion below would time out regardless of app
-// behaviour.
-const PLAYER_SELECTOR = '[data-media-player]';
 
 test.describe('Dars player — ulanish', () => {
   test.beforeEach(async ({ page }) => {
@@ -47,15 +44,28 @@ test.describe('Dars player — ulanish', () => {
 
     // Bu shu faylning birinchi testi bo'lgani uchun `/videos/[id]` marshrutini
     // (vidstack + hls.js + framer-motion bilan ~4.5k modul) sovuq Next.js dev
-    // serverida birinchi marta kompilyatsiya qiladi — bu yolg'iz o'zi 10-16s
-    // olishi mumkin, standart 15s'dan oshib ketadi. Playwright har chaqiruvda
-    // yangi dev server ko'taradi (`reuseExistingServer: false`), shuning uchun
-    // bu kechikish oldindan isitib bo'lmaydigan, takrorlanuvchi holat — flakilik
-    // emas. Shu ikkala kutish shu sababli kengaytirilgan.
-    const playlistRequest = page.waitForRequest('**/master.m3u8*', { timeout: 45_000 });
+    // serverida birinchi marta kompilyatsiya qiladi. Bu kompilyatsiya vaqti
+    // mashina yukiga qarab talaygina o'zgaruvchan (kuzatilgan: butun fayl
+    // ishga tushirilganda ba'zan 45s'dan oshadi, alohida ishga tushirilganda
+    // esa yo'q) — Playwright har chaqiruvda yangi dev server ko'taradi
+    // (`reuseExistingServer: false`), shuning uchun bu oldindan isitib
+    // bo'lmaydigan holat.
+    //
+    // AVVAL o'zimiz "isitib" olamiz: birinchi tashrif — hech qanday qat'iy
+    // vaqt oynasiga bog'lanmagan holda — kompilyatsiya narxini to'laydi.
+    // Muammo aslida `page.waitForRequest`ning qat'iy 45s oynasi `goto`dan
+    // OLDIN sanoq boshlagani edi: agar sovuq kompilyatsiyaning o'zi shu
+    // oynaning ko'p qismini yeb qo'ysa, haqiqiy manifest so'rovi uchun
+    // deyarli vaqt qolmay, test soxta yiqilardi — bu ilova xatosi emas,
+    // sinov qurilishining o'zidagi poyga edi. Marshrut isigandan keyin
+    // ikkinchi (`reload`) tashrifda kompilyatsiya narxi yo'q, shuning uchun
+    // haqiqiy vaqt-o'lchovli tekshiruv endi ishonchli budjetga ega bo'ladi.
     await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 120_000 });
 
-    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 30_000 });
+    const playlistRequest = page.waitForRequest('**/master.m3u8*', { timeout: 20_000 });
+    await page.reload();
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
     await playlistRequest;
   });
 
@@ -348,24 +358,62 @@ test.describe('Dars player — token va resume', () => {
         expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
       },
     });
-    // `brokenA` ikki marta: StrictMode'ning ikkilangan dastlabki fetch
-    // effekti ro'yxatni ikki marotaba iste'mol qilishi mumkin — shunda ham
-    // player birinchi (fatal xatoga uchraydigan) `hlsUrl` bilan mount bo'ladi.
-    const counter = await mockVideoDetail(page, TEST_VIDEO_ID, [brokenA, brokenA, brokenB]);
+    // Ro'yxat-o'rin (index) asosidagi qattiq ketma-ketlik ("ikki marta
+    // brokenA, keyin brokenB") StrictMode'ning dastlabki fetch effektini
+    // ANIQ ikki marta chaqirishiga qaramlik qilardi — agar u faqat bir marta
+    // chaqirilsa, birinchi xato-refetch xuddi shu `brokenA`ni qayta olardi
+    // (hlsUrl o'zgarmagani uchun qayta yuklanish yo'q, ikkinchi xato ham
+    // yo'q), va test tormoz haqida hech narsa isbotlamay, mutlaqo BOSHQA
+    // sababdan qizarardi. Shu o'rniga javob TARKIBI (necha marta so'ralgani
+    // emas) hal qiladi: birinchi HAQIQIY fatal xato ro'y berguncha har doim
+    // `brokenA` qaytariladi (necha marta StrictMode chaqirsa ham bir xil
+    // manba, ikkilanish ahamiyatsiz), shundan keyin har doim `brokenB`.
+    //
+    // Vaqt-asosidagi "shu lahzada nechta chaqiruv bo'lgan" baholashi (test
+    // 1'dagi kabi) bu yerda ISHLAMAYDI: manifest ATAYLAB doim buzuq bo'lgani
+    // uchun StrictMode'ning ikkilangan mount'i, birinchi xato VA undan
+    // kelib chiqqan refetch hammasi bitta Node event-loop tikida, hatto
+    // `[data-media-player]` "visible" bo'lgunchayoq, tugab qolishi mumkin
+    // (kuzatilgan: shu boshqacha yondashuvga o'tishdan oldin `visible`dan
+    // keyin olingan boshlang'ich nuqta ham allaqachon refetch'dan KEYINGI
+    // holatni ko'rsatardi). Shuning uchun "qachon" emas, "nechta chaqiruv
+    // qaysi tanani oldi" ni sanaymiz — bu STATIK, hech qanday poyga yo'q:
+    // `hlsErrorCount === 0` bo'lgan har bir chaqiruv `brokenA` oladi
+    // (StrictMode ikkilanishi shu sonni o'zgartirishi mumkin, lekin
+    // baribir `brokenA`), birinchi xatodan keyingi HAR bir chaqiruv esa
+    // `brokenB` oladi — demak `servedBroken.b` soni ANIQ "nechta refetch
+    // xato tufayli sodir bo'ldi" degani, StrictMode'ning boshlang'ich
+    // chaqiruvlar soniga mutlaqo bog'liq bo'lmagan holda.
+    const counter = { calls: 0 };
+    const servedBroken = { a: 0, b: 0 };
+    await page.route(videoDetailPattern(TEST_VIDEO_ID), (route) => {
+      counter.calls += 1;
+      const isFirstPhase = hlsErrorCount === 0;
+      servedBroken[isFirstPhase ? 'a' : 'b'] += 1;
+      const body = isFirstPhase ? brokenA : brokenB;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    });
 
     await page.goto(`/videos/${TEST_VIDEO_ID}`);
     await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
 
-    // Birinchi fatal xato o'zining refetch'ini (token=b) qo'zg'atadi —
-    // cooldown bo'sh bo'lgani uchun bu O'TADI.
-    await expect.poll(() => counter.calls, { timeout: 20_000 }).toBeGreaterThanOrEqual(3);
-    // token=b manifesti ham buzuq — ikkinchi fatal xato tez orada keladi.
+    // Ikkinchi HAQIQIY fatal xato faqat vidstack `brokenB`ni (boshqa
+    // `hlsUrl`ni) haqiqatan qayta yuklagandan keyin sodir bo'lishi mumkin —
+    // demak shu tekshiruv o'zi "cooldown BIRINCHI refetch'ni o'tkazib
+    // yuborgani"ning dalili.
     await expect.poll(() => hlsErrorCount, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
 
+    // Butun jarayondan aynan BITTA refetch kelib chiqqan (`brokenB` aynan
+    // bir marta so'ralgan) — StrictMode'ning dastlabki chaqiruvlar soniga
+    // ham (`servedBroken.a` istalgan qiymatda bo'lishi mumkin), "ikki yoki
+    // undan ko'p" degan buzilgan tormozga ham bog'liq bo'lmagan tekshiruv.
+    expect(servedBroken.b).toBe(1);
+
     // Ikkinchi xato 30s tormoz ostida qoladi: yana bir necha soniya kutib,
-    // chaqiruvlar soni 3'da to'xtab qolganini tasdiqlaymiz (4'ga chiqmaydi).
+    // yana bir refetch (demak yana bir `brokenB` so'rovi) sodir bo'lmaganini
+    // tasdiqlaymiz.
     await page.waitForTimeout(3_000);
-    expect(counter.calls).toBe(3);
+    expect(servedBroken.b).toBe(1);
   });
 
   test('duration dan katta eski pozitsiya seek qilmaydi', async ({ page }) => {
@@ -383,8 +431,61 @@ test.describe('Dars player — token va resume', () => {
     await page.goto(`/videos/${TEST_VIDEO_ID}`);
     await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
 
+    // Flat 2s wall-clock kutish emas: `data-can-play`ni kutamiz — bu
+    // `handleCanPlay` (demak, agar guard ruxsat bersa, seek) allaqachon
+    // ishlagan aniq lahza. Flat kutish `react-hot-toast`ning ~2s+~1s chiqish
+    // animatsiyasi bilan poyga qilardi va band mashinada `canPlay` shu
+    // oyna tashqarisida kelsa, tekshiruv HECH NARSANI isbotlamay o'tib
+    // ketardi.
+    await waitForCanPlay(page);
+
     // Resume toast'i chiqmasligi kerak — seek bo'lmadi.
-    await page.waitForTimeout(2000);
     await expect(page.getByText(/davom ettirildi/i)).toHaveCount(0);
+    // Toast yo'qligiga tayanish yetarli emas: agar vidstack'ning
+    // `currentTime` setter'i real duration'dan katta qiymatda jimgina hech
+    // narsa qilmasa (yoki tashqi throw qilsa-yu shu throw yutilib ketsa),
+    // `onResume` chaqirilmay, toast HAM chiqmaydi — lekin bu guard
+    // ishlagani uchun emas. Native <video>ning `currentTime`sini bevosita
+    // o'qib, seek haqiqatan bo'lmaganini mustaqil tasdiqlaymiz.
+    await expect.poll(() => playerCurrentTime(page), { timeout: 5_000 }).toBeLessThan(1);
+  });
+
+  test('darsning ichkarisidagi eski pozitsiya seek qiladi (40s namuna, 15s marjadan yiroq)', async ({ page }) => {
+    // Finding 2: `mockPlayableHls`ning ~4s namunasida `duration - 15`
+    // manfiy chiqadi, shuning uchun HAR QANDAY `startAt > 5` rad etiladi —
+    // `END_GUARD_SECONDS`ni 15'dan 0'ga o'zgartirish ham bu holatda test'ni
+    // yashil qoldiradi. 40s'lik uzunroq namunada `duration - 15 = 25`,
+    // shuning uchun 20s (darsning "ichkarisida", 25'dan kichik) haqiqatan
+    // marjaning O'ZINI, uning shunchaki mavjudligini emas, tekshiradi.
+    await mockLongPlayableHls(page);
+    await mockVideoDetail(page, TEST_VIDEO_ID, [
+      readyVideoBody({ progress: { lastPositionSeconds: 20 } }),
+    ]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
+    await waitForCanPlay(page);
+
+    await expect(page.getByText(/davom ettirildi/i)).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => playerCurrentTime(page), { timeout: 10_000 }).toBeGreaterThan(15);
+  });
+
+  test('darsning oxirgi 15 soniyasidagi eski pozitsiya seek qilmaydi (40s namuna, 15s marja)', async ({ page }) => {
+    // Xuddi yuqoridagi test bilan bir juft: 40s namunada `duration - 15 =
+    // 25`, shuning uchun 30s (25'dan katta — darsning oxirgi 15
+    // soniyasida) marjaning ANIQ chegarasini rad etadi. Ikkalasi birga
+    // "duration'dan katta" (eski test) va "marja ICHIDA/TASHQARISIDA"
+    // shartlarini bir-biridan ajratadi.
+    await mockLongPlayableHls(page);
+    await mockVideoDetail(page, TEST_VIDEO_ID, [
+      readyVideoBody({ progress: { lastPositionSeconds: 30 } }),
+    ]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
+    await waitForCanPlay(page);
+
+    await expect(page.getByText(/davom ettirildi/i)).toHaveCount(0);
+    await expect.poll(() => playerCurrentTime(page), { timeout: 5_000 }).toBeLessThan(1);
   });
 });

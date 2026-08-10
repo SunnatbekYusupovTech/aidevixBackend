@@ -24,6 +24,77 @@ const buildProxyUploadInfo = (videoDbId) => ({
   headers: { 'Content-Type': 'application/octet-stream' },
 });
 
+// ─── Preparing-video status reconciliation ───────────────────────────────────
+//
+// checkVideoStatus is the only other code that re-reads mkhls and writes
+// streamStatus back, and its route is admin-only. The frontend's 30s poll
+// (spec §11) hits GET /api/videos/:id, so without this a transcode that
+// finishes after the admin closes the panel never lands in Mongo: the video
+// stays 'processing' and every student polls forever.
+//
+// The throttle keeps a burst of viewers on one preparing lesson from becoming
+// a burst of mkhls admin calls. It is deliberately in-process and dependency
+// free — a shared cache or a scheduler is a bigger change than this earns,
+// and per-instance throttling is already enough to bound the call rate.
+const STATUS_REFRESH_COOLDOWN_MS = Number(process.env.MKHLS_STATUS_REFRESH_COOLDOWN_MS || 15000);
+const STATUS_REFRESH_MAX_ENTRIES = 5000;
+const lastStatusRefresh = new Map(); // videoId → ms since epoch
+
+// Videos leave this map's interest as soon as they turn ready, so entries are
+// pruned by age rather than removed on a lifecycle event.
+const pruneStatusRefreshCache = (now) => {
+  if (lastStatusRefresh.size <= STATUS_REFRESH_MAX_ENTRIES) return;
+  for (const [key, at] of lastStatusRefresh) {
+    if (now - at > STATUS_REFRESH_COOLDOWN_MS) lastStatusRefresh.delete(key);
+  }
+};
+
+/**
+ * Re-reads mkhls for a video that is still preparing and persists what it
+ * finds. Returns the status to use for this response.
+ *
+ * Never throws: an unreachable mkhls means "we still don't know", which is
+ * exactly what the stored status already says. A preparing video is not a
+ * 503 case — that branch belongs to a ready video whose token cannot be
+ * minted, where claiming "tayyorlanmoqda" would be a lie.
+ */
+const refreshPreparingStatus = async (video) => {
+  const stored = video.streamStatus;
+  if (!video.streamPath) return stored;
+  if (stored !== 'pending' && stored !== 'processing') return stored;
+
+  const key = String(video._id);
+  const now = Date.now();
+  const last = lastStatusRefresh.get(key);
+  if (last !== undefined && now - last < STATUS_REFRESH_COOLDOWN_MS) return stored;
+
+  // Claim the cooldown *before* awaiting, so concurrent viewers arriving in
+  // the same tick collapse into one mkhls call rather than all racing past a
+  // check that only closes once the first response lands.
+  lastStatusRefresh.set(key, now);
+  pruneStatusRefreshCache(now);
+
+  try {
+    const info = await mkhls.getVideoInfo(video.streamPath);
+    const nextDuration = info.duration || video.duration;
+    if (info.status !== stored || nextDuration !== video.duration) {
+      await Video.updateOne(
+        { _id: video._id },
+        { $set: { streamStatus: info.status, duration: nextDuration } }
+      );
+      // The caller holds a lean() copy — keep it consistent with what was
+      // just written so this same response can serve the player.
+      video.duration = nextDuration;
+    }
+    return info.status;
+  } catch (err) {
+    console.error('[video] status refresh:', err.code, err.message);
+    return stored;
+  }
+};
+
+const _resetStatusRefreshCache = () => lastStatusRefresh.clear();
+
 // Get all videos for a course
 const getCourseVideos = async (req, res) => {
   try {
@@ -98,10 +169,14 @@ const getVideo = async (req, res) => {
     // bu shartnoma o'zgarmadi.
     let player = null;
 
+    // A still-preparing video is reconciled against mkhls here, because this
+    // is the endpoint the student's poll actually reaches.
+    const streamStatus = await refreshPreparingStatus(video);
+
     if (!video.streamPath) {
       console.warn(`[Video ${id}] streamPath yo'q — video hali yuklanmagan`);
-    } else if (video.streamStatus !== 'ready') {
-      console.warn(`[Video ${id}] streamStatus: ${video.streamStatus} — hali tayyor emas`);
+    } else if (streamStatus !== 'ready') {
+      console.warn(`[Video ${id}] streamStatus: ${streamStatus} — hali tayyor emas`);
     } else {
       try {
         const { token, expiresAt } = await mkhls.generateStreamToken(video.streamPath);
@@ -156,7 +231,7 @@ const getVideo = async (req, res) => {
         player,
         progress,
         // Frontend "tayyorlanmoqda" ekranida nimani pollinq qilishni bilishi uchun.
-        streamStatus: video.streamStatus,
+        streamStatus,
       },
     });
   } catch (error) {
@@ -175,10 +250,23 @@ const useVideoLink = async (req, res) => {
   try {
     const { linkId } = req.params;
 
-    const videoLink = await VideoLink.findById(linkId).populate('user').populate({
-      path: 'video',
-      populate: { path: 'course', select: 'category title' },
-    });
+    // Both populates are projected. The response below serialises the whole
+    // videoLink document, so an unprojected populate ships every field of the
+    // joined document with it — and this route is `authenticate` only, no
+    // requireAdmin. `video` therefore leaked streamPath (a provider identifier,
+    // spec §10.4) to any logged-in user from the moment the mkhls migration
+    // added the field, and `user` shipped the entire account document.
+    //
+    // The fields kept are exactly the ones this handler or its response needs:
+    // video.course.category drives the Pro gate, user._id drives the ownership
+    // check, and the rest is what the caller displays.
+    const videoLink = await VideoLink.findById(linkId)
+      .populate('user', '_id username')
+      .populate({
+        path: 'video',
+        select: '_id title description duration order thumbnail course streamStatus',
+        populate: { path: 'course', select: 'category title' },
+      });
 
     if (!videoLink) {
       return res.status(404).json({
@@ -641,40 +729,92 @@ const uploadVideoProxy = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bu video mkhls ga ulangan emas.' });
     }
 
-    const contentLength = req.headers['content-length'];
-    if (!contentLength) {
+    // A non-positive length is rejected here as well as a missing one. "0" is
+    // a truthy string, so it used to slip past this guard and fail inside
+    // mkhls.uploadVideo with INVALID_LENGTH — before a single byte left the
+    // process, yet still writing streamStatus='failed' below.
+    const contentLength = Number(req.headers['content-length']);
+    if (!Number.isFinite(contentLength) || contentLength <= 0) {
       // Without a length the multipart body cannot be framed without
       // buffering the whole file first — see utils/mkhls.js uploadVideo.
       return res.status(411).json({
         success: false,
-        message: 'Content-Length majburiy (chunked upload qo\'llab-quvvatlanmaydi).',
+        message: 'Content-Length majburiy va noldan katta bo\'lishi kerak (chunked upload qo\'llab-quvvatlanmaydi).',
       });
     }
+
+    // A client that hangs up mid-transfer is not a failure of the video: the
+    // bytes never arrived, so nothing about the stored video changed.
+    let clientAborted = false;
+    req.on('aborted', () => { clientAborted = true; });
+
+    const previousStatus = video.streamStatus;
 
     try {
       await mkhls.uploadVideo(video.streamPath, req, contentLength);
     } catch (err) {
       console.error('[video] upload proxy:', err.code, err.message);
-      video.streamStatus = 'failed';
-      await video.save();
-      return res.status(502).json({ success: false, message: 'mkhls ga yuklashda xato.' });
+
+      // Only mkhls's own rejection of bytes it received says anything about
+      // the stored video. A pre-flight validation error never reached mkhls,
+      // and an aborted client never finished sending — in both cases the
+      // video in mkhls is exactly whatever it was before this request.
+      //
+      // req.readableEnded is checked alongside the 'aborted' event because
+      // that event does not fire for every hangup shape: an abrupt client
+      // destroy mid-body surfaces as a server-level 'clientError' and the
+      // request stream sees nothing at all (verified against Node v22.13.1).
+      const clientGoneEarly = clientAborted || (req.destroyed && !req.readableEnded);
+      const neverReachedMkhls =
+        clientGoneEarly || err.code === 'INVALID_LENGTH' || err.code === 'INVALID_PATH';
+
+      // And a video that was already playable stays playable regardless: its
+      // renditions are still in mkhls, so downgrading it here would take a
+      // live lesson offline for every student until an admin happened to poll
+      // the admin-only status endpoint.
+      if (!neverReachedMkhls && previousStatus !== 'ready') {
+        video.streamStatus = 'failed';
+        await video.save();
+      }
+
+      return res.status(502).json({
+        success: false,
+        message: 'mkhls ga yuklashda xato.',
+        data: { videoId: video._id, streamStatus: video.streamStatus },
+      });
     }
 
     video.streamStatus = 'processing';
     await video.save();
 
-    // Exactly one side queues the job. When mkhls has transcode_on_upload
-    // enabled it already did; calling again could start a duplicate if that
-    // first job happened to finish in between (mkhls's guard only blocks
-    // jobs that are still pending or running).
-    if (process.env.MKHLS_TRANSCODE_ON_UPLOAD !== 'true') {
-      try {
-        await mkhls.startTranscode(video.streamPath);
-      } catch (err) {
-        // The bytes are safely in mkhls; report the upload as the success it
-        // was and let the admin retry transcoding rather than lose the file.
-        console.error('[video] startTranscode after upload:', err.code, err.message);
-      }
+    // Transcoding is queued unconditionally — the MKHLS_TRANSCODE_ON_UPLOAD
+    // gate that used to wrap this is gone.
+    //
+    // The gate implemented an "exactly one side queues" rule guarding against
+    // a duplicate job, which needs mkhls's own job to *finish* between its
+    // queueing and this call landing — impossible for a real lesson, and
+    // startTranscode already treats mkhls's 409 as the success it is. The
+    // rule's other failure mode is real and was observed live: when the two
+    // config values drift apart, *neither* side queues, mkhls keeps the
+    // upload stamped 'ready' for JIT streaming, and the student gets a 404
+    // behind a valid-looking player URL.
+    try {
+      await mkhls.startTranscode(video.streamPath);
+    } catch (err) {
+      // Not recoverable by waiting. Both shipped mkhls configs set
+      // vod.transcode_on_upload=false, so mkhls stamps a fresh upload 'ready'
+      // immediately and nothing else will ever move it off that. Reporting
+      // this upload as a success would let the next status poll copy that
+      // 'ready' into Mongo and hand students a token for a video with no
+      // renditions behind it — permanently, and with nothing to detect.
+      console.error('[video] startTranscode after upload:', err.code, err.message);
+      video.streamStatus = 'failed';
+      await video.save();
+      return res.status(502).json({
+        success: false,
+        message: 'Video yuklandi, lekin transcode boshlanmadi — qayta yuklang.',
+        data: { videoId: video._id, streamStatus: video.streamStatus },
+      });
     }
 
     res.json({
@@ -899,4 +1039,8 @@ module.exports = {
   uploadVideoProxy,
   checkVideoStatus,
   linkToStream,
+  // Test seam: the refresh cooldown is module state, so a suite exercising
+  // several getVideo cases against one id would otherwise have the first
+  // case's cooldown suppress every later refresh.
+  _resetStatusRefreshCache,
 };

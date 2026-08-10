@@ -34,6 +34,8 @@ jest.mock('../../middleware/subscriptionCheck', () => ({
 
 const Video = require('../../models/Video');
 const Enrollment = require('../../models/Enrollment');
+const VideoLink = require('../../models/VideoLink');
+const User = require('../../models/User');
 const mkhls = require('../../utils/mkhls');
 
 const VIDEO_ID = '68f00112233445566778899a';
@@ -82,9 +84,21 @@ const mockEnrollment = (watchedVideos) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockEnrollment(null);
+  // getVideo's mkhls refresh is throttled by module-level state keyed on the
+  // video id, and every case here uses the same id — without this reset the
+  // first case's cooldown would silently suppress the refresh in all the rest,
+  // and the refresh tests would pass for the wrong reason.
+  require('../../controllers/videoController')._resetStatusRefreshCache();
   mkhls.buildHlsUrl.mockImplementation(
     (streamPath, token) => `https://stream.test/vod/${streamPath}/master.m3u8?token=${token}`
   );
+  // Default: mkhls still says "preparing". Cases that care override this.
+  mkhls.getVideoInfo.mockResolvedValue({
+    status: 'processing',
+    mkhlsStatus: 'processing',
+    duration: 0,
+    transcode: null,
+  });
 });
 
 describe('GET /api/videos/:id', () => {
@@ -175,6 +189,233 @@ describe('GET /api/videos/:id', () => {
     // reached the controller — findByIdAndUpdate is uncalled either way.
     expect(res.status).toBe(200);
     expect(Video.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+});
+
+// A video that is still preparing is reconciled against mkhls inside getVideo,
+// because GET /api/videos/:id is the endpoint the student's 30s poll reaches.
+// checkVideoStatus is admin-only, so without this a transcode that finishes
+// after the admin closes the panel never lands in Mongo.
+describe('GET /api/videos/:id — mkhls status reconciliation', () => {
+  it('serves the player in the same response when the refresh reveals ready', async () => {
+    mockVideo({ streamStatus: 'processing' });
+    mkhls.getVideoInfo.mockResolvedValue({
+      status: 'ready',
+      mkhlsStatus: 'ready',
+      duration: 305,
+      transcode: null,
+    });
+    const expiresAt = new Date(Date.now() + 14400000);
+    mkhls.generateStreamToken.mockResolvedValue({ token: 'tok-fresh', expiresAt });
+
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.streamStatus).toBe('ready');
+    expect(res.body.data.player).not.toBeNull();
+    expect(res.body.data.player.hlsUrl).toContain('tok-fresh');
+    // ...and it is persisted, or the next request would rediscover it.
+    expect(Video.updateOne).toHaveBeenCalledWith(
+      { _id: VIDEO_ID },
+      { $set: { streamStatus: 'ready', duration: 305 } }
+    );
+  });
+
+  it('falls back to the stored status and still returns 200 when mkhls is unreachable', async () => {
+    mockVideo({ streamStatus: 'processing' });
+    const err = new Error('mkhls unreachable');
+    err.code = 'UNREACHABLE';
+    mkhls.getVideoInfo.mockRejectedValue(err);
+
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    // A preparing video is not a 503 case — that branch belongs to a *ready*
+    // video whose token cannot be minted.
+    expect(res.status).toBe(200);
+    expect(res.body.data.streamStatus).toBe('processing');
+    expect(res.body.data.player).toBeNull();
+    expect(Video.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('throttles the refresh so a burst of viewers is not a burst of mkhls calls', async () => {
+    mockVideo({ streamStatus: 'processing' });
+
+    await request(app).get(`/api/videos/${VIDEO_ID}`);
+    await request(app).get(`/api/videos/${VIDEO_ID}`);
+    await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    expect(mkhls.getVideoInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('never refreshes a video that is already ready', async () => {
+    mockVideo({ streamStatus: 'ready' });
+    mkhls.generateStreamToken.mockResolvedValue({ token: 't', expiresAt: new Date() });
+
+    await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    expect(mkhls.getVideoInfo).not.toHaveBeenCalled();
+  });
+
+  it('never refreshes a video that was never uploaded', async () => {
+    mockVideo({ streamPath: null, streamStatus: 'pending' });
+
+    await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    expect(mkhls.getVideoInfo).not.toHaveBeenCalled();
+  });
+});
+
+// The upload proxy's state machine. The rule these all serve: streamStatus is
+// only ever written from something that actually happened to the bytes.
+describe('PUT /api/videos/:id/upload-proxy', () => {
+  const mockUploadTarget = (streamStatus) => {
+    const doc = {
+      _id: VIDEO_ID,
+      streamPath: `aidevix/${VIDEO_ID}.mp4`,
+      streamStatus,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    Video.findById.mockReturnValue({ select: () => doc });
+    return doc;
+  };
+
+  it('rejects Content-Length: 0 with 411 and leaves a ready video ready', async () => {
+    const doc = mockUploadTarget('ready');
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .set('Content-Length', '0')
+      .send();
+
+    expect(res.status).toBe(411);
+    // "0" is a truthy string: it used to slip past the guard and fail inside
+    // mkhls.uploadVideo with INVALID_LENGTH, which then wrote 'failed' and
+    // took a live lesson offline for every student.
+    expect(mkhls.uploadVideo).not.toHaveBeenCalled();
+    expect(doc.streamStatus).toBe('ready');
+    expect(doc.save).not.toHaveBeenCalled();
+  });
+
+  it('does not downgrade an already-ready video when the upload fails', async () => {
+    const doc = mockUploadTarget('ready');
+    const err = new Error('mkhls exploded');
+    err.code = 'REQUEST_FAILED';
+    mkhls.uploadVideo.mockRejectedValue(err);
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(Buffer.alloc(64));
+
+    expect(res.status).toBe(502);
+    // Its renditions are still in mkhls, so it is still playable.
+    expect(doc.streamStatus).toBe('ready');
+  });
+
+  it('does not write failed when the request never reached mkhls', async () => {
+    const doc = mockUploadTarget('processing');
+    const err = new Error('bad length');
+    err.code = 'INVALID_LENGTH';
+    mkhls.uploadVideo.mockRejectedValue(err);
+
+    await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(Buffer.alloc(64));
+
+    expect(doc.streamStatus).toBe('processing');
+  });
+
+  it('queues the transcode even when MKHLS_TRANSCODE_ON_UPLOAD is true', async () => {
+    const previous = process.env.MKHLS_TRANSCODE_ON_UPLOAD;
+    process.env.MKHLS_TRANSCODE_ON_UPLOAD = 'true';
+    try {
+      mockUploadTarget('pending');
+      mkhls.uploadVideo.mockResolvedValue(undefined);
+      mkhls.startTranscode.mockResolvedValue({ queued: true, alreadyRunning: false });
+
+      const res = await request(app)
+        .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.alloc(64));
+
+      expect(res.status).toBe(200);
+      // The gate is gone: when the two config values drifted apart, *neither*
+      // side queued and the student got a 404 behind a valid player URL.
+      expect(mkhls.startTranscode).toHaveBeenCalledWith(`aidevix/${VIDEO_ID}.mp4`);
+    } finally {
+      if (previous === undefined) delete process.env.MKHLS_TRANSCODE_ON_UPLOAD;
+      else process.env.MKHLS_TRANSCODE_ON_UPLOAD = previous;
+    }
+  });
+
+  it('treats alreadyRunning as the success it is', async () => {
+    const doc = mockUploadTarget('pending');
+    mkhls.uploadVideo.mockResolvedValue(undefined);
+    mkhls.startTranscode.mockResolvedValue({ queued: false, alreadyRunning: true });
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(Buffer.alloc(64));
+
+    expect(res.status).toBe(200);
+    expect(doc.streamStatus).toBe('processing');
+  });
+
+  it('lands in failed, not a false ready, when startTranscode throws', async () => {
+    const doc = mockUploadTarget('pending');
+    mkhls.uploadVideo.mockResolvedValue(undefined);
+    const err = new Error('no transcoder available');
+    err.code = 'SERVICE_UNAVAILABLE';
+    mkhls.startTranscode.mockRejectedValue(err);
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(Buffer.alloc(64));
+
+    // mkhls stamps a fresh upload 'ready' for JIT streaming, so swallowing
+    // this behind a 200 would let the next poll copy that 'ready' into Mongo
+    // and hand students a token for a video with no renditions.
+    expect(res.status).toBe(502);
+    expect(res.body.success).toBe(false);
+    expect(res.body.data.streamStatus).toBe('failed');
+    expect(doc.streamStatus).toBe('failed');
+  });
+});
+
+describe('POST /api/videos/link/:linkId/use', () => {
+  it('projects both populates so streamPath never reaches a non-admin caller', async () => {
+    const populateArgs = [];
+    const videoLink = {
+      _id: 'link-1',
+      user: { _id: mockUserId, username: 'student' },
+      video: { _id: VIDEO_ID, title: 'Dars 1', course: { category: 'general', title: 'Kurs' } },
+      isUsed: false,
+      expiresAt: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    const chain = {
+      populate: (...args) => { populateArgs.push(args); return chain; },
+      then: (resolve) => resolve(videoLink),
+    };
+    VideoLink.findById.mockReturnValue(chain);
+    User.findById.mockResolvedValue({ _id: mockUserId, proSubscription: null, save: jest.fn() });
+
+    const res = await request(app).post('/api/videos/link/link-1/use');
+
+    expect(res.status).toBe(200);
+    // This route is `authenticate` only — no requireAdmin. An unprojected
+    // populate ships every field of the joined document, so streamPath began
+    // leaking to any logged-in user the moment the schema gained it.
+    expect(JSON.stringify(res.body)).not.toMatch(/streamPath/);
+
+    const [userPopulate, videoPopulate] = populateArgs;
+    expect(userPopulate).toEqual(['user', '_id username']);
+    expect(videoPopulate[0].select).toBeDefined();
+    expect(videoPopulate[0].select).not.toMatch(/streamPath/);
   });
 });
 

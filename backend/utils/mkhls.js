@@ -221,11 +221,6 @@ const uploadVideo = async (streamPath, sourceStream, contentLength) => {
   // failed attempt. Retrying with the same config would resend a truncated
   // or empty body instead of failing cleanly, which is exactly the wrong
   // behaviour to hide inside the large-file path this function exists for.
-  // retryOn401: false — the request body is a single-use CombinedStream
-  // (piped from `form`/`sourceStream`) that has already been consumed by the
-  // failed attempt. Retrying with the same config would resend a truncated
-  // or empty body instead of failing cleanly, which is exactly the wrong
-  // behaviour to hide inside the large-file path this function exists for.
   await authedData(
     {
       method: 'post',

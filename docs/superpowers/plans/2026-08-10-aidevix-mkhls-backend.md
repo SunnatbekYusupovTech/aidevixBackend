@@ -1952,7 +1952,13 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 The ingest path. The upload streams `req` straight through to mkhls — `express.json` ignores `application/octet-stream`, so `req` is still an unread stream by the time the handler sees it, which is what made the Bunny proxy work and works identically here.
 
-Transcoding is queued by exactly one side. `MKHLS_TRANSCODE_ON_UPLOAD` mirrors the container's `vod.transcode_on_upload`; when it is true mkhls already queued the job and a second call could start a **duplicate** transcode if the first finished in between (mkhls's duplicate guard only blocks jobs that are still pending or running).
+~~Transcoding is queued by exactly one side. `MKHLS_TRANSCODE_ON_UPLOAD` mirrors the container's `vod.transcode_on_upload`; when it is true mkhls already queued the job and a second call could start a **duplicate** transcode if the first finished in between (mkhls's duplicate guard only blocks jobs that are still pending or running).~~
+
+**SUPERSEDED by the whole-branch review (finding 3).** The "exactly one side queues" rule is withdrawn and the `MKHLS_TRANSCODE_ON_UPLOAD` gate is removed from `uploadVideoProxy`; `startTranscode` is now called unconditionally and `{queued:false, alreadyRunning:true}` (mkhls's 409) is treated as the success it is.
+
+The duplicate the rule guarded against needs mkhls's own job to *finish* between its queueing and Node's call landing — not reachable for a real lesson. The rule's own failure mode is both worse and observed live: when the two config values drift apart, **neither** side queues, mkhls leaves the upload stamped `ready` for JIT streaming, and the student gets a 404 behind a valid-looking player URL. Removing the gate removes that class of misconfiguration entirely.
+
+Additionally, a `startTranscode` that throws now writes `streamStatus = 'failed'` and reports it, instead of being logged and swallowed behind a 200.
 
 **Files:**
 - Modify: `backend/controllers/videoController.js` (`uploadVideoProxy` at :594-608, `checkVideoStatus` at :611-655, `getUploadCredentialsForVideo` at :560-590)
@@ -1997,10 +2003,17 @@ const uploadVideoProxy = async (req, res) => {
     video.streamStatus = 'processing';
     await video.save();
 
-    // Exactly one side queues the job. When mkhls has transcode_on_upload
-    // enabled it already did; calling again could start a duplicate if that
-    // first job happened to finish in between (mkhls's guard only blocks
-    // jobs that are still pending or running).
+    // SUPERSEDED by the whole-branch review (finding 3) — the shipped code
+    // has no gate and does not swallow the failure. See the note above.
+    //
+    //   try {
+    //     await mkhls.startTranscode(video.streamPath);
+    //   } catch (err) {
+    //     console.error('[video] startTranscode after upload:', err.code, err.message);
+    //     video.streamStatus = 'failed';
+    //     await video.save();
+    //     return res.status(502).json({ ... streamStatus: 'failed' });
+    //   }
     if (process.env.MKHLS_TRANSCODE_ON_UPLOAD !== 'true') {
       try {
         await mkhls.startTranscode(video.streamPath);

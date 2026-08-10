@@ -464,7 +464,7 @@ migration bilan o'chiriladi. Indeks: `videoSchema.index({ streamStatus: 1 })`.
 | Funksiya | O'zgarish |
 |---|---|
 | `createVideo` | Bunny slot yaratish o'rniga `streamPath = ${NAMESPACE}/${video._id}.mp4` hisoblanadi, `streamStatus='pending'`. Upload info hozirgidek proxy URL. |
-| `uploadVideoProxy` | `streamUploadToBunny` o'rniga `mkhls.uploadVideo(streamPath, req, contentLength)`. Muvaffaqiyatdan keyin `streamStatus='processing'`. mkhls'da `transcode_on_upload` yoqilmagan bo'lsa `startTranscode` chaqiriladi. |
+| `uploadVideoProxy` | `streamUploadToBunny` o'rniga `mkhls.uploadVideo(streamPath, req, contentLength)`. Muvaffaqiyatdan keyin `streamStatus='processing'`. **`startTranscode` HAR DOIM chaqiriladi** — `transcode_on_upload` ga qarab shart qo'yilmaydi (mkhls'ning 409 javobi muvaffaqiyat). Agar `startTranscode` xato bersa `streamStatus='failed'` yoziladi va 502 qaytariladi: mkhls yuklangan videoni darhol `'ready'` deb belgilaydi, shuning uchun xatoni yutib yuborish renditionsiz videoni "tayyor" qilib ko'rsatardi. |
 | `checkVideoStatus` | `mkhls.getVideoInfo` → status + duration + transcode progressi DB'ga yoziladi va qaytariladi. |
 | `getVideo` | `generateSignedEmbedUrl` o'rniga `generateStreamToken` + `buildHlsUrl`. |
 | `deleteVideo` | `deleteBunnyVideo` o'rniga `mkhls.deleteVideo`. |

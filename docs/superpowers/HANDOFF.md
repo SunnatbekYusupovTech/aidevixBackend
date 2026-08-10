@@ -33,7 +33,7 @@ qoldirmang — shu faylga yozing.
 | Repo | Branch | Holat |
 |---|---|---|
 | `AiDeVix/mkhls-streamer` | `feat/vod-local-pipeline` | `bc97f80`, o'zgarishsiz. Push hali **bloklangan** (`origin` push URL — `PUSH-DISABLED--fork-qiling-spec-5-bolim` sentinel, tekshirilgan — hali joyida). |
-| `AiDeVix/aidevixBackend` | `feat/plan3-frontend-player` | `a9c85e5`. `origin/main`dan (`34c4c47`) **49 commit oldinda**, merge-base = `origin/main` — ya'ni branch `main`dan **toza descendant**, konflikt yo'q, fast-forward mumkin. Hech narsa push qilinmagan. Har bir commit `Co-Authored-By: Claude Opus 5 (1M context)` trailer bilan. |
+| `AiDeVix/aidevixBackend` | `feat/plan3-frontend-player` | `eaa274f`da **50 commit oldinda** `origin/main`dan (`34c4c47`), merge-base = `origin/main` — ya'ni branch `main`dan **toza descendant**, konflikt yo'q, fast-forward mumkin. Bu son har HANDOFF commit'ida o'zgaradi (masalan shu tuzatish commit'i bilan 51 bo'ladi) — aniq raqamga ishonmang, `git log --oneline origin/main..HEAD \| wc -l` bilan qayta hisoblang. Hech narsa push qilinmagan. Har bir commit `Co-Authored-By: Claude Opus 5 (1M context)` trailer bilan. |
 
 mkhls Aidevix repo'sining **ichida emas, yonida** (`../mkhls-streamer`) — spec'ning
 "mijoz, klonuvchi emas" qoidasi. Bu qoida saqlanadi.
@@ -244,6 +244,26 @@ Eski (Plan 2 tugagandan keyingi) HANDOFF'dan ko'chirilgan, hech biri tuzatilmaga
   biriktirilgan — bosh sahifa videolarni aynan shu bo'yicha saralaydi.
 - **Yuklash hajmi chegarasi hech qaysi qatlamda yo'q.** Backend faqat
   `Content-Length` musbat ekanini tekshiradi.
+- **Eski `watchedVideos[].watchedSeconds` yozuvlari eski kumulyativ shartnoma
+  ostida yozilgan, endi pozitsiya sifatida o'qiladi.** Migratsiya yo'q.
+  Qaytib kelgan foydalanuvchining resume nuqtasi haqiqiy o'rnidan uzoqroqqa
+  tushishi mumkin; bitta seansdan keyin o'z-o'zidan tuzaladi (keyingi yozuv
+  to'g'ri shartnoma bilan qayta yoziladi). **Bu Plan 3'da avvalgidan ko'ra
+  ko'proq ahamiyatga ega bo'ldi**, chunki resume funksiyasining o'zi endi
+  bor va aynan shu ma'lumot ustiga qurilgan
+  (`frontend/src/components/videos/LessonPlayer.tsx`). Uni yutib yuboradigan
+  narsa — `handleCanPlay`dagi resume darvozasi: `startAt >
+  MIN_RESUME_SECONDS (5)` va `startAt < duration - END_GUARD_SECONDS (15)`
+  (`LessonPlayer.tsx:36-38,70,76`). Kumulyativ qiymat deyarli har doim
+  dars uzunligidan katta bo'lgani uchun ikkinchi shart uni tabiiy ravishda
+  rad etadi — bu tasodif emas, ataylab shunday yozilgan (qarang shu joydagi
+  izoh). Darvoza Task 7'da ikki tomondan ham testlar bilan mahkamlangan
+  (40 soniyalik/4-segmentli `e2e/fixtures/hls-sample-long` fixture'i orqali:
+  bitta test seek qilishi SHART bo'lgan holatni, ikkinchisi seek qilMASLIGI
+  SHART bo'lgan holatni tekshiradi). Kimdir bu darvozani "soddalashtirsam"
+  deb (masalan `END_GUARD_SECONDS`ni kamaytirib yoki olib tashlab) o'zgartirsa,
+  qaytib kelgan foydalanuvchilar uchun jimgina buziladi — testlar buni ushlaydi,
+  lekin faqat agar kimdir nima uchun bu son shunday tanlanganini bilsa.
 - **Go repo'da `finishJob`dagi metadata probe** (`GetMediaInfo`ning haqiqiy
   davomiylik/o'lchamni to'g'ri qaytarishi) hali testlar bilan mahkamlanmagan
   — faqat chaqiruvlar tartibi mahkamlangan. Yopish uchun `s.ffmpeg` interfeys
@@ -251,6 +271,19 @@ Eski (Plan 2 tugagandan keyingi) HANDOFF'dan ko'chirilgan, hech biri tuzatilmaga
 
 Plan 3 davomida topilgan, ataylab tuzatilmagan yangi bo'shliqlar:
 
+- **`useLessonStream`ning `isOwnResponse` darvozasi `GET /api/videos/:id`
+  hamon `findById` bo'lib qolishiga tayanadi** (`frontend/src/hooks/
+  useLessonStream.ts:96-101`). Bu darvoza — muzlatilgan resume nuqtasini
+  eski Redux qiymati zaharlashidan saqlaydigan va fon-refetch o'ynayotgan
+  darsni buzib qo'yishining oldini oladigan narsa (Task 2 fix davrida
+  qo'shilgan): javob faqat `video._id === so'ralgan videoId` bo'lsagina
+  qabul qilinadi. **Agar kimdir shu endpoint'ga slug yoki alias orqali
+  qidirish qo'shsa** (masalan URL'da `/videos/mening-darsim` kabi
+  inson-o'qiy oladigan yo'l), `video._id` endi so'ralgan `videoId`ga teng
+  bo'lmay qoladi, darvoza hech qachon ochilmaydi, va sahifa **abadiy
+  spinner** ko'rsatadi — hech qanday xato, hech qanday log, faqat
+  cheksiz yuklanish. Bu endpoint'ni o'zgartiradigan kishi buni oldindan
+  bilishi kerak.
 - **`frontend/src/app/admin/settings/page.tsx` hamon Bunny konfiguratsiyasini
   hujjatlaydi** (`BUNNY_STREAM_API_KEY`, `BUNNY_LIBRARY_ID`, `BUNNY_TOKEN_KEY`)
   — mkhls migratsiyasidan keyin ham. Hech qaysi Plan 3 task'i buni o'z
@@ -270,6 +303,21 @@ Plan 3 davomida topilgan, ataylab tuzatilmagan yangi bo'shliqlar:
   `frontend/e2e/fixtures/hls-sample-long/README.md`ga yozildi. Fayl hajmlari
   asl nusxadan sal farq qiladi (asl encoder sifat sozlamasi noma'lum) —
   testlar uchun ahamiyatsiz.
+
+Ledger'dan qo'lda o'tkazilgan, harakat qilishga arziydigan kichik (minor)
+band(lar) — to'liq ro'yxat emas, faqat keyingi kishi duch kelishi mumkin
+bo'lganlari:
+
+- **`useLessonStream`ning xato-refetch mexanizmi `hlsUrl` o'zgarmagan holatda
+  tiklanolmaydi** (Task 2 fix davrida deferred minor). Agar refetch xatoni
+  boshqa sabab bilan (masalan token muddati emas, boshqa xatolik) tuzatib
+  bo'lmasa va yangi so'rov eski `hlsUrl`ni qaytarsa, player eskicha xato
+  holatida qolib ketishi mumkin — zararsiz ko'rinadi, lekin ishlab chiqarishda
+  kamdan-kam ko'rinadigan holat.
+- **O'lik i18n kaliti `playground.videoLoading`** uchala lokal faylda ham
+  qoldi (`frontend/src/utils/i18n/{uz,ru,en}.ts`) — Task 4 uni ataylab
+  o'chirmadi, chunki brief bunga buyurmagan edi. Keyingi kishi shu kalitni
+  ishlatadigan joy qidirib vaqt yo'qotmasin — u hech qayerda chaqirilmaydi.
 
 ---
 

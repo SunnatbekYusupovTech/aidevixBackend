@@ -238,3 +238,153 @@ test.describe('Dars player — tayyorlanish va xato holatlari', () => {
     await expect(page.locator('body')).not.toContainText(/bunny/i);
   });
 });
+
+test.describe('Dars player — token va resume', () => {
+  test.beforeEach(async ({ page }) => {
+    // Xuddi yuqoridagi describe'lardagi kabi: sovuq Next.js dev server
+    // kompilyatsiyasi standart 30s navigatsiya limitidan oshib ketishi mumkin.
+    page.setDefaultNavigationTimeout(90_000);
+    await mockSubscribedUser(page);
+    // Boshqa describe'lardagi bo'sh/soxta manifest ("#EXTM3U\n#EXT-X-VERSION:3\n")
+    // bu yerda ishlamaydi: unda hech qanday level yo'q, shuning uchun hls.js uni
+    // DARHOL fatal xato ("no levels found in manifest") deb rad etadi. Bu esa
+    // pastdagi ikkita testda o'zining `onError` orqali kutilmagan refetch
+    // qo'zg'atib, tasodifiy bo'lib qoladigan raqob qiladi — va uchinchi testda
+    // `handleCanPlay` HECH QACHON chaqirilmasligi mumkin (media hech qachon
+    // playable holatga yetmaydi), ya'ni resume-qamrov tekshiruvi HAQIQATDA HECH
+    // NARSANI tekshirmay, faqat tasodifan yashil chiqib qoladi. Shu describe'ga
+    // haqiqatan ijro etiladigan minimal HLS oqimini ulaymiz — shunda `canPlay`
+    // haqiqiy davomiylik (`duration`) bilan chaqiriladi va yagona xato manbai
+    // faqat testning O'ZI qo'zg'atgan sun'iy hodisa bo'lib qoladi.
+    await mockPlayableHls(page);
+  });
+
+  test('token tugashiga 6 daqiqa qolganda proaktiv qayta so\'raladi', async ({ page }) => {
+    // Shu faylning shu describe'dagi birinchi testi sovuq dev-server
+    // kompilyatsiyasiga (yuqoridagi 'ulanish' describe'idagi kabi) duch kelishi
+    // mumkin — kengaytirilgan test-timeout.
+    test.setTimeout(150_000);
+    await page.clock.install();
+    // 02:00'lik fastForward yolg'iz o'zi ~120s chegarasiga yaqin — yettita
+    // kechiktirilgan marketing-chrome vidjetining soxta-soat/haqiqiy-tarmoq
+    // poyg'asida yiqilib ketishining oldini olamiz (faylning tepasidagi va
+    // helper'dagi izohga qarang).
+    await suppressMarketingChromeTimers(page);
+
+    const soon = readyVideoBody({
+      player: {
+        type: 'hls',
+        hlsUrl: 'https://stream.test/vod/aidevix/vid.mp4/master.m3u8?token=t1',
+        expiresAt: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
+      },
+    });
+    // `reactStrictMode` dastlabki fetch effektini ikki marta chaqiradi (mount →
+    // cleanup → mount) — ikki elementli ro'yxat (`[soon, ready]`) shu
+    // ikkilanishning o'zidayoq iste'mol qilinib, player uzoq-muddatli token
+    // bilan mount bo'lardi va proaktiv taymer hech qachon qisqa lead bilan
+    // o'rnatilmasdi. `soon`ni ikki marta qo'yib, ikkilanishdan keyin ham
+    // faol holat "tez tugaydigan token" bo'lishini ta'minlaymiz.
+    const counter = await mockVideoDetail(page, TEST_VIDEO_ID, [soon, soon, readyVideoBody()]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    // `LessonPlayer`ning o'zi ham `next/dynamic()` orqali keladi (sahifaning
+    // boshqa yettita marketing-chrome vidjeti kabi): uning webpack chunk
+    // so'rovi haqiqiy tarmoqqa ketadi, lekin script yuklangandan keyingi
+    // ichki hal qiluvchi (`resolve`) chaqiruv soxta soat ostidagi 0-kechikishli
+    // taymerga bog'liq bo'lib chiqadi — faqat haqiqiy vaqt kutish yetarli
+    // emas, chunki o'sha taymer hech qachon o'zi otilmaydi. Mayda haqiqiy
+    // kutish (tarmoq/kompilyatsiya uchun) va mayda virtual tik (navbatdagi
+    // 0-kechikishli taymerlarni bo'shatish uchun) navbat bilan takrorlanadi —
+    // 120s'lik webpack chunk-taymeridan olisroq turish uchun ataylab kichik.
+    for (let i = 0; i < 20 && !(await page.locator(PLAYER_SELECTOR).isVisible()); i += 1) {
+      await page.waitForTimeout(500);
+      await page.clock.fastForward('00:01');
+    }
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 5_000 });
+    // StrictMode ikkilanishi tufayli mount paytidagi aniq chaqiruvlar soni
+    // oldindan noma'lum — o'zgarmas boshlang'ich qiymat sifatida shu yerdagi
+    // haqiqiy sonni olamiz (pastdagi processing-poll testidagi naqsh).
+    const callsAfterSettle = counter.calls;
+
+    // 5 daqiqalik lead → ~1 daqiqadan keyin ishga tushishi kerak.
+    await page.clock.fastForward('02:00');
+    await expect.poll(() => counter.calls, { timeout: 10_000 }).toBeGreaterThan(callsAfterSettle);
+  });
+
+  test('ketma-ket xatolar bitta refetch beradi (30s tormoz)', async ({ page }) => {
+    // Vidstack `onError` propi HECH QACHON tashqi DOM hodisasi sifatida
+    // eshittirilmaydi: @vidstack/react manba kodida (`MediaPlayerDelegate.
+    // notify`) callback to'g'ridan-to'g'ri ICHKI `dispatch` handle orqali
+    // chaqiriladi, `el.dispatchEvent(new CustomEvent('error', ...))` uni
+    // umuman qo'zg'atmaydi (native `<video>` elementining o'z error
+    // listeneri ham bor, lekin u faqat brauzer HAQIQATAN o'rnatgan
+    // `media.error`ni ko'rib ishlaydi — sun'iy hodisa buni to'ldirmaydi).
+    // Shuning uchun HAQIQIY fatal HLS xatosini ikki marta hosil qilamiz:
+    // manifest doim buzuq (level'siz) qaytadi, va ikkinchi javob
+    // birinchisidan BOSHQA `hlsUrl` beradi — shu farq vidstack'ni manifestni
+    // QAYTA yuklashga (demak yana fatal xatoga uchrashga) majbur qiladi.
+    let hlsErrorCount = 0;
+    page.on('console', (msg) => {
+      if (msg.text().includes('manifestParsingError')) hlsErrorCount += 1;
+    });
+    await page.route('**/master.m3u8*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.apple.mpegurl',
+        body: '#EXTM3U\n#EXT-X-VERSION:3\n',
+      }),
+    );
+    const brokenA = readyVideoBody({
+      player: {
+        type: 'hls',
+        hlsUrl: 'https://stream.test/vod/aidevix/vid.mp4/master.m3u8?token=a',
+        expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    const brokenB = readyVideoBody({
+      player: {
+        type: 'hls',
+        hlsUrl: 'https://stream.test/vod/aidevix/vid.mp4/master.m3u8?token=b',
+        expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    // `brokenA` ikki marta: StrictMode'ning ikkilangan dastlabki fetch
+    // effekti ro'yxatni ikki marotaba iste'mol qilishi mumkin — shunda ham
+    // player birinchi (fatal xatoga uchraydigan) `hlsUrl` bilan mount bo'ladi.
+    const counter = await mockVideoDetail(page, TEST_VIDEO_ID, [brokenA, brokenA, brokenB]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
+
+    // Birinchi fatal xato o'zining refetch'ini (token=b) qo'zg'atadi —
+    // cooldown bo'sh bo'lgani uchun bu O'TADI.
+    await expect.poll(() => counter.calls, { timeout: 20_000 }).toBeGreaterThanOrEqual(3);
+    // token=b manifesti ham buzuq — ikkinchi fatal xato tez orada keladi.
+    await expect.poll(() => hlsErrorCount, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+
+    // Ikkinchi xato 30s tormoz ostida qoladi: yana bir necha soniya kutib,
+    // chaqiruvlar soni 3'da to'xtab qolganini tasdiqlaymiz (4'ga chiqmaydi).
+    await page.waitForTimeout(3_000);
+    expect(counter.calls).toBe(3);
+  });
+
+  test('duration dan katta eski pozitsiya seek qilmaydi', async ({ page }) => {
+    // 4650 soniyalik kumulyativ qoldiq (eski `watchedSeconds` shartnomasidagi
+    // 10+20+…+300 naqshi) — istalgan haqiqiy dars davomiyligidan (bu
+    // describe'dagi `mockPlayableHls` beradigan ~4s'lik namunadan ham, video
+    // metama'lumotidagi 600s'dan ham) beqiyos katta, shuning uchun guard
+    // ANIQ ishga tushishi kerak. `handleCanPlay`ning duration'i
+    // `MediaCanPlayDetail`dan — vidstack'ning HAQIQIY <video> elementidan —
+    // keladi, mock video body'sining `duration: 600` maydonidan emas.
+    await mockVideoDetail(page, TEST_VIDEO_ID, [
+      readyVideoBody({ progress: { lastPositionSeconds: 4650 } }),
+    ]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 20_000 });
+
+    // Resume toast'i chiqmasligi kerak — seek bo'lmadi.
+    await page.waitForTimeout(2000);
+    await expect(page.getByText(/davom ettirildi/i)).toHaveCount(0);
+  });
+});

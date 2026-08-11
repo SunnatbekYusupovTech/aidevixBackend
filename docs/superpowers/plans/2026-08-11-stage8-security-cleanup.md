@@ -1007,30 +1007,82 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 //  - .superpowers/      — gitignore'langan ijro ledgerlari
 const IGNORED_PREFIXES = ['docs/', 'frontend/e2e/', 'backend/__tests__/', '.superpowers/'];
 
+// Tozalash ATAYLAB uchta tushuntirish izohini qoldiradi. Ular Bunny'ning
+// qaytishi emas — aksincha, u nima uchun ketgani va nima qoldirganini
+// yozib qo'yadi. Ularni o'chirish haqiqiy ma'lumotni yo'qotardi:
+//  - models/Video.js       — MongoDB'da qolgan `bunnyStatus_1` indeksini
+//                            qo'lda qanday tushirish kerakligini aytadi
+//  - videoController.js    — mkhls nima uchun oldindan slot talab qilmasligini
+//                            eski tizim bilan solishtirib tushuntiradi
+//  - admin/courses/[id]    — 6 daqiqalik polling timeout nima uchun olib
+//                            tashlanganini tushuntiradi
+const PROSE_ALLOWLIST = [
+  'backend/models/Video.js',
+  'backend/controllers/videoController.js',
+  'frontend/src/app/admin/courses/[id]/page.tsx',
+];
+
+// Bular Bunny'ning HAQIQATAN qaytganini bildiradi: endpoint, config kaliti,
+// modul yo'li yoki API yuzasi. Bularga allowlist TEGISHLI EMAS — istalgan
+// faylda topilsa, bu xato.
+const FORBIDDEN_IDENTIFIERS = [
+  'bunnycdn',
+  'mediadelivery.net',
+  'BUNNY_STREAM_API_KEY',
+  'BUNNY_LIBRARY_ID',
+  'BUNNY_TOKEN_KEY',
+  'utils/bunny',
+  'bunnyVideoId',
+  'BunnyPlayer',
+  'bulkLinkBunny',
+  'createBunnyVideo',
+  'deleteBunnyVideo',
+  'getBunnyVideoInfo',
+  'streamUploadToBunny',
+  'parseBunnyStatus',
+  'generateSignedEmbedUrl',
+];
+
 const trackedFiles = () =>
   execFileSync('git', ['ls-files'], { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
     .split('\n')
     .filter(Boolean)
     .filter((file) => !IGNORED_PREFIXES.some((prefix) => file.startsWith(prefix)));
 
-const offenders = () => {
-  const hits = [];
+const readTracked = () => {
+  const files = [];
   for (const file of trackedFiles()) {
-    const absolute = path.join(REPO_ROOT, file);
     let contents;
     try {
-      contents = fs.readFileSync(absolute, 'utf8');
+      contents = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
     } catch {
-      continue; // binar yoki o'chirilgan fayl — e'tiborsiz
+      continue; // binar yoki o'qib bo'lmaydigan fayl — e'tiborsiz
     }
-    if (/bunny/i.test(contents)) hits.push(file);
+    files.push([file, contents]);
   }
-  return hits;
+  return files;
 };
 
+// Qatlam 1 (qattiq): allowlist'siz — Bunny kodi/konfiguratsiyasining qaytishi.
+const identifierOffenders = () =>
+  readTracked()
+    .filter(([, contents]) => FORBIDDEN_IDENTIFIERS.some((id) => contents.includes(id)))
+    .map(([file]) => file);
+
+// Qatlam 2 (yumshoq): yalang'och "bunny" so'zi — allowlist'dagi uch fayldan
+// tashqari hech qayerda bo'lmasligi kerak.
+const proseOffenders = () =>
+  readTracked()
+    .filter(([file, contents]) => /bunny/i.test(contents) && !PROSE_ALLOWLIST.includes(file))
+    .map(([file]) => file);
+
 describe('Bunny.net qoldiqlari', () => {
-  it('ilova manbasida hech qanday Bunny izi yo\'q', () => {
-    expect(offenders()).toEqual([]);
+  it('hech qayerda Bunny kodi yoki konfiguratsiyasi yo\'q', () => {
+    expect(identifierOffenders()).toEqual([]);
+  });
+
+  it('allowlist\'dan tashqarida "bunny" so\'zi yo\'q', () => {
+    expect(proseOffenders()).toEqual([]);
   });
 
   it('utils/bunny.js moduli mavjud emas', () => {
@@ -1049,9 +1101,13 @@ describe('Bunny.net qoldiqlari', () => {
 cd aidevixBackend/backend && npx jest __tests__/no-bunny.test.js
 ```
 
-Expected: PASS, uchala test ham. Agar birinchi test yiqilsa, u aybdor fayllar ro'yxatini chiqaradi — o'sha fayllarni tegishli task qoidalariga ko'ra tozalang va qayta yuguring.
+Expected: PASS, to'rtala test ham. Agar biror test yiqilsa, u aybdor fayllar ro'yxatini chiqaradi — o'sha fayllarni tegishli task qoidalariga ko'ra tozalang va qayta yuguring.
 
-- [ ] **Step 3: Qo'riqchining haqiqatan ushlashini tekshiring (testni test qiling)**
+- [ ] **Step 3: Qo'riqchining IKKALA qatlamini ham sinang (testni test qiling)**
+
+Ikkala qatlam alohida sinaladi, chunki ular boshqa-boshqa narsani ushlaydi.
+
+Qatlam 2 (yalang'och so'z, allowlist'da bo'lmagan faylda):
 
 ```bash
 cd aidevixBackend
@@ -1060,7 +1116,20 @@ cd backend && npx jest __tests__/no-bunny.test.js; cd ..
 git checkout backend/utils/mkhls.js
 ```
 
-Expected: qo'shimcha bilan test **FAIL** bo'ladi va `backend/utils/mkhls.js` ni aybdor sifatida ko'rsatadi; `git checkout` dan keyin fayl asl holiga qaytadi. Bu qadam qo'riqchi yolg'on yashil emasligini isbotlaydi.
+Expected: **FAIL** — `"bunny" so'zi yo'q` testi `backend/utils/mkhls.js` ni ko'rsatadi.
+
+Qatlam 1 (taqiqlangan identifikator, ALLOWLIST'dagi faylda — allowlist uni qutqarmasligi kerak):
+
+```bash
+cd aidevixBackend
+echo "// bunnyVideoId" >> backend/models/Video.js
+cd backend && npx jest __tests__/no-bunny.test.js; cd ..
+git checkout backend/models/Video.js
+```
+
+Expected: **FAIL** — `Bunny kodi yoki konfiguratsiyasi yo'q` testi `backend/models/Video.js` ni ko'rsatadi, garchi u allowlist'da bo'lsa ham. Bu allowlist qattiq qatlamni teshib o'tmasligini isbotlaydi.
+
+Ikkala `git checkout` dan keyin fayllar asl holiga qaytadi.
 
 - [ ] **Step 4: `git status` toza ekanini tasdiqlang**
 
@@ -1130,9 +1199,16 @@ Expected: `/health` javob beradi va backend logida `Cannot find module '../utils
 cd aidevixBackend && git ls-files | xargs grep -iln "bunny" 2>/dev/null
 ```
 
-Expected: faqat uch guruh — (1) `docs/` ichidagi tarixiy yozuvlar (spec, plan, HANDOFF), (2) `frontend/e2e/` dagi ikkita spec, (3) `backend/__tests__/` dagi test fayllari (`no-bunny.test.js`, `admin.routes.test.js`, `video.routes.test.js`). Uchalasi ham yo'qlikni TASDIQLAYDI, shuning uchun ular Bunny nomini aytishi shart.
+Expected: faqat to'rt guruh —
 
-`backend/controllers/`, `backend/routes/`, `backend/models/`, `backend/config/`, `backend/utils/`, `frontend/src/`, `frontend/public/` yoki repo ildizidan bitta ham fayl chiqmasligi kerak. `.playwright-cli/` dan ham hech narsa chiqmasligi kerak (Task 1 ikkitasini o'chirdi).
+1. `docs/` ichidagi tarixiy yozuvlar (spec, plan, HANDOFF)
+2. `frontend/e2e/` dagi ikkita spec — yo'qlikni tasdiqlaydi
+3. `backend/__tests__/` dagi test fayllari (`no-bunny.test.js`, `admin.routes.test.js`, `video.routes.test.js`) — xuddi shu sabab
+4. Qo'riqchining `PROSE_ALLOWLIST` idagi **aynan uchta** fayl: `backend/models/Video.js`, `backend/controllers/videoController.js`, `frontend/src/app/admin/courses/[id]/page.tsx`
+
+To'rtinchi guruhning har biri bitta tushuntirish izohi — Bunny nima qoldirgani yoki nima uchun ketgani haqida. Ularni tekshiring: agar biror faylda izohdan boshqa narsa (kod, config, import) bo'lsa, bu xato.
+
+`backend/routes/`, `backend/config/`, `backend/utils/`, `frontend/public/`, `frontend/src/` ning qolgan qismi yoki repo ildizidan bitta ham fayl chiqmasligi kerak. `.playwright-cli/` dan ham hech narsa chiqmasligi kerak (Task 1 ikkitasini o'chirdi).
 
 - [ ] **Step 10: `test-gemini.js` hali joyida ekanini oxirgi marta tasdiqlang**
 

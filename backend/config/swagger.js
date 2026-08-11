@@ -26,10 +26,10 @@ Bu dokumentatsiya orqali siz barcha endpointlarni brauzerda sinab ko'rishingiz m
 Video ko'rish uchun **Telegram** kanaliga obuna bo'lish MAJBURIY.
 Real-time tekshiruv: har safar video ko'rganda obuna holati tekshiriladi.
 
-### 🎬 Video tizimi (Bunny.net):
-Videolar **Bunny.net Stream** orqali uzatiladi.
-\`GET /api/videos/:id\` → **2 soatlik imzolangan embed URL** qaytaradi.
-Frontend bu URL ni \`<iframe>\` ichida ko'rsatadi — Telegram link emas!
+### 🎬 Video tizimi (mkhls):
+Videolar **o'z serverimizdagi mkhls** orqali uzatiladi.
+\`GET /api/videos/:id\` → **tokenli HLS master playlist URL** qaytaradi.
+Frontend uni Vidstack + hls.js bilan o'ynatadi — iframe emas, Telegram link emas!
 
 ---
 
@@ -51,10 +51,10 @@ Frontend bu URL ni \`<iframe>\` ichida ko'rsatadi — Telegram link emas!
 Для просмотра видео подписка на **Telegram** ОБЯЗАТЕЛЬНА.
 Проверка в реальном времени: при каждом просмотре статус подписки проверяется.
 
-### 🎬 Видео система (Bunny.net):
-Видео стримятся через **Bunny.net Stream**.
-\`GET /api/videos/:id\` → возвращает **2-часовой подписанный embed URL**.
-Frontend показывает его в \`<iframe>\` — не через Telegram!
+### 🎬 Видео система (mkhls):
+Видео стримятся через **собственный сервер mkhls**.
+\`GET /api/videos/:id\` → возвращает **подписанный URL HLS master playlist**.
+Frontend воспроизводит его через Vidstack + hls.js — не iframe, не Telegram!
 
 ---
 
@@ -523,62 +523,54 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
               },
             },
             viewCount: { type: 'number', example: 142, description: 'Ko\'rishlar soni / Количество просмотров' },
-            bunnyVideoId: {
-              type: 'string',
-              example: 'abc-def-ghi-123',
-              description: 'Bunny.net video GUID — admin upload qilgandan keyin to\'ldiriladi / Bunny.net GUID видео',
-            },
-            bunnyStatus: {
-              type: 'string',
-              enum: ['processing', 'ready', 'failed', 'unknown'],
-              example: 'ready',
-              description: 'Bunny.net video holati / Статус видео на Bunny.net: processing=tayyorlanmoqda, ready=tayyor, failed=xato',
-            },
             isActive: { type: 'boolean', example: true, description: 'true=ko\'rinadi, false=yashirilgan / true=виден, false=скрыт' },
             createdAt: { type: 'string', format: 'date-time', example: '2026-01-05T08:00:00.000Z' },
           },
         },
 
-        // ─── BUNNY PLAYER (GET /videos/:id → player) ─────────
-        BunnyPlayer: {
+        // ─── STREAM PLAYER (GET /videos/:id → player) ────────
+        StreamPlayer: {
           type: 'object',
           description: `
-**🇺🇿 Bunny.net video player ma'lumoti**
+**🇺🇿 mkhls video player ma'lumoti**
 
 \`GET /api/videos/:id\` muvaffaqiyatli bo'lganda \`player\` ob'ekti qaytariladi.
-Frontend bu \`embedUrl\` ni \`<iframe>\` ichida ko'rsatadi — Bunny.net o'zi video o'ynaydi.
+Video hali tayyor bo'lmasa \`player\` — \`null\`.
 
-**2 soatlik muddatli URL** — har safar yangi URL yaratiladi.
-Muddati tugaganda yangi \`GET /api/videos/:id\` chaqirilishi kerak.
+\`hlsUrl\` — token bilan imzolangan HLS master playlist. Token muddati
+\`MKHLS_STREAM_TOKEN_TTL\` bilan belgilanadi (standart 14400 soniya).
+Master playlist ichidagi rung playlist'lari va segmentlar ham xuddi shu
+tokenni tashiydi.
 
-**Frontend ishlatish:**
-\`\`\`jsx
-<iframe
-  src={player.embedUrl}
-  style={{ width: '100%', aspectRatio: '16/9' }}
-  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-/>
-\`\`\`
+**Frontend ishlatish:** Vidstack + hls.js. \`<iframe>\` ISHLATILMAYDI —
+brauzer playlist va segmentlarni \`fetch()\` bilan to'g'ridan-to'g'ri oladi,
+shuning uchun mkhls tomonda CORS sozlanishi shart.
 
 ---
 
-**🇷🇺 Данные видеоплеера Bunny.net**
+**🇷🇺 Данные видеоплеера mkhls**
 
-Объект \`player\` возвращается при успешном \`GET /api/videos/:id\`.
-Frontend показывает \`embedUrl\` через \`<iframe>\`.
+Объект \`player\` возвращается при успешном \`GET /api/videos/:id\`,
+или \`null\`, если видео ещё не готово. \`hlsUrl\` — подписанный HLS
+master playlist.
           `,
           properties: {
-            embedUrl: {
+            type: {
               type: 'string',
-              example: 'https://iframe.mediadelivery.net/embed/123456/abc-def-ghi?token=xyz&expires=1774120000',
-              description: '🎬 Bunny.net signed embed URL — 2 soat muddatli / 2-часовой подписанный URL',
+              enum: ['hls'],
+              example: 'hls',
+              description: 'Player turi / Тип плеера',
+            },
+            hlsUrl: {
+              type: 'string',
+              example: 'https://stream.aidevix.uz/vod/aidevix/65f1a2b3c4d5e6f7a8b9c0d3.mp4/master.m3u8?token=eyJhbGci',
+              description: '🎬 Tokenli HLS master playlist URL / Подписанный URL HLS master playlist',
             },
             expiresAt: {
               type: 'string',
               format: 'date-time',
-              example: '2026-03-22T20:00:00.000Z',
-              description: 'URL muddati tugash vaqti — shundan keyin yangi so\'rov kerak / Время истечения URL',
+              example: '2026-03-23T00:00:00.000Z',
+              description: 'Token muddati tugash vaqti — shundan keyin yangi so\'rov kerak / Время истечения токена',
             },
           },
         },
@@ -586,7 +578,7 @@ Frontend показывает \`embedUrl\` через \`<iframe>\`.
         // ─── VIDEO LINK (eskirgan — legacy) ──────────────────
         VideoLink: {
           type: 'object',
-          description: '⚠️ ESKIRGAN (legacy) — Endi ishlatilmaydi. \`BunnyPlayer\` dan foydalaning. / ⚠️ УСТАРЕЛО — Больше не используется. Используйте \`BunnyPlayer\`.',
+          description: '⚠️ ESKIRGAN (legacy) — Endi ishlatilmaydi. \`StreamPlayer\` dan foydalaning. / ⚠️ УСТАРЕЛО — Больше не используется. Используйте \`StreamPlayer\`.',
           properties: {
             _id: { type: 'string', example: '65f1a2b3c4d5e6f7a8b9c0d4' },
             isUsed: {
@@ -609,13 +601,13 @@ Frontend показывает \`embedUrl\` через \`<iframe>\`.
 **🇺🇿 \`GET /api/videos/:id\` javobi**
 
 Muvaffaqiyatli bo'lganda \`video\` va \`player\` qaytariladi.
-\`player.embedUrl\` — Bunny.net iframe uchun imzolangan URL (2 soat).
+\`player.hlsUrl\` — mkhls uchun tokenli HLS master playlist URL.
 
 **Frontend:**
 \`\`\`jsx
 const { video, player } = response.data.data
 // video — sarlavha, tavsif, davomiylik, materiallar
-// player.embedUrl — iframe src uchun
+// player.hlsUrl — Vidstack/hls.js uchun
 \`\`\`
 
 ---
@@ -623,7 +615,7 @@ const { video, player } = response.data.data
 **🇷🇺 Ответ на \`GET /api/videos/:id\`**
 
 При успехе возвращает \`video\` и \`player\`.
-\`player.embedUrl\` — подписанный URL для Bunny.net iframe (2 часа).
+\`player.hlsUrl\` — подписанный URL HLS master playlist mkhls.
           `,
           properties: {
             success: { type: 'boolean', example: true },
@@ -631,7 +623,7 @@ const { video, player } = response.data.data
               type: 'object',
               properties: {
                 video: { $ref: '#/components/schemas/Video' },
-                player: { $ref: '#/components/schemas/BunnyPlayer' },
+                player: { $ref: '#/components/schemas/StreamPlayer' },
               },
             },
           },

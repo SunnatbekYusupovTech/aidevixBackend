@@ -74,8 +74,8 @@ export default function AdminSettingsPage() {
                 <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_ADMIN_PASSWORD</code>,{' '}
                 <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_NAMESPACE</code>,{' '}
                 <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_STREAM_TOKEN_TTL</code>. Admin kurs
-                sahifasida video yaratiladi, so‘ng fayl backend proxy’siga yuboriladi — mkhls admin paroli
-                brauzerga chiqmaydi, backend’da qoladi.
+                sahifasida video yaratiladi, so‘ng fayl backend proxy'siga yuboriladi — mkhls admin paroli
+                brauzerga chiqmaydi, backend'da qoladi.
               </p>
               <Link
                 href="/admin/courses"

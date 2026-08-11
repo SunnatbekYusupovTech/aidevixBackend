@@ -980,10 +980,42 @@ Bu task tozalashni qulflaydi — Bunny'ning qaytib kirishi endi testni qizartira
 
 **Files:**
 - Create: `backend/__tests__/no-bunny.test.js`
+- Modify: `frontend/public/sw.js` (Step 1b — qo'riqchi topgan qoldiq)
 
 **Interfaces:**
 - Consumes: Task 1-7 barcha Bunny izlarini olib tashlagan bo'lishi kerak
 - Produces: hech narsa
+
+- [ ] **Step 1b: Service worker'dagi Bunny bypass qoidalarini o'chirish**
+
+Qo'riqchi birinchi ishga tushirilganda `frontend/public/sw.js` ni aybdor deb topdi. Task 7 shu faylning faqat KOMMENTLARINI tuzatgan, kodini emas. `isBypass` hamon uchta Bunny hostini sanaydi:
+
+```js
+const isBypass = (url) => {
+  return (
+    url.pathname.startsWith('/api/') ||
+    url.hostname.includes('iframe.mediadelivery.net') ||
+    url.hostname.includes('vz-') ||
+    url.hostname.endsWith('b-cdn.net') ||
+    url.pathname.startsWith('/socket.io')
+  );
+};
+```
+
+Uchala host qatorini o'chiring, natija:
+
+```js
+const isBypass = (url) => {
+  return (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/socket.io')
+  );
+};
+```
+
+**Nima uchun almashtiruvchi kerak emas:** `sw.js:134` da `if (url.origin !== self.location.origin || isBypass(url)) return;` — tashqi origin allaqachon `isBypass` ga yetmasdan o'tkazib yuboriladi. `iframe.mediadelivery.net`, `vz-*`, `b-cdn.net` ilova origin'i bo'la olmaydi, ya'ni bu uch qator hech qachon natijaga ta'sir qilmaydi — o'lik kod. mkhls ham o'z origin'idan (`MKHLS_PUBLIC_URL`) xizmat qilgani uchun xuddi shu origin tekshiruvi uni qamrab oladi. Qolgan ikkita qator (`/api/`, `/socket.io`) esa **same-origin yo'l** tekshiruvi — ular haqiqatan kerak, tegmang.
+
+Keyin `npm run build` ni `frontend/` da ishga tushiring.
 
 - [ ] **Step 1: Qo'riqchi testni yozing**
 

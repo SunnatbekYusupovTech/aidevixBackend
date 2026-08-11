@@ -10,6 +10,59 @@ Undan keyin **whole-branch review ham o'tkazildi va topilmalari yopildi** — qa
 
 ---
 
+## Shu hujjat yozilgandan KEYIN nima bo'ldi (eng muhim qism)
+
+Plan 3 `main`ga **merge qilindi**, so'ng jonli brauzer tekshiruvi to'rtta xato ochdi va
+hammasi tuzatildi. `main` hozir `origin/main`dan **57 commit oldinda va push qilinmagan**.
+
+| Commit | Nima |
+|---|---|
+| `6fb0a19` | Token yangilanganda o'ynash to'xtab qolardi. Manba almashadi, provayder pauzada qaytadi, hech kim `play()` chaqirmaydi. 360s token bilan o'lchangan: dars **57-soniyada** qotardi; prod'da (14400s) ~3s 55daq da. Whole-branch review buni Important deb belgilagan va "brauzersiz tekshirib bo'lmaydi" degan edi — aynan shunday chiqdi |
+| `e2b3382` | O'sha almashuvda **ovoz, mute va tezlik** ham standartga qaytardi — mute qilingan dars to'satdan baland ovozda yoqilardi. Imperativ tiklash ishlamadi (handler o'zlashtirishlardan keyingi qatorga yetmaydi); boshqariladigan props bilan yechildi |
+| `460fed8` | **Kurs saqlash umuman ishlamasdi.** Daraja tanlagichida `<option>` larda `value` yo'q edi → qiymat matn mazmuni (`"Beginner"`), schema enum'i esa kichik harf. Kategoriya erkin matn maydoni edi. Backend validatsiya xatosini 500 va mazmunsiz xabar bilan qaytarardi → endi 400 va qaysi maydon aybdorligi |
+| `864440b` | `/courses/<slug>` darslarni ko'rsatmasdi: kurs slug bilan topilardi, darslar esa o'sha slug bilan so'ralib 500 berardi. Endi endpoint ObjectId ham, slug ham qabul qiladi; noma'lum slug 404 |
+
+Oxirgi ikkitasi **eskidan mavjud** xatolar — Plan 3 ularga tegmagan. `864440b` shu ish
+yo'nalishidagi ikkinchi backend o'zgarishi.
+
+**Brauzerda inson tomonidan tasdiqlangan:** token yangilanishida o'ynash uzilmasligi,
+ovoz/mute saqlanishi, video yuklash va presetlar (`n/m`), kurs sahifasida darslar,
+admin panelda kurs saqlash.
+
+**Hali brauzerda tekshirilmagan:** resume (tabni yopib qayta ochish), sticky mini-player,
+sifat/PiP/klaviatura, admin progress bar'ining jonli o'sishi, tab yashiringanda
+polling to'xtashi, playground sahifasi.
+
+### Muhit haqida — aniqlashtirishlar
+
+- **Mongo timeout tuzog'i faqat birinchi bootda emas.** U **har bir nodemon qayta ishga
+  tushishida** takrorlanadi (bir kunda uch marta). `touch backend/index.js` ni takroran
+  bosish kerak bo'lishi mumkin.
+- **Node jarayonlari to'planib qoladi.** O'ldirilgan bolaning `nodemon`i tirik qolib,
+  eski log fayliga yozishda davom etadi va tuzatishlar kuchga kirmaydi. Shubha bo'lsa:
+  `taskkill //IM node.exe //F`, so'ng backend va frontend'ni yangidan ko'tarish.
+- **Orfan `chrome.exe` Playwright'da soxta yiqilish beradi** (yiqilish to'plami har
+  safar boshqacha). Har yugurishdan oldin tozalash shart.
+- Lokal sinov uchun `MKHLS_STREAM_TOKEN_TTL` vaqtincha `360` qilingan edi — **`14400`ga
+  qaytarildi**. `frontend/.env.local` da soxta `NEXT_PUBLIC_GOOGLE_CLIENT_ID` qoldi
+  (gitignore'langan, quyida sababi).
+
+### Topilgan, ATAYLAB tuzatilmagan (foydalanuvchi keyinga qoldirdi)
+
+- `Providers.tsx:38` `NEXT_PUBLIC_GOOGLE_CLIENT_ID` bo'lmasa bo'sh satr uzatadi →
+  `@react-oauth/google` xato tashlaydi va **login sahifasini butunlay bloklaydi**.
+- `BetaWelcomeModal.tsx:5` `m` emas, `motion` import qiladi va `HomeClient.tsx:668`
+  dagi `LazyMotion strict` ichida ishlaydi → **bosh sahifa yiqiladi**. Xuddi shu holat
+  `home/ContinueWatching.tsx` va `home/RecommendedForYou.tsx` da ham.
+- `seed-dev-user.js` hisoblarni `emailVerified: false` qoldiradi → login bloklanadi.
+- `/api/projects/course/<slug>` slug qabul qilmaydi (404 beradi, 500 emas — bloklamaydi).
+- **Takrorlanmagan:** `TypeError: disabled is not a function`, `@vidstack/react` ichida
+  (`vidstack-DxAMdmBt.js:7661` Slider#isDisabled ← `:7114` SliderPreview#updatePlacement).
+  Foydalanuvchi bir marta ko'rgan; to'rtta repro urinishi (hover, o'ynash, sakkizta
+  boshqaruv, slayder sudrash) natija bermadi. Dublikat o'rnatish rad etilgan.
+
+---
+
 ## Avval nimani o'qish kerak
 
 | Fayl | Nima uchun |

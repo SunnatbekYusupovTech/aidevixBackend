@@ -100,12 +100,25 @@ const getCourseVideos = async (req, res) => {
   try {
     const { courseId } = req.params;
 
+    // SEO-007 dagi kurs konvensiyasi: parametr ObjectId ham, slug ham bo'lishi
+    // mumkin. `getCourseById` buni allaqachon qo'llab-quvvatlaydi, bu endpoint esa
+    // yo'q edi — natijada kurs sahifasi (`/courses/<slug>`) kursning o'zini topib,
+    // darslarini so'raganda Mongoose slug'ni ObjectId'ga cast qilolmay 500 berardi
+    // va sahifa darslarsiz ochilardi.
+    const resolvedCourseId = /^[0-9a-f]{24}$/.test(courseId)
+      ? courseId
+      : (await Course.findOne({ slug: courseId }).select('_id').lean())?._id;
+
+    if (!resolvedCourseId) {
+      return res.status(404).json({ success: false, message: 'Kurs topilmadi.' });
+    }
+
     // PB-008: faqat kerakli fieldlar — questions (embedded massiv) va materials chiqariladi
     // streamPath is deliberately absent: this endpoint is unauthenticated
     // and a storage path is a provider identifier (spec §10.4). Only the
     // coarse status ships, which the admin list needs.
     const videos = await Video.find({
-      course: courseId,
+      course: resolvedCourseId,
       isActive: true
     })
       .select('_id title description order duration thumbnail viewCount sectionId course streamStatus')

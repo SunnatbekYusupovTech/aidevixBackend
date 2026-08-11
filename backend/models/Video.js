@@ -45,19 +45,6 @@ const videoSchema = new mongoose.Schema({
     default: 'pending',
   },
 
-  // ─── Bunny.net (DEPRECATED) ────────────────────────────────────────────────
-  // Kept for one release: existing rows still carry these and the admin panel
-  // still reads bunnyStatus until Plan 3 renames it. Removed by migration
-  // afterwards. New videos never set them.
-  bunnyVideoId: {
-    type: String,
-    default: null,
-  },
-  bunnyStatus: {
-    type: String,
-    enum: ['pending', 'processing', 'ready', 'failed'],
-    default: 'pending',
-  },
   // Ko'rishlar soni (statistika uchun)
   viewCount: {
     type: Number,
@@ -93,7 +80,9 @@ const videoSchema = new mongoose.Schema({
 videoSchema.index({ course: 1, order: 1 });
 videoSchema.index({ course: 1, isActive: 1 });
 videoSchema.index({ streamStatus: 1 });
-videoSchema.index({ bunnyStatus: 1 });
+// Eslatma: `bunnyStatus_1` indeksi mavjud MongoDB'larda hali turibdi — bu
+// qatorni olib tashlash uni tushirmaydi. Migratsiya ataylab qilinmadi
+// (spec 2026-08-11 §5); qo'lda tozalash uchun: db.videos.dropIndex('bunnyStatus_1').
 videoSchema.index({ title: 'text' });
 
 module.exports = mongoose.model('Video', videoSchema);

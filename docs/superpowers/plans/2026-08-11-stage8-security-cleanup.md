@@ -54,10 +54,14 @@ Bu task hech qanday kodga import qilinmagan fayllarni o'chiradi, shuning uchun u
 - Delete: `backend/check_bunny_video.js`
 - Delete: `backend/list_bunny_videos_final.js`
 - Delete: `backend/scripts/link-bunny.js`
+- Delete: `.playwright-cli/page-2026-04-24T14-06-25-253Z.yml`
+- Delete: `.playwright-cli/page-2026-04-24T14-25-29-426Z.yml`
 
 **Interfaces:**
 - Consumes: hech narsa
 - Produces: hech narsa (bu fayllarni hech kim import qilmaydi)
+
+**Nima uchun oxirgi ikkitasi:** `.playwright-cli/` da 2026-04-24 dagi 39 ta Playwright sahifa dumpi bor; aynan shu ikkitasi jamoa sahifasining eski "Bunny.net Stream" matnini va "Bunny.net SDK" chipini tasvirlaydi. Ular Task 8 qo'riqchisini qizartirardi. Qolgan 37 tasi ATAYLAB qoldiriladi — foydalanuvchi qamrovni shunday belgiladi.
 
 - [ ] **Step 1: Hech kim bu fayllarni import qilmasligini tasdiqlang**
 
@@ -73,7 +77,10 @@ Expected: hech qanday chiqish yo'q (bo'sh). Agar biror fayl chiqsa — TO'XTANG 
 ```bash
 cd aidevixBackend
 git rm fetch_bunny.html list-bunny-videos.js backend/check_bunny_video.js backend/list_bunny_videos_final.js backend/scripts/link-bunny.js
+git rm ".playwright-cli/page-2026-04-24T14-06-25-253Z.yml" ".playwright-cli/page-2026-04-24T14-25-29-426Z.yml"
 ```
+
+**Diqqat:** `.playwright-cli/` papkasining QOLGAN fayllariga tegmang — faqat yuqoridagi ikkitasi o'chiriladi.
 
 - [ ] **Step 3: `test-gemini.js` HALI HAM joyida ekanini tasdiqlang**
 
@@ -992,11 +999,13 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 // Bu yo'llar ATAYLAB tekshirilmaydi:
-//  - docs/         — tarixiy spec, plan va HANDOFF yozuvlari, Bunny'ni
-//                    nima uchun olib tashlaganimizni aynan shular tushuntiradi
-//  - frontend/e2e/ — u yerdagi urishlar "bunny yo'q" degan TASDIQLAR
-//  - .superpowers/ — gitignore'langan ijro ledgerlari
-const IGNORED_PREFIXES = ['docs/', 'frontend/e2e/', '.superpowers/'];
+//  - docs/              — tarixiy spec, plan va HANDOFF yozuvlari, Bunny'ni
+//                         nima uchun olib tashlaganimizni aynan shular tushuntiradi
+//  - frontend/e2e/      — u yerdagi urishlar "bunny yo'q" degan TASDIQLAR
+//  - backend/__tests__/ — xuddi shu sabab, va shu faylning O'ZI ham shu yerda:
+//                         qo'riqchi o'z manbasidagi /bunny/i ni aybdor deb topardi
+//  - .superpowers/      — gitignore'langan ijro ledgerlari
+const IGNORED_PREFIXES = ['docs/', 'frontend/e2e/', 'backend/__tests__/', '.superpowers/'];
 
 const trackedFiles = () =>
   execFileSync('git', ['ls-files'], { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
@@ -1121,7 +1130,9 @@ Expected: `/health` javob beradi va backend logida `Cannot find module '../utils
 cd aidevixBackend && git ls-files | xargs grep -iln "bunny" 2>/dev/null
 ```
 
-Expected: faqat `docs/` ichidagi fayllar (spec, plan, HANDOFF) va `frontend/e2e/` ichidagi ikkita spec. `backend/`, `frontend/src/`, `frontend/public/` yoki repo ildizidan bitta ham fayl chiqmasligi kerak.
+Expected: faqat uch guruh — (1) `docs/` ichidagi tarixiy yozuvlar (spec, plan, HANDOFF), (2) `frontend/e2e/` dagi ikkita spec, (3) `backend/__tests__/` dagi test fayllari (`no-bunny.test.js`, `admin.routes.test.js`, `video.routes.test.js`). Uchalasi ham yo'qlikni TASDIQLAYDI, shuning uchun ular Bunny nomini aytishi shart.
+
+`backend/controllers/`, `backend/routes/`, `backend/models/`, `backend/config/`, `backend/utils/`, `frontend/src/`, `frontend/public/` yoki repo ildizidan bitta ham fayl chiqmasligi kerak. `.playwright-cli/` dan ham hech narsa chiqmasligi kerak (Task 1 ikkitasini o'chirdi).
 
 - [ ] **Step 10: `test-gemini.js` hali joyida ekanini oxirgi marta tasdiqlang**
 

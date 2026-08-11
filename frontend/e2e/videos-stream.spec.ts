@@ -578,3 +578,81 @@ test.describe('Dars player — darslar orasida almashinuv', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Test dars' })).toBeVisible();
   });
 });
+
+test.describe('Dars player — token yangilanishida uzluksizlik', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSubscribedUser(page);
+  });
+
+  // Regressiya: token yangilanganda `hlsUrl` almashadi, bu provayderni qayta
+  // qurishga majbur qiladi va u PAUZADA qaytadi. Jonli stack'da o'lchangan —
+  // 360s'lik token bilan dars ~57-soniyada jimgina qotib qolardi, ya'ni aynan
+  // 60s'lik lead nuqtasida. Yangilanishning butun maqsadi ko'rinmas bo'lish.
+  //
+  // Soxta soat ishlatilmaydi: bu yerda haqiqiy o'ynash kerak, `page.clock` esa
+  // hls.js'ning tarmoq bilan poyg'asini buzadi.
+  test('token yangilangach o\'ynash to\'xtamaydi', async ({ page }) => {
+    test.setTimeout(180_000);
+    await mockLongPlayableHls(page);
+
+    // Manba almashuvini aynan shu hodisadan bilamiz: yangilanish yangi token
+    // bilan `master.m3u8`ni qaytadan so'raydi.
+    let manifestRequests = 0;
+    page.on('response', (r) => {
+      if (r.url().includes('master.m3u8')) manifestRequests += 1;
+    });
+
+    const soon = readyVideoBody({
+      player: {
+        type: 'hls',
+        hlsUrl: 'https://stream.test/vod/aidevix/vid.mp4/master.m3u8?token=first',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000 + 2_000).toISOString(),
+      },
+    });
+    const refreshed = readyVideoBody({
+      player: {
+        type: 'hls',
+        // Boshqa token -> boshqa URL -> manba almashadi, haqiqiy yangilanishdagidek.
+        hlsUrl: 'https://stream.test/vod/aidevix/vid.mp4/master.m3u8?token=second',
+        expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    // `reactStrictMode` dastlabki fetch effektini ikki marta chaqiradi.
+    await mockVideoDetail(page, TEST_VIDEO_ID, [soon, soon, refreshed]);
+
+    await page.goto(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 60_000 });
+
+    // Play tugmasi orqali — `video.play()`ni to'g'ridan-to'g'ri chaqirish bu
+    // harness'da avtoo'ynash siyosatiga urilib pauzada qolib ketadi.
+    await page.evaluate(() => {
+      const v = document.querySelector('video') as HTMLVideoElement | null;
+      if (v) v.muted = true;
+    });
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    const state = () =>
+      page.evaluate(() => {
+        const v = document.querySelector('video') as HTMLVideoElement | null;
+        return v ? { t: v.currentTime, paused: v.paused } : { t: -1, paused: true };
+      });
+
+    await expect.poll(async () => (await state()).paused, { timeout: 30_000 }).toBe(false);
+    const seenBefore = manifestRequests;
+    const before = await state();
+
+    // Fixture 40 soniyalik, yangilanish esa hook'dagi 30s'lik minimal kechikish
+    // polidan oldin bo'lolmaydi. Shuning uchun qat'iy kutish emas, aynan almashuv
+    // hodisasini kutamiz — aks holda video oxiriga yetib o'z-o'zidan to'xtaydi va
+    // test yangilanishga aloqasi yo'q sabab bilan qizarardi.
+    await expect
+      .poll(() => manifestRequests, { timeout: 60_000, intervals: [1000] })
+      .toBeGreaterThan(seenBefore);
+
+    await page.waitForTimeout(4_000);
+
+    const after = await state();
+    expect(after.paused).toBe(false);
+    expect(after.t).toBeGreaterThan(before.t);
+  });
+});

@@ -4,8 +4,9 @@
 **Holat:** Bosqich 1-7 tugadi (mkhls upstream, backend, frontend player + admin panel).
 Plan 3 (`feat/plan3-frontend-player`, spec 6-7-bosqich) barcha 8 task orqali o'tdi, har
 biri alohida review qildi, oxirida bu Task 8 haqiqiy stack'ga qarshi qo'lda tekshirdi.
-**Merge qilinmagan.** Keyingi qadam — shu branch uchun alohida whole-branch review
-(implementator emas), keyin bosqich 8 (xavfsizlik tozalash) va 9 (deploy).
+Undan keyin **whole-branch review ham o'tkazildi va topilmalari yopildi** — qarang
+"Whole-branch review — tuzatilgan bandlar".
+**Merge qilinmagan.** Keyingi qadam — bosqich 8 (xavfsizlik tozalash) va 9 (deploy).
 
 ---
 
@@ -264,6 +265,28 @@ Eski (Plan 2 tugagandan keyingi) HANDOFF'dan ko'chirilgan, hech biri tuzatilmaga
   deb (masalan `END_GUARD_SECONDS`ni kamaytirib yoki olib tashlab) o'zgartirsa,
   qaytib kelgan foydalanuvchilar uchun jimgina buziladi — testlar buni ushlaydi,
   lekin faqat agar kimdir nima uchun bu son shunday tanlanganini bilsa.
+- **Resume "eng uzoq" nuqtani o'qiydi, "oxirgi" nuqtani emas — va bu
+  yuqoridagi `END_GUARD_SECONDS` darvozasi bilan birga bitta darsni
+  ABADIY resume'siz qoldirishi mumkin.** (Whole-branch review'da
+  yozib qo'yilgan; xatti-harakat ATAYLAB o'zgartirilmadi.)
+  `markVideoWatched` pozitsiyani `Math.max(previousPosition, position)`
+  bilan saqlaydi (`backend/controllers/enrollmentController.js:89`) —
+  "orqaga seek eng uzoq ko'rilgan nuqtani kamaytirmasin" degan
+  qasddan qo'yilgan qoida. Yangi player esa oldinga seek qilingandan
+  KEYINGI pozitsiyani ham xuddi shu endpoint orqali xabar qiladi
+  (`useLessonStream`ning `onPosition`i `time-update`dan keladi, seek
+  farqlanmaydi). Ya'ni 40 daqiqalik darsni 39:00 ga sudrab tashlagan
+  foydalanuvchida 39:00 saqlanadi — garchi u o'sha joyni ko'rmagan
+  bo'lsa ham. Keyingi tashrifda `startAt = 39:00`, bu esa
+  `startAt < duration - END_GUARD_SECONDS (15)` shartidan o'tolmaydi va
+  `LessonPlayer` resume'ni rad etadi — **shu dars uchun doimiy ravishda**,
+  chunki saqlangan qiymat endi hech qachon kamaymaydi. Yuqoridagi
+  `END_GUARD_SECONDS` izohi bu darvozani faqat "eski kumulyativ
+  ma'lumotdan himoya" deb tushuntiradi — ikkalasi bir-biriga shu tarzda
+  bog'lanib ketishi alohida qaralganda ko'rinmaydi, shuning uchun shu
+  yerda yozib qo'yildi. Tuzatish (agar kerak bo'lsa) ikkitasidan biri:
+  resume uchun `Math.max`dan alohida "oxirgi pozitsiya" maydonini
+  saqlash, yoki oxirigacha yetgan darsni 0'dan boshlash.
 - **Go repo'da `finishJob`dagi metadata probe** (`GetMediaInfo`ning haqiqiy
   davomiylik/o'lchamni to'g'ri qaytarishi) hali testlar bilan mahkamlanmagan
   — faqat chaqiruvlar tartibi mahkamlangan. Yopish uchun `s.ffmpeg` interfeys
@@ -284,6 +307,43 @@ Plan 3 davomida topilgan, ataylab tuzatilmagan yangi bo'shliqlar:
   spinner** ko'rsatadi — hech qanday xato, hech qanday log, faqat
   cheksiz yuklanish. Bu endpoint'ni o'zgartiradigan kishi buni oldindan
   bilishi kerak.
+
+  **TUZATISH KIRITILDI (whole-branch review, Critical).** Yuqoridagi
+  tavsif bu xavfni "kelajakda kimdir slug qo'shsa" degan SHARTLI holat
+  qilib ko'rsatgan edi — bu NOTO'G'RI edi. Xuddi shu abadiy spinner
+  **bugungi kodda ham, endpoint'ga umuman tegmasdan**, oddiy ikki
+  bosishlik yo'lda yuz berardi: `videos.current` butun ilova uchun bitta
+  global slot, `fetchVideo.fulfilled` esa unga SHARTSIZ yozardi. Dars A
+  ochiladi (tayyor — tez javob), foydalanuvchi `pending`/`processing`
+  holatidagi dars B'ga o'tadi (backend `refreshPreparingStatus` ichida
+  mkhls'ga borgani uchun javob sekin), B javob bermasdan turib Orqaga
+  bosadi. A qayta so'ralib tez javob beradi, SO'NG B'ning kechikkan
+  javobi kelib `current`ni B qilib qo'yadi — URL esa hamon A. Shundan
+  keyin `isOwnResponse` abadiy `false`: `player` ham, `streamStatus` ham
+  null, ya'ni token taymeri (`expiresAt` kerak), tayyorlanish polli
+  (`isPreparing` kerak) va `onError` (player mount bo'lmagan) — hammasi
+  o'chadi; dastlabki fetch effekti `[videoId]`ga bog'liq bo'lgani uchun
+  qayta ishlamaydi; "Yangilash" tugmasi esa faqat kutish ekranida
+  chiziladi, u esa umuman chizilmaydi (spinner undan oldin qaytadi).
+  Faqat qattiq reload qutqarardi.
+
+  Yechim `frontend/src/store/slices/videoSlice.ts`da: slice endi
+  `currentRequestId` saqlaydi (`fetchVideo.pending`da
+  `action.meta.requestId` yoziladi) va `fulfilled`/`rejected` faqat ENG
+  OXIRGI so'rovga tegishli bo'lsa ma'lumot yozadi; `clearCurrentVideo`
+  ham uni `null` qiladi, ya'ni tozalashdan keyin kelgan kechikkan javob
+  darsni tiriltirib yubormaydi. `loading` bayrog'i ATAYLAB shartsiz
+  tushiriladi (u `fetchCourseVideos` bilan umumiy — kurs sahifasidagi
+  darslar ro'yxati ham shunga qaraydi). `isOwnResponse` darvozasi
+  o'z joyida QOLDI: u boshqa vazifani bajaradi (fon-refetch o'ynayotgan
+  player'ni uzmasligi va resume nuqtasi eski darsdan muzlab qolmasligi),
+  va yuqoridagi slug/alias ogohlantirishi hamon o'z kuchida. Regressiya
+  testi: `frontend/e2e/videos-stream.spec.ts` → "darslar orasida
+  almashinuv" — kurs sahifasidan SPA navigatsiyasi bilan haqiqiy
+  ketma-ketlikni bosib o'tadi (sekin javob qo'lda ochiladigan "eshik"
+  ortida ushlab turiladi, shuning uchun tartib mashina yukiga bog'liq
+  emas). Tuzatishsiz test qizil (`[data-media-player]` yo'qoladi),
+  tuzatish bilan yashil.
 - **`frontend/src/app/admin/settings/page.tsx` hamon Bunny konfiguratsiyasini
   hujjatlaydi** (`BUNNY_STREAM_API_KEY`, `BUNNY_LIBRARY_ID`, `BUNNY_TOKEN_KEY`)
   — mkhls migratsiyasidan keyin ham. Hech qaysi Plan 3 task'i buni o'z
@@ -308,12 +368,17 @@ Ledger'dan qo'lda o'tkazilgan, harakat qilishga arziydigan kichik (minor)
 band(lar) — to'liq ro'yxat emas, faqat keyingi kishi duch kelishi mumkin
 bo'lganlari:
 
-- **`useLessonStream`ning xato-refetch mexanizmi `hlsUrl` o'zgarmagan holatda
-  tiklanolmaydi** (Task 2 fix davrida deferred minor). Agar refetch xatoni
-  boshqa sabab bilan (masalan token muddati emas, boshqa xatolik) tuzatib
-  bo'lmasa va yangi so'rov eski `hlsUrl`ni qaytarsa, player eskicha xato
-  holatida qolib ketishi mumkin — zararsiz ko'rinadi, lekin ishlab chiqarishda
-  kamdan-kam ko'rinadigan holat.
+- ~~**`useLessonStream`ning xato-refetch mexanizmi `hlsUrl` o'zgarmagan
+  holatda tiklanolmaydi**~~ (Task 2 fix davrida deferred minor deb
+  yozilgan edi). **Bu band O'CHIRILDI — u aslida mavjud emas edi**
+  (whole-branch review). Tavsif etilgan holat — "refetch xuddi o'sha
+  `hlsUrl`ni qaytaradi" — sodir bo'lishi MUMKIN emas: `GET /videos/:id`
+  har chaqiruvda `mkhls.generateStreamToken` orqali mkhls'ga
+  `POST /admin/tokens/stream` yuborib YANGI token oladi
+  (`backend/utils/mkhls.js:177`), `hlsUrl` esa shu token bilan quriladi
+  (`backend/controllers/videoController.js:182-187`). Ya'ni `hlsUrl` har
+  javobda boshqacha bo'ladi va vidstack manbani doim qaytadan yuklaydi.
+  Keyingi kishi bu "muammo"ni qidirib vaqt sarflamasin.
 - **O'lik i18n kaliti `playground.videoLoading`** uchala lokal faylda ham
   qoldi (`frontend/src/utils/i18n/{uz,ru,en}.ts`) — Task 4 uni ataylab
   o'chirmadi, chunki brief bunga buyurmagan edi. Keyingi kishi shu kalitni
@@ -321,9 +386,45 @@ bo'lganlari:
 
 ---
 
+## Whole-branch review — tuzatilgan bandlar (branch'dagi oxirgi ish)
+
+Butun-branch review (implementator emas) o'tkazildi va topilmalari bitta
+tuzatish to'lqinida yopildi. Qisqacha:
+
+1. **Critical — tartibsiz javob sahifani abadiy spinnerda qoldirardi.**
+   `videoSlice`da so'rov ketma-ketligi (`currentRequestId`). To'liq tavsif
+   yuqorida, "isOwnResponse" bandida. Regressiya testi qo'shildi
+   (`videos-stream.spec.ts` → "darslar orasida almashinuv"): tuzatishsiz
+   qizil, tuzatish bilan yashil.
+2. **Important — token yangilash taymerida pol yo'q edi.**
+   `useLessonStream.ts`: `Math.max(0, lead)` → `Math.max(
+   TOKEN_REFRESH_MIN_DELAY_MS = 30_000, lead)`. `MKHLS_STREAM_TOKEN_TTL`
+   300 soniya yoki undan past qo'yilsa (yoki mijoz soati oldinda ketsa)
+   `lead` doim manfiy chiqib, taymer darhol otilardi: har aylanishda yangi
+   token, yangi `hlsUrl`, player qaytadan yuklanadi, backend esa har safar
+   mkhls'ga qayta autentifikatsiya qiladi — ya'ni ISSIQ SIKL. Standart TTL
+   (14400) buni uxlab yotgan holatda ushlab turardi, lekin hech narsa
+   cheklamasdi. Pol bilan qisqa TTL shunchaki davriy yangilanishga aylanadi.
+3. **Minor — `adminNav.tsx`dagi eskirgan hint.** "Telegram, **Bunny bulk**,
+   AI news" → "Telegram, AI news". Bulk bo'limi bu branch'da
+   `admin/tools/page.tsx`dan o'chirilgan edi, hint esa qolib ketgan edi.
+
+Test gigienasi bo'yicha bitta qo'shimcha tuzatish (ilova kodi emas):
+`e2e/admin-videos.spec.ts`ning `mockAdmin`i endi `aidevix_cookie_consent`
+kalitini oldindan qo'yadi. `CookieConsent` paneli (`z-[1100]`, `fixed`)
+mount'dan 600ms keyin ochilib, tahrirlash modalining "Saqlash" tugmasini
+to'sib qo'yardi. Bu **branch'ga aloqasi yo'q**: xuddi shu test toza
+`2bc06e2` daraxtida, hech qanday o'zgarishsiz ham aynan shu tarzda
+yiqilishi tekshirildi.
+
+---
+
 ## Keyingi bosqich
 
-1. **Alohida whole-branch review** (implementator emas). Bu naqsh Plan 1-2'da
+1. ~~**Alohida whole-branch review** (implementator emas).~~ **BAJARILDI** —
+   natijasi yuqoridagi bo'limda. Naqsh yana ishladi: Critical topilma
+   sakkizta alohida o'tgan task review'ining hech biriga ko'rinmagan edi.
+   Bu naqsh Plan 1-2'da
    bir marta va Plan 2'da yana ikki marta chok-orasidagi xatoliklarni topgan
    — har biri alohida to'g'ri ko'ringan tasklar orasidan (masalan `getVideo`
    populate proyeksiyasi, `useVideoLink` sizishi — barchasi alohida task

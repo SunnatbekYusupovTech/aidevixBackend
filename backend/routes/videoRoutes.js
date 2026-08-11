@@ -13,7 +13,6 @@ const {
   answerQuestion,
   upvoteQuestion,
   markBestAnswer,
-  getUploadCredentialsForVideo,
   uploadVideoProxy,
   checkVideoStatus,
   linkToStream,
@@ -50,12 +49,10 @@ router.put('/:id', validateObjectId(), authenticate, requireAdmin, updateVideo);
 router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteVideo);
 
 // ════════════════════════════════════════════════════════════════
-// Bunny.net endpoints (Admin only)
+// mkhls endpoints (Admin only)
 // ════════════════════════════════════════════════════════════════
 
-router.get('/:id/upload-credentials', validateObjectId(), authenticate, requireAdmin, getUploadCredentialsForVideo);
-
-// Video binary'ni backend orqali Bunny'ga oqizadi (octet-stream raw body — body-parser tegmaydi)
+// Video binary'ni backend orqali mkhls'ga oqizadi (octet-stream raw body — body-parser tegmaydi)
 router.put('/:id/upload-proxy', validateObjectId(), authenticate, requireAdmin, uploadVideoProxy);
 
 router.get('/:id/status', validateObjectId(), authenticate, requireAdmin, checkVideoStatus);

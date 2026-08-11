@@ -695,41 +695,7 @@ const markBestAnswer = async (req, res) => {
   }
 };
 
-// ─── Bunny.net specific endpoints ────────────────────────────────────────────
-
-// Upload credentials olish (Admin only)
-// Admin shu ma'lumot bilan video faylni to'g'ridan-to'g'ri Bunny ga yuklaydi
-const getUploadCredentialsForVideo = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const video = await Video.findById(id);
-    if (!video) {
-      return res.status(404).json({ success: false, message: 'Video not found.' });
-    }
-
-    if (!video.streamPath) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu video mkhls ga ulangan emas.',
-      });
-    }
-
-    const uploadInfo = buildProxyUploadInfo(video._id);
-
-    res.json({
-      success: true,
-      data: {
-        videoId: video._id,
-        streamPath: video.streamPath,
-        ...uploadInfo,
-        note: 'uploadUrl ga (backend proxy) PUT so\'rov yuboring, body = video fayl binary. mkhls admin paroli backend\'da qoladi.',
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching upload credentials.' });
-  }
-};
+// ─── mkhls endpoints ─────────────────────────────────────────────────────────
 
 // Admin video binary'ni backend orqali mkhls'ga oqizadi.
 // req — octet-stream (body-parser tegmaydi), to'g'ridan-to'g'ri pipe qilinadi:
@@ -1048,7 +1014,6 @@ module.exports = {
   answerQuestion,
   upvoteQuestion,
   markBestAnswer,
-  getUploadCredentialsForVideo,
   uploadVideoProxy,
   checkVideoStatus,
   linkToStream,

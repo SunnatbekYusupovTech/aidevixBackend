@@ -31,7 +31,6 @@ export const getCourseVideos       = (courseId)          => axiosInstance.get(`v
 export const createVideo           = (data)              => axiosInstance.post('videos', data)
 export const updateVideo           = (id, data)          => axiosInstance.put(`videos/${id}`, data)
 export const deleteVideo           = (id)                => axiosInstance.delete(`videos/${id}`)
-export const getUploadCredentials  = (id)                => axiosInstance.get(`videos/${id}/upload-credentials`)
 export const getVideoStatus        = (id)                => axiosInstance.get(`videos/${id}/status`)
 /**
  * Mavjud mkhls yo'liga qo'lda bog'lash. Faqat eski yoki qo'lda yuklangan

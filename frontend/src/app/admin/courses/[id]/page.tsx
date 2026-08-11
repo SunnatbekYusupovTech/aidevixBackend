@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getCourseById, updateCourse,
   getCourseVideos, createVideo, updateVideo, deleteVideo,
-  getUploadCredentials, getVideoStatus, linkVideoToStream,
+  getVideoStatus, linkVideoToStream,
   uploadThumbnail, uploadVideoBinary,
   unwrapAdmin,
 } from '@/api/adminApi';

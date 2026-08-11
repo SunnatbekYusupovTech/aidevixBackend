@@ -436,3 +436,24 @@ describe('GET /api/videos/course/:courseId', () => {
     expect(projection).toMatch(/streamStatus/);
   });
 });
+
+describe('GET /api/videos/:id/upload-credentials — olib tashlangan', () => {
+  it('endi umuman route sifatida mavjud emas', async () => {
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}/upload-credentials`);
+
+    // Diqqat: faqat 404 statusni tekshirish YETARLI EMAS. Route hali
+    // turganda ham controller "Video not found" bilan 404 qaytaradi
+    // (Video.findById avtomatik mock, undefined qaytaradi) — ya'ni status
+    // bo'yicha test olib tashlashdan OLDIN ham yashil bo'lardi. Express'ning
+    // o'z 404'i HTML matn qaytaradi, controller esa JSON — farq shunda.
+    expect(res.status).toBe(404);
+    expect(res.text).toMatch(/Cannot GET/);
+  });
+
+  it("haqiqiy yuklash yo'li — upload-proxy — joyida qoladi", async () => {
+    const res = await request(app).put(`/api/videos/${VIDEO_ID}/upload-proxy`);
+
+    // Content-Length yo'q → 411. Muhimi: bu express 404 EMAS, ya'ni route bor.
+    expect(res.status).toBe(411);
+  });
+});

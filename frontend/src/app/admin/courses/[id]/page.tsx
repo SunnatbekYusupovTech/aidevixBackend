@@ -37,6 +37,22 @@ type TranscodeInfo = { presetsDone: string[]; presetsTotal: number } | null;
 
 type UploadPhase = 'idle' | 'creating' | 'uploading' | 'done' | 'error';
 
+// `models/Course.js` dagi enum'lar bilan bir xil bo'lishi SHART. Ilgari daraja
+// tanlagichi `<option>Beginner</option>` edi — `value` atributisiz `<option>`ning
+// qiymati matn mazmuni bo'ladi, ya'ni "Beginner" bosh harf bilan ketardi va
+// schema kichik harf kutgani uchun saqlash 500 bilan yiqilardi. Kategoriya esa
+// umuman erkin matn maydoni edi, ya'ni istalgan yozuv shu xatoga olib kelardi.
+const COURSE_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+const LEVEL_LABELS: Record<(typeof COURSE_LEVELS)[number], string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+const COURSE_CATEGORIES = [
+  'html', 'css', 'javascript', 'react', 'typescript', 'nodejs',
+  'general', 'ai', 'telegram', 'security', 'career', 'nocode', 'web3',
+] as const;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const inp =
   'w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none transition';
@@ -138,8 +154,11 @@ export default function EditCoursePage() {
     try {
       await updateCourse(id, form);
       toast.success('Kurs saqlandi');
-    } catch {
-      toast.error("Saqlab bo'lmadi");
+    } catch (err: any) {
+      // Backend endi validatsiya xatosini 400 va qaysi maydon aybdorligini
+      // aytadigan xabar bilan qaytaradi — uni yutib yuborib "Saqlab bo'lmadi"
+      // deyish adminni ko'r qoldiradi.
+      toast.error(err?.response?.data?.message || "Saqlab bo'lmadi");
     } finally {
       setSaving(false);
     }
@@ -420,14 +439,19 @@ export default function EditCoursePage() {
                 <Field label="Daraja">
                   <select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })} className={inp}>
                     <option value="">Tanlang</option>
-                    <option>Beginner</option>
-                    <option>Intermediate</option>
-                    <option>Advanced</option>
+                    {COURSE_LEVELS.map(l => (
+                      <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
+                    ))}
                   </select>
                 </Field>
               </div>
               <Field label="Kategoriya">
-                <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inp} />
+                <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inp}>
+                  <option value="">Tanlang</option>
+                  {COURSE_CATEGORIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </Field>
               <div className="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/50 px-4 py-3">
                 <div>

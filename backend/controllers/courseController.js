@@ -293,6 +293,20 @@ const updateCourse = async (req, res) => {
 
     res.json({ success: true, message: 'Kurs yangilandi', data: { course } });
   } catch (error) {
+    // Enum'ga tushmaydigan `level`/`category` — bu klient xatosi, server nosozligi
+    // emas. Ilgari u ham 500 va "Kurs yangilashda xatolik" degan mazmunsiz xabar
+    // bilan qaytardi, shuning uchun admin panelda faqat "Saqlab bo'lmadi" chiqib,
+    // qaysi maydon aybdor ekani umuman ko'rinmasdi.
+    if (error.name === 'ValidationError') {
+      const details = Object.values(error.errors || {})
+        .map((e) => e.message)
+        .join('; ');
+      return res.status(400).json({
+        success: false,
+        message: details || 'Kurs maydonlari noto\'g\'ri.',
+      });
+    }
+    console.error('[courseController] updateCourse:', error.message);
     res.status(500).json({ success: false, message: 'Kurs yangilashda xatolik.' });
   }
 };

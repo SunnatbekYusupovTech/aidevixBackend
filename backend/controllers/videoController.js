@@ -7,17 +7,9 @@ const Enrollment = require('../models/Enrollment');
 const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
 const mkhls = require('../utils/mkhls');
-const {
-  createBunnyVideo,
-  deleteBunnyVideo,
-  getBunnyVideoInfo,
-  generateSignedEmbedUrl,
-  streamUploadToBunny,
-  parseBunnyStatus,
-} = require('../utils/bunny');
 
 // Admin video yuklash uchun same-origin proxy ma'lumoti (AccessKey FRONTENDGA chiqmaydi).
-// Frontend bu URL'ga PUT qiladi (cookie auth), backend Bunny'ga oqizadi.
+// Frontend bu URL'ga PUT qiladi (cookie auth), backend mkhls'ga oqizadi.
 const buildProxyUploadInfo = (videoDbId) => ({
   uploadUrl: `videos/${videoDbId}/upload-proxy`,
   method: 'PUT',
@@ -377,8 +369,8 @@ const useVideoLink = async (req, res) => {
 
 // Create video (Admin only)
 // 2-qadam:
-//   1. POST /api/videos       → video yaratiladi (DB + Bunny slot)
-//   2. GET  /api/videos/:id/upload-credentials → admin to'g'ridan-to'g'ri Bunny ga yuklaydi
+//   1. POST /api/videos       → video yaratiladi (DB + mkhls streamPath)
+//   2. PUT  /api/videos/:id/upload-proxy → admin faylni backend proxy orqali yuklaydi
 const createVideo = async (req, res) => {
   try {
     const { title, description, courseId, order, duration, thumbnail } = req.body;
@@ -501,15 +493,6 @@ const deleteVideo = async (req, res) => {
         }
       } catch (err) {
         console.error('[video] mkhls delete:', err.code, err.message);
-      }
-    }
-
-    // Eski Bunny videolari uchun (DEPRECATED — bir reliz).
-    if (video.bunnyVideoId) {
-      try {
-        await deleteBunnyVideo(video.bunnyVideoId);
-      } catch (bunnyErr) {
-        console.error('Bunny delete error:', bunnyErr.message);
       }
     }
 
@@ -834,7 +817,6 @@ const checkVideoStatus = async (req, res) => {
           data: {
             videoId: video._id,
             streamStatus: video.streamStatus,
-            bunnyStatus: video.streamStatus, // DEPRECATED — Plan 3 gacha admin panel uchun
             isReady: video.streamStatus === 'ready',
             duration: video.duration,
             transcode: null,
@@ -860,9 +842,6 @@ const checkVideoStatus = async (req, res) => {
       data: {
         videoId: video._id,
         streamStatus: info.status,
-        // DEPRECATED mirror: the admin panel reads bunnyStatus until Plan 3
-        // renames it, and that panel is how this plan gets verified by hand.
-        bunnyStatus: info.status,
         isReady: info.status === 'ready',
         duration: info.duration || video.duration,
         // progress_percent is deliberately absent — mkhls never advances it.

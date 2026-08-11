@@ -13,7 +13,6 @@ jest.mock('../../models/User');
 jest.mock('../../models/VideoLink');
 jest.mock('../../models/VideoQuestion');
 jest.mock('../../utils/mkhls');
-jest.mock('../../utils/bunny');
 jest.mock('../../utils/checkSubscriptions', () => ({
   performSubscriptionCheck: jest.fn().mockResolvedValue({
     instagramSubscribed: true,
@@ -464,5 +463,47 @@ describe('GET /api/videos/:id/upload-credentials — olib tashlangan', () => {
 
     // Content-Length yo'q → 411. Muhimi: bu express 404 EMAS, ya'ni route bor.
     expect(res.status).toBe(411);
+  });
+});
+
+describe("GET /api/videos/:id/status — bunnyStatus ko'zgusi olib tashlandi", () => {
+  const mockStatusVideo = (overrides) => {
+    Video.findById.mockResolvedValue({
+      _id: VIDEO_ID,
+      streamPath: `aidevix/${VIDEO_ID}.mp4`,
+      streamStatus: 'processing',
+      duration: 120,
+      save: jest.fn().mockResolvedValue(undefined),
+      ...overrides,
+    });
+  };
+
+  it('mkhls javob berganda bunnyStatus qaytarmaydi', async () => {
+    mockStatusVideo();
+    mkhls.getVideoInfo.mockResolvedValue({
+      status: 'ready',
+      mkhlsStatus: 'ready',
+      duration: 305,
+      transcode: { presetsDone: ['480p', '720p'], presetsTotal: 2 },
+    });
+
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}/status`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.streamStatus).toBe('ready');
+    expect(res.body.data).not.toHaveProperty('bunnyStatus');
+  });
+
+  it('hali yuklanmagan (pending) filialda ham bunnyStatus qaytarmaydi', async () => {
+    mockStatusVideo({ streamStatus: 'pending' });
+    const err = new Error('topilmadi');
+    err.code = 'NOT_FOUND';
+    mkhls.getVideoInfo.mockRejectedValue(err);
+
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}/status`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.streamStatus).toBe('pending');
+    expect(res.body.data).not.toHaveProperty('bunnyStatus');
   });
 });

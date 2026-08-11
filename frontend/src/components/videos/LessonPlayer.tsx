@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import HLS from 'hls.js';
 import {
   MediaPlayer,
@@ -11,6 +11,7 @@ import {
   type MediaPlayerInstance,
   type MediaProviderAdapter,
   type MediaTimeUpdateEventDetail,
+  type MediaVolumeChange,
 } from '@vidstack/react';
 import {
   DefaultVideoLayout,
@@ -63,6 +64,22 @@ export default function LessonPlayer({
   // yoki foydalanuvchi darsni ataylab to'xtatganmi, shuni ajratadi.
   const lastPlayingAtRef = useRef(0);
 
+  // Foydalanuvchining ovoz va tezlik tanlovi. Manba almashganda `<video>` qayta
+  // quriladi va bular standartga qaytadi — pasaytirilgan ovoz balandlashib, mute
+  // o'z-o'zidan yechilib ketadi. Ularni imperativ tiklash o'rniga BOSHQARILADIGAN
+  // props sifatida ushlaymiz: shunda yangi manba uchun ham React o'zi qayta
+  // qo'llaydi va tiklash uchun alohida vaqt tanlash muammosi umuman qolmaydi.
+  const [prefs, setPrefs] = useState({ volume: 1, muted: false, playbackRate: 1 });
+
+  /**
+   * Manba almashuvi davom etayotgan oyna: `hlsUrl` allaqachon yangi, lekin
+   * yangi manba uchun `can-play` hali kelmagan. Shu oynada player o'zining
+   * standart qiymatlarini chiqaradi — ularni foydalanuvchi tanlovi deb yozib
+   * qo'ysak, tiklash ma'nosini yo'qotadi.
+   */
+  const isSwapping = () =>
+    resumedForRef.current !== null && resumedForRef.current !== hlsUrl;
+
   const handleProviderChange = (provider: MediaProviderAdapter | null) => {
     if (isHLSProvider(provider)) {
       // Bundle qilingan hls.js. Aks holda Vidstack uni runtime'da CDN'dan yuklaydi,
@@ -91,6 +108,7 @@ export default function LessonPlayer({
     if (previousSource !== null && previousSource !== hlsUrl) {
       const wasPlayingRecently = Date.now() - lastPlayingAtRef.current < PLAYING_RECENCY_MS;
       if (startAt > 0) player.currentTime = startAt;
+
       if (wasPlayingRecently) void player.play().catch(() => {});
       // No `onResume` here: this is a token refresh, not a returning session, and
       // the "Davom ettirildi" toast would fire every few hours mid-lesson.
@@ -109,6 +127,21 @@ export default function LessonPlayer({
     onResume?.(startAt);
   };
 
+  /**
+   * Foydalanuvchi tanlovini kuzatib boradi. Almashuv oynasida chiqqan hodisalar
+   * e'tiborsiz qoldiriladi — ular player qayta qurilayotgandagi standart
+   * qiymatlar, tanlov emas; ularni yozib qo'ysak tanlov yo'qolardi.
+   */
+  const handleVolumeChange = (detail: MediaVolumeChange) => {
+    if (isSwapping()) return;
+    setPrefs((p) => ({ ...p, volume: detail.volume, muted: detail.muted }));
+  };
+
+  const handleRateChange = (rate: number) => {
+    if (isSwapping()) return;
+    setPrefs((p) => ({ ...p, playbackRate: rate }));
+  };
+
   const handleTimeUpdate = (detail: MediaTimeUpdateEventDetail) => {
     const player = playerRef.current;
     if (!player || player.state.paused || player.state.seeking) return;
@@ -125,9 +158,16 @@ export default function LessonPlayer({
       className="absolute inset-0 h-full w-full"
       src={{ src: hlsUrl, type: 'application/x-mpegurl' }}
       playsInline
+      volume={prefs.volume}
+      muted={prefs.muted}
+      playbackRate={prefs.playbackRate}
       onProviderChange={handleProviderChange}
       onCanPlay={handleCanPlay}
       onTimeUpdate={handleTimeUpdate}
+      // Pauzada qilingan o'zgarishlarni ham ushlash uchun — `time-update` faqat
+      // o'ynayotganda chiqadi.
+      onVolumeChange={handleVolumeChange}
+      onRateChange={handleRateChange}
       onError={() => onError()}
     >
       <MediaProvider>

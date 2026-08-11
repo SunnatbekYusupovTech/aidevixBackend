@@ -597,6 +597,7 @@ test.describe('Dars player — token yangilanishida uzluksizlik', () => {
 
     // Manba almashuvini aynan shu hodisadan bilamiz: yangilanish yangi token
     // bilan `master.m3u8`ni qaytadan so'raydi.
+    page.on('console', (m) => { if (m.text().includes('[swap')) console.log('PAGE', m.text()); });
     let manifestRequests = 0;
     page.on('response', (r) => {
       if (r.url().includes('master.m3u8')) manifestRequests += 1;
@@ -623,21 +624,28 @@ test.describe('Dars player — token yangilanishida uzluksizlik', () => {
     await page.goto(`/videos/${TEST_VIDEO_ID}`);
     await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 60_000 });
 
-    // Play tugmasi orqali — `video.play()`ni to'g'ridan-to'g'ri chaqirish bu
-    // harness'da avtoo'ynash siyosatiga urilib pauzada qolib ketadi.
-    await page.evaluate(() => {
-      const v = document.querySelector('video') as HTMLVideoElement | null;
-      if (v) v.muted = true;
-    });
+    // Avval Vidstack'ning O'Z tugmasi bilan mute qilamiz: bu ham avtoo'ynashni
+    // ochadi, ham tanlovni player holatiga to'g'ri yozadi. `<video>.muted`ni
+    // to'g'ridan-to'g'ri yozish element bilan Vidstack holatini uzib qo'yadi va
+    // test tekshirayotgan narsa bilan tiklanadigan narsa boshqa-boshqa bo'lardi.
+    await page.getByRole('button', { name: /mute/i }).first().click();
     await page.getByRole('button', { name: 'Play' }).click();
 
     const state = () =>
       page.evaluate(() => {
         const v = document.querySelector('video') as HTMLVideoElement | null;
-        return v ? { t: v.currentTime, paused: v.paused } : { t: -1, paused: true };
+        return v
+          ? { t: v.currentTime, paused: v.paused, volume: v.volume, muted: v.muted, rate: v.playbackRate }
+          : { t: -1, paused: true, volume: -1, muted: false, rate: -1 };
       });
 
     await expect.poll(async () => (await state()).paused, { timeout: 30_000 }).toBe(false);
+
+    // Foydalanuvchi tanlovi — haqiqiy UI orqali, xuddi tomoshabin qilganidek.
+    // `<video>.volume`ni to'g'ridan-to'g'ri yozish Vidstack holatini yangilamaydi,
+    // ya'ni tanlovni ham, tiklashni ham chetlab o'tadi va testni yolg'on qiladi.
+    // Tanlov allaqachon qilingan (yuqorida, o'ynashdan oldin) — tasdiqlaymiz.
+    await expect.poll(async () => (await state()).muted, { timeout: 10_000 }).toBe(true);
     const seenBefore = manifestRequests;
     const before = await state();
 
@@ -654,5 +662,7 @@ test.describe('Dars player — token yangilanishida uzluksizlik', () => {
     const after = await state();
     expect(after.paused).toBe(false);
     expect(after.t).toBeGreaterThan(before.t);
+    // Token aylanishi sezilmasligi kerak: o'chirilgan ovoz o'z-o'zidan yoqilmaydi.
+    expect(after.muted).toBe(true);
   });
 });

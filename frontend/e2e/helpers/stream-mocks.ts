@@ -4,6 +4,13 @@ import type { Page, Route } from '@playwright/test';
 import { MOCK_USER, MOCK_SUBSCRIPTION_STATUS } from '../fixtures/mock-data';
 
 export const TEST_VIDEO_ID = 'vid-stream-1';
+/**
+ * Ikkinchi dars — faqat DARS ALMASHINUVI (SPA navigatsiyasi) bilan bog'liq
+ * testlar uchun. `videos.*` Redux sloti butun ilova uchun bitta bo'lgani
+ * sababli, tartibsiz javob muammosi faqat IKKI xil `videoId` bilan namoyon
+ * bo'ladi.
+ */
+export const TEST_VIDEO_ID_2 = 'vid-stream-2';
 export const TEST_COURSE_ID = 'course-stream-1';
 
 // Vidstack's React `<MediaPlayer>` renders a plain `<div data-media-player>`
@@ -114,11 +121,59 @@ export function readyVideoBody(overrides: Record<string, unknown> = {}) {
 }
 
 /** Tayyorlanmayotgan yoki buzilgan video: player yo'q. */
-export function preparingVideoBody(streamStatus: 'pending' | 'processing' | 'failed') {
+export function preparingVideoBody(
+  streamStatus: 'pending' | 'processing' | 'failed',
+  overrides: Record<string, unknown> = {},
+) {
   return {
     success: true,
-    data: { video: baseVideo, player: null, progress: null, streamStatus },
+    data: { video: baseVideo, player: null, progress: null, streamStatus, ...overrides },
   };
+}
+
+/** `baseVideo`ning boshqa `_id`/sarlavhali nusxasi (ikkinchi dars uchun). */
+export function videoWithId(id: string, title: string) {
+  return { ...baseVideo, _id: id, title };
+}
+
+/**
+ * Kurs sahifasini (`/courses/:id`) mock qiladi — bu SPA navigatsiyasi orqali
+ * ikki xil darsga o'tishning yagona haqiqiy yo'li. `page.goto` bo'lmaydi:
+ * u yangi hujjat yuklab, Redux store'ni butunlay tozalaydi, ya'ni "eski dars
+ * javobi yangi darsning ustiga tushishi" holatini umuman hosil qilib
+ * bo'lmaydi. Kurs sahifasidagi dars qatorlari `next/link` — bosilganda
+ * store saqlanadi.
+ */
+export async function mockCoursePage(
+  page: Page,
+  courseId: string,
+  videos: Record<string, unknown>[],
+) {
+  await page.route(new RegExp(`/api/.*/courses/${courseId}(?:[?#]|$)`), (route) =>
+    json(route, {
+      success: true,
+      data: {
+        course: {
+          _id: courseId,
+          title: 'Test kurs',
+          description: 'Test kurs tavsifi',
+          category: 'javascript',
+          level: 'beginner',
+          isFree: true,
+          price: 0,
+        },
+      },
+    }),
+  );
+  await page.route(`**/api/**/videos/course/${courseId}*`, (route) =>
+    json(route, { success: true, data: { videos } }),
+  );
+  await page.route(`**/api/**/courses/${courseId}/recommended*`, (route) =>
+    json(route, { success: true, data: { courses: [] } }),
+  );
+  await page.route(`**/api/**/projects/course/${courseId}*`, (route) =>
+    json(route, { success: true, data: { projects: [] } }),
+  );
 }
 
 // `/api/` prefix — not just `/videos/${videoId}` — matters here: the app's

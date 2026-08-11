@@ -9,6 +9,18 @@ const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
 async function mockAdmin(page: Page) {
+  // `CookieConsent` (src/components/common/CookieConsent.tsx) mount'dan 600ms
+  // keyin `position: fixed`, `z-[1100]` bo'lgan pastki-o'ng panelni ochadi,
+  // agar `aidevix_cookie_consent` kaliti yo'q bo'lsa — Playwright har testda
+  // toza brauzer profili beradi, ya'ni u DOIM ochiladi. Panel tahrirlash
+  // modalining "Saqlash" tugmasi ustiga tushib, bosishni butunlay to'sadi
+  // (`subtree intercepts pointer events`), va bu ilova xatosi emas: shu
+  // qatorsiz test kuzatilgan tarzda mashina yukiga qarab goh o'tadi, goh
+  // yiqiladi. Kalitni oldindan qo'yib, panelni umuman ochilmaydigan qilamiz —
+  // `mockSubscribedUser`dagi (e2e/helpers/stream-mocks.ts) bir xil naqsh.
+  await page.addInitScript(() => {
+    localStorage.setItem('aidevix_cookie_consent', 'accepted');
+  });
   // `checkAuthStatus` (src/store/slices/authSlice.ts) does
   // `tokenStorage.setUser(data.data); return { user: data.data }`, and the
   // reducer sets `state.user = action.payload.user`. So the user object must

@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 import {
   TEST_VIDEO_ID,
+  TEST_VIDEO_ID_2,
+  TEST_COURSE_ID,
   PLAYER_SELECTOR,
   mockSubscribedUser,
   mockVideoDetail,
+  mockCoursePage,
   videoDetailPattern,
+  videoWithId,
   mockPlayableHls,
   mockLongPlayableHls,
   waitForCanPlay,
@@ -487,5 +491,90 @@ test.describe('Dars player — token va resume', () => {
 
     await expect(page.getByText(/davom ettirildi/i)).toHaveCount(0);
     await expect.poll(() => playerCurrentTime(page), { timeout: 5_000 }).toBeLessThan(1);
+  });
+});
+
+test.describe('Dars player — darslar orasida almashinuv', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultNavigationTimeout(90_000);
+    await mockSubscribedUser(page);
+    // Haqiqiy (o'ynaydigan) oqim: bo'sh manifest hls.js'da fatal xato berib,
+    // `onError` orqali kutilmagan refetch qo'zg'atardi — bu testda esa aynan
+    // so'rovlar ketma-ketligi o'lchanadi.
+    await mockPlayableHls(page);
+  });
+
+  test('boshqa darsning kechikkan javobi ochiq darsni abadiy spinnerda qoldirmaydi', async ({ page }) => {
+    // Kurs sahifasi ham, dars sahifasi ham shu faylda birinchi marta sovuq
+    // kompilyatsiya qilinishi mumkin (`reuseExistingServer: false`).
+    test.setTimeout(180_000);
+
+    // ── Ssenariy (haqiqiy ikki bosishlik yo'l) ────────────────────────────
+    // Foydalanuvchi `pending` holatidagi 2-darsni ochadi: backend javobi
+    // mkhls'ga borgani uchun sekin. Kutmasdan Orqaga bosib, tayyor 1-darsni
+    // ochadi — u darhol o'ynay boshlaydi. SHUNDAN KEYIN 2-darsning kechikkan
+    // javobi keladi. `videos.current` butun ilova uchun bitta slot bo'lgani
+    // uchun tuzatishdan oldin u 1-darsni bosib ketardi va sahifa `player`ni
+    // ham, `streamStatus`ni ham ko'rmay qolib, ABADIY spinnerga tushardi
+    // (xato yo'q, poll yo'q, `onError` yo'q, qayta fetch yo'q — faqat qattiq
+    // reload qutqarardi).
+    //
+    // Sekin javob QO'LDA ochiladigan "eshik" ortida ushlab turiladi, real
+    // kechikish bilan emas: shunda "avval 1-dars javobi, keyin 2-darsniki"
+    // tartibi mashina yukiga bog'liq bo'lmay, ANIQ kafolatlanadi.
+    let releaseSlow: () => void = () => {};
+    const slowGate = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const slow = { requested: 0, served: 0 };
+
+    await page.route(videoDetailPattern(TEST_VIDEO_ID_2), async (route) => {
+      slow.requested += 1;
+      await slowGate;
+      slow.served += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          preparingVideoBody('processing', {
+            video: videoWithId(TEST_VIDEO_ID_2, 'Ikkinchi dars'),
+          }),
+        ),
+      });
+    });
+    await mockVideoDetail(page, TEST_VIDEO_ID, [readyVideoBody()]);
+    await mockCoursePage(page, TEST_COURSE_ID, [
+      videoWithId(TEST_VIDEO_ID_2, 'Ikkinchi dars'),
+      videoWithId(TEST_VIDEO_ID, 'Test dars'),
+    ]);
+
+    await page.goto(`/courses/${TEST_COURSE_ID}`);
+    await expect(page.getByRole('link', { name: 'Ikkinchi dars' })).toBeVisible({ timeout: 90_000 });
+
+    // 1) Sekin (tayyorlanayotgan) darsga o'tamiz — javobi ushlab qolinadi.
+    await page.getByRole('link', { name: 'Ikkinchi dars' }).click();
+    await expect(page).toHaveURL(new RegExp(`/videos/${TEST_VIDEO_ID_2}`), { timeout: 90_000 });
+    await expect.poll(() => slow.requested, { timeout: 30_000 }).toBeGreaterThan(0);
+
+    // 2) Orqaga — SPA navigatsiyasi, store saqlanadi, so'rov hamon uchmoqda.
+    await page.goBack();
+    await expect(page.getByRole('link', { name: 'Test dars' })).toBeVisible({ timeout: 60_000 });
+
+    // 3) Tayyor darsni ochamiz — javobi darhol keladi, player mount bo'ladi.
+    await page.getByRole('link', { name: 'Test dars' }).click();
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('heading', { level: 1, name: 'Test dars' })).toBeVisible();
+
+    // 4) Endi eski darsning javobi keladi — ochiq sahifaga tegmasligi kerak.
+    releaseSlow();
+    await expect.poll(() => slow.served, { timeout: 30_000 }).toBeGreaterThan(0);
+
+    // React javobni qayta ishlashiga (buzuq holatda — player'ni uzib, to'liq
+    // ekranli spinnerga tushishiga) yetarli vaqt beramiz.
+    await page.waitForTimeout(3_000);
+
+    expect(page.url()).toContain(`/videos/${TEST_VIDEO_ID}`);
+    await expect(page.locator(PLAYER_SELECTOR)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Test dars' })).toBeVisible();
   });
 });

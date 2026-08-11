@@ -9,6 +9,18 @@ import type { StreamStatus, Video } from '@/types/video'
 const POSITION_REPORT_INTERVAL_S = 10
 /** Token muddati tugashidan shuncha oldin yangi token olinadi. */
 const TOKEN_REFRESH_LEAD_MS = 5 * 60 * 1000
+/**
+ * Token yangilash taymerining POLI. `lead` — bu `expiresAt - now -
+ * TOKEN_REFRESH_LEAD_MS`, ya'ni u token TTL'i lead'dan (5 daqiqa) kichik yoki
+ * teng bo'lgan zahoti manfiyga aylanadi — masalan `MKHLS_STREAM_TOKEN_TTL`
+ * 300 yoki undan past qo'yilsa, yoki mijoz soati oldinda ketsa. Polsiz (ya'ni
+ * `Math.max(0, lead)` bilan) taymer darhol otiladi, refetch yangi `expiresAt`
+ * olib keladi, u ham darhol manfiy lead beradi — va shu ISSIQ SIKL har
+ * aylanishda yangi token yaratib, `hlsUrl`ni almashtirib, player'ni qaytadan
+ * yuklaydi, backend esa har safar mkhls'ga qayta autentifikatsiya qiladi.
+ * Pol bilan qisqa TTL shunchaki DAVRIY yangilanishga aylanadi.
+ */
+const TOKEN_REFRESH_MIN_DELAY_MS = 30_000
 /** Tayyorlanayotgan dars uchun poll oralig'i (spec §11). */
 const PREPARING_POLL_MS = 30_000
 /**
@@ -197,7 +209,10 @@ export function useLessonStream(
   useEffect(() => {
     if (!expiresAt || !videoId) return
     const lead = new Date(expiresAt).getTime() - Date.now() - TOKEN_REFRESH_LEAD_MS
-    const timer = setTimeout(() => fetchRef.current(videoId), Math.max(0, lead))
+    const timer = setTimeout(
+      () => fetchRef.current(videoId),
+      Math.max(TOKEN_REFRESH_MIN_DELAY_MS, lead),
+    )
     return () => clearTimeout(timer)
   }, [expiresAt, videoId])
 

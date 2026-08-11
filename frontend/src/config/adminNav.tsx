@@ -137,7 +137,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
       {
         href: '/admin/tools',
         label: 'Vositalar',
-        hint: 'Telegram, Bunny bulk, AI news',
+        hint: 'Telegram, AI news',
         icon: <FiTool className="h-5 w-5" />,
       },
     ],

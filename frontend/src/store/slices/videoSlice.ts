@@ -83,6 +83,28 @@ const initialState = {
   linkLoading:  false,
   error:        null,
   ratings:      {},   // { [videoId]: { average, count, userRating } }
+  /**
+   * Hozir "haqiqiy" deb hisoblanadigan `fetchVideo` so'rovining identifikatori.
+   *
+   * `current`/`player`/`progress` butun ilova uchun BITTA global slot. Ular
+   * shartsiz yozilganda tartibsiz kelgan javob ularni zaharlashi mumkin edi:
+   * dars A ochiladi (tayyor — tez javob), foydalanuvchi `pending` holatidagi
+   * dars B'ga o'tadi (backend mkhls'ga borgani uchun javob sekin), keyin B
+   * javob bermasdan turib Orqaga bosadi. A qayta so'ralib tez javob beradi,
+   * SO'NG B'ning kechikkan javobi kelib `current`ni B qilib qo'yadi — holbuki
+   * URL hamon A. `useLessonStream`ning `isOwnResponse` darvozasi endi hech
+   * qachon ochilmaydi: `player` ham, `streamStatus` ham null bo'lib qoladi,
+   * shuning uchun token taymeri, poll va `onError` — hammasi o'chadi, dastlabki
+   * fetch effekti esa `[videoId]`ga bog'liq bo'lgani uchun qayta ishlamaydi.
+   * Natija — xatosiz, logsiz, o'zi tuzalmaydigan ABADIY spinner.
+   *
+   * Shuning uchun javob faqat ENG OXIRGI so'rovga tegishli bo'lsagina qabul
+   * qilinadi. Bu bir vaqtning o'zida `clearCurrentVideo`dan keyin kelgan
+   * kechikkan javobning tozalangan darsni tiriltirib yuborishini ham yopadi.
+   */
+  // `as string | null` — aks holda TS boshlang'ich qiymatdan turni `null` deb
+  // toraytiradi va `pending`da requestId'ni yozib bo'lmaydi.
+  currentRequestId: null as string | null,
 }
 
 const videoSlice = createSlice({
@@ -96,6 +118,9 @@ const videoSlice = createSlice({
       state.progress     = null
       state.streamStatus = null
       state.error        = null
+      // Uchayotgan so'rov endi "haqiqiy" emas: aks holda uning javobi
+      // tozalangandan keyin kelib, darsni qaytadan tiriltirib qo'yardi.
+      state.currentRequestId = null
     },
     clearVideoError: (state) => { state.error = null },
   },
@@ -110,9 +135,21 @@ const videoSlice = createSlice({
         state.loading = false; state.error = action.payload
       })
 
-      .addCase(fetchVideo.pending,   (state) => { state.loading = true; state.error = null })
+      .addCase(fetchVideo.pending,   (state, action) => {
+        state.loading = true
+        state.error   = null
+        state.currentRequestId = action.meta.requestId
+      })
       .addCase(fetchVideo.fulfilled, (state, action) => {
-        state.loading      = false
+        // `loading` ATAYLAB shartsiz tushiriladi: u `fetchCourseVideos` bilan
+        // umumiy bayroq (kurs sahifasidagi darslar ro'yxati ham shunga qaraydi),
+        // shuning uchun uni eskirgan javobda "yopilmagan" qoldirish sahifani
+        // abadiy skeletonda ushlab qolardi.
+        state.loading = false
+        // Eskirgan javob: shundan keyin boshqa so'rov ketgan yoki
+        // `clearCurrentVideo` chaqirilgan — bitta ham maydonga tegmaydi.
+        if (action.meta.requestId !== state.currentRequestId) return
+        state.currentRequestId = null
         state.current      = action.payload.video
         state.videoLink    = action.payload.videoLink ?? null
         state.player       = action.payload.player ?? null
@@ -120,7 +157,12 @@ const videoSlice = createSlice({
         state.streamStatus = action.payload.streamStatus ?? null
       })
       .addCase(fetchVideo.rejected,  (state, action) => {
-        state.loading = false; state.error = action.payload
+        state.loading = false
+        // Eskirgan so'rovning xatosi ham ekranga chiqmasligi kerak: aks holda
+        // allaqachon ochilgan boshqa dars uchun yolg'on xato ekrani chizilardi.
+        if (action.meta.requestId !== state.currentRequestId) return
+        state.currentRequestId = null
+        state.error = action.payload
       })
 
       .addCase(fetchTopVideos.fulfilled, (state, action) => {

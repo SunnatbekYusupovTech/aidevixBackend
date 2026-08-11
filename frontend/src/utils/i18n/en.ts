@@ -866,7 +866,7 @@ const en: Record<string, string> = {
     'team.member.abduvoris.badge': 'Video Engineer',
     'team.member.abduvoris.roadmapRole': 'Video Platform & HLS Player',
     'team.member.abduvoris.contribution':
-      'Built the core video platform: token-authenticated HLS player with Bunny.net Stream, in-video quizzes, search and filtering. Also implemented video loading skeletons and progress tracking.',
+      'Built the core video platform: token-authenticated HLS player, in-video quizzes, search and filtering. Also implemented video loading skeletons and progress tracking.',
     'team.member.doniyor.badge': 'Course Architect',
     'team.member.doniyor.roadmapRole': 'Course Catalog & Enrollment',
     'team.member.doniyor.contribution':

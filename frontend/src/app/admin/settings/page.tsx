@@ -65,13 +65,17 @@ export default function AdminSettingsPage() {
               <FiVideo className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-display text-lg font-bold text-white">Bunny.net Stream</h3>
+              <h3 className="font-display text-lg font-bold text-white">mkhls Stream</h3>
               <p className="mt-2 text-sm text-slate-400">
-                Videolar <strong className="text-slate-200">Stream Library</strong> orqali uzatiladi. Muhit
-                o‘zgaruvchilari: <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">BUNNY_STREAM_API_KEY</code>
-                , <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">BUNNY_LIBRARY_ID</code>,{' '}
-                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">BUNNY_TOKEN_KEY</code>. Admin kurs
-                sahifasida yangi video yaratilganda slot ochiladi, keyin faylni Bunny ga PUT qilasiz.
+                Videolar <strong className="text-slate-200">o‘z serverimizdagi mkhls</strong> orqali uzatiladi. Muhit
+                o‘zgaruvchilari: <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_BASE_URL</code>,{' '}
+                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_PUBLIC_URL</code>,{' '}
+                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_ADMIN_USERNAME</code>,{' '}
+                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_ADMIN_PASSWORD</code>,{' '}
+                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_NAMESPACE</code>,{' '}
+                <code className="rounded bg-slate-950 px-1.5 py-0.5 text-xs">MKHLS_STREAM_TOKEN_TTL</code>. Admin kurs
+                sahifasida video yaratiladi, so‘ng fayl backend proxy’siga yuboriladi — mkhls admin paroli
+                brauzerga chiqmaydi, backend’da qoladi.
               </p>
               <Link
                 href="/admin/courses"

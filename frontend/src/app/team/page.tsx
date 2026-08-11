@@ -112,11 +112,11 @@ const TEAM_MEMBERS: TeamMember[] = [
     age: 16,
     roleBadge: { uz: 'VIDEO MUHANDISI', en: 'VIDEO ENGINEER', ru: 'ВИДЕОИНЖЕНЕР' },
     details: {
-      uz: 'Bunny.net Stream HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
-      en: 'Bunny.net Stream HLS video player, in-video quiz system, progress tracking, and skeletons.',
-      ru: 'Видео плеер Bunny.net Stream HLS, система тестов внутри видео, отслеживание прогресса и скелетоны.'
+      uz: 'Token-autentifikatsiyali HLS video pleer, videolar ichidagi quiz tizimi, progress tracking va skeletonlar.',
+      en: 'Token-authenticated HLS video player, in-video quiz system, progress tracking, and skeletons.',
+      ru: 'Токен-аутентифицированный HLS видеоплеер, система тестов внутри видео, отслеживание прогресса и скелетоны.'
     },
-    stack: ['Bunny.net', 'HLS.js', 'Video Stream', 'Skeleton CSS'],
+    stack: ['HLS.js', 'Video Stream', 'Skeleton CSS'],
     asset: '/team/Abduvoris.jpg',
   },
   {

@@ -5,7 +5,7 @@
  *   - HTML navigation → network-first, offline fallback /offline
  *   - Static assets (/_next/static, fonts, images) → stale-while-revalidate
  *   - API (/api/) → bypass (har doim freshness)
- *   - Bunny.net video URL — bypass (signed URL TTL bor)
+ *   - Video CDN URL — bypass (signed URL TTL bor)
  *
  * Versiya bumpi yangi versiya deploy bo'lganda barcha eski cache'ni o'chiradi.
  */
@@ -130,7 +130,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Boshqa domain (CDN, Bunny, API) — bypass
+  // Boshqa domain (CDN, video stream, API) — bypass
   if (url.origin !== self.location.origin || isBypass(url)) return;
 
   // HTML navigation

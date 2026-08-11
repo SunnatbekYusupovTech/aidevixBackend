@@ -889,7 +889,7 @@ const uz: Record<string, string> = {
     'team.member.abduvoris.badge': 'Video Engineer',
     'team.member.abduvoris.roadmapRole': 'Video Platform & HLS Player',
     'team.member.abduvoris.contribution':
-      'Video platformasining asosini yaratgan. Bunny.net Stream bilan token-autentifikatsiyali HLS video pleer, videolar ichidagi quiz tizimi, qidiruv va filtrlash — bular Abduvorisning hissasi. Video yuklanish skeletoni va progress tracking ham uniki.',
+      'Video platformasining asosini yaratgan. Token-autentifikatsiyali HLS video pleer, videolar ichidagi quiz tizimi, qidiruv va filtrlash — bular Abduvorisning hissasi. Video yuklanish skeletoni va progress tracking ham uniki.',
     'team.member.doniyor.badge': 'Course Architect',
     'team.member.doniyor.roadmapRole': 'Course Catalog & Enrollment',
     'team.member.doniyor.contribution':

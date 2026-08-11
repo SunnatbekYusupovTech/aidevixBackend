@@ -451,6 +451,15 @@ describe('GET /api/videos/:id/upload-credentials — olib tashlangan', () => {
   });
 
   it("haqiqiy yuklash yo'li — upload-proxy — joyida qoladi", async () => {
+    // Self-contained: uploadVideoProxy does Video.findById(id).select(...)
+    // before its own Content-Length guard, so this describe block must supply
+    // its own mock rather than lean on state a different describe block
+    // happens to leave behind — see the `PUT /api/videos/:id/upload-proxy`
+    // block above for the same pattern.
+    Video.findById.mockReturnValue({
+      select: () => ({ _id: VIDEO_ID, streamPath: `aidevix/${VIDEO_ID}.mp4`, streamStatus: 'ready' }),
+    });
+
     const res = await request(app).put(`/api/videos/${VIDEO_ID}/upload-proxy`);
 
     // Content-Length yo'q → 411. Muhimi: bu express 404 EMAS, ya'ni route bor.

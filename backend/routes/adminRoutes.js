@@ -4,7 +4,7 @@ const {
   getDashboardStats, getTopStudents, getCoursesStats,
   getRecentPayments, getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
-  sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
+  sendTelegramMessage, reorderVideos, getCourseEnrollmentStats,
   getAllEnrollments, adminAwardXp, adminSendMessageToUser,
   updatePayment,
   adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,
@@ -66,7 +66,6 @@ router.patch('/bug-reports/:id', ...guard, validateObjectId('id'), adminReviewBu
 
 // Tools
 router.post('/telegram',          ...guard, sendTelegramMessage);
-router.post('/videos/bulk-link',  ...guard, bulkLinkBunny);
 router.put('/videos/reorder',     ...guard, reorderVideos);
 
 // AI news management

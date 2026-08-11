@@ -361,49 +361,6 @@ const sendTelegramMessage = async (req, res) => {
   }
 };
 
-/** @desc  Bulk Bunny GUID ulash | @route POST /api/admin/videos/bulk-link | @access Admin */
-const bulkLinkBunny = async (req, res) => {
-  try {
-    const { links } = req.body;
-    if (!Array.isArray(links) || links.length === 0)
-      return res.status(400).json({ success: false, message: 'links massivi bo\'sh' });
-    if (links.length > 200)
-      return res.status(400).json({ success: false, message: 'Bir martada maksimal 200 ta link' });
-
-    const invalid = links.find(l =>
-      !l || typeof l !== 'object' ||
-      !isValidId(l.videoId) ||
-      typeof l.bunnyVideoId !== 'string' ||
-      !/^[a-f0-9-]{20,60}$/i.test(l.bunnyVideoId)
-    );
-    if (invalid) {
-      return res.status(400).json({ success: false, message: 'Yaroqsiz videoId yoki bunnyVideoId formati' });
-    }
-
-    const { getBunnyVideoInfo, parseBunnyStatus } = require('../utils/bunny');
-
-    const results = await Promise.allSettled(
-      links.map(async ({ videoId, bunnyVideoId }) => {
-        const info   = await getBunnyVideoInfo(bunnyVideoId);
-        const status = parseBunnyStatus(info.status);
-        await Video.findByIdAndUpdate(videoId, { bunnyVideoId, bunnyStatus: status, duration: info.length || 0 });
-        return { videoId, bunnyVideoId, status };
-      })
-    );
-
-    const succeeded = results.filter(r => r.status === 'fulfilled').map(r => r.value);
-    const failed    = results
-      .map((r, idx) => ({ r, idx }))
-      .filter(({ r }) => r.status === 'rejected')
-      .map(({ r, idx }) => ({ index: idx, videoId: links[idx]?.videoId, error: r.reason?.message }));
-
-    res.json({ success: true, data: { succeeded, failed, total: links.length } });
-  } catch (err) {
-    logger.error('adminController error', { error: err.message });
-    res.status(500).json({ success: false, message: 'Server xatosi' });
-  }
-};
-
 /** @desc  Videolarni qayta tartiblash | @route PUT /api/admin/videos/reorder | @access Admin */
 const reorderVideos = async (req, res) => {
   try {
@@ -709,7 +666,7 @@ module.exports = {
   getDashboardStats, getTopStudents, getCoursesStats, getRecentPayments,
   getUsers, updateUser, deleteUser,
   getUserDetail, globalSearch, getAnalytics,
-  sendTelegramMessage, bulkLinkBunny, reorderVideos, getCourseEnrollmentStats,
+  sendTelegramMessage, reorderVideos, getCourseEnrollmentStats,
   getAllEnrollments, adminAwardXp, adminSendMessageToUser,
   updatePayment,
   adminListChallenges, adminUpdateChallenge, adminDeleteChallenge,

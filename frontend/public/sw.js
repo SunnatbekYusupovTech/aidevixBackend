@@ -5,7 +5,7 @@
  *   - HTML navigation → network-first, offline fallback /offline
  *   - Static assets (/_next/static, fonts, images) → stale-while-revalidate
  *   - API (/api/) → bypass (har doim freshness)
- *   - Video CDN URL — bypass (signed URL TTL bor)
+ *   - Boshqa domenlar (video stream ham shu jumladan) → bypass (origin tekshiruvi)
  *
  * Versiya bumpi yangi versiya deploy bo'lganda barcha eski cache'ni o'chiradi.
  */

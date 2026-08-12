@@ -49,6 +49,14 @@ const FORBIDDEN_IDENTIFIERS = [
   'streamUploadToBunny',
   'parseBunnyStatus',
   'generateSignedEmbedUrl',
+  // Trailing colon matches a JS object property / schema field
+  // (`bunnyStatus: ...`) without matching the surviving `bunnyStatus_1`
+  // index comment in models/Video.js.
+  'bunnyStatus:',
+  // Bunny's CDN domain — a Video Zone hostname (`vz-*.b-cdn.net`) leaking
+  // into docs/examples is exactly the kind of residue this guard exists
+  // to catch (see backend/config/swagger.js history).
+  'b-cdn.net',
 ];
 
 const trackedFiles = () =>
@@ -99,5 +107,14 @@ describe('Bunny.net qoldiqlari', () => {
 
   it('sizib chiqqan kalitli fayl mavjud emas', () => {
     expect(fs.existsSync(path.join(REPO_ROOT, 'fetch_bunny.html'))).toBe(false);
+  });
+
+  // `git ls-files` bo'sh ro'yxat qaytarsa (masalan, repo tracked bo'lmagan
+  // build muhitida), yuqoridagi ikkala offender funksiyasi ham []
+  // qaytaradi va barcha assertion'lar HECH NIMANI tekshirmasdan o'tib
+  // ketadi. Shu holatni ushlab qolish uchun qo'riqchi haqiqatan ham
+  // yetarlicha fayl skanerlaganini tasdiqlaymiz.
+  it('qo\'riqchi bo\'sh emas — haqiqatan ham fayllarni skanerlaydi', () => {
+    expect(trackedFiles().length).toBeGreaterThan(50);
   });
 });

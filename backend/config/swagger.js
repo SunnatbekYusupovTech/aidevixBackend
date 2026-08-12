@@ -510,7 +510,7 @@ Format: \`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\`
             },
             order: { type: 'number', example: 1, description: 'Video tartibi (1 dan boshlanadi) / Порядок видео' },
             duration: { type: 'number', example: 3137, description: 'Davomiylik soniyalarda / Длительность в секундах' },
-            thumbnail: { type: 'string', example: 'https://vz-abc.b-cdn.net/guid/thumbnail.jpg', nullable: true },
+            thumbnail: { type: 'string', example: 'https://example.com/thumb.jpg', nullable: true },
             materials: {
               type: 'array',
               description: 'Qo\'shimcha materiallar (PDF, ZIP va h.k.) / Дополнительные материалы',
@@ -539,7 +539,7 @@ Video hali tayyor bo'lmasa \`player\` — \`null\`.
 
 \`hlsUrl\` — token bilan imzolangan HLS master playlist. Token muddati
 \`MKHLS_STREAM_TOKEN_TTL\` bilan belgilanadi (standart 14400 soniya).
-Master playlist ichidagi rung playlist'lari va segmentlar ham xuddi shu
+Master playlist ichidagi variant playlist'lari va segmentlar ham xuddi shu
 tokenni tashiydi.
 
 **Frontend ishlatish:** Vidstack + hls.js. \`<iframe>\` ISHLATILMAYDI —

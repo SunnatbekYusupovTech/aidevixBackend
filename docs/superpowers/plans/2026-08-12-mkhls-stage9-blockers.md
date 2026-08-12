@@ -527,6 +527,28 @@ cd mkhls-streamer && grep -n "addError" internal/infrastructure/config/validator
 
 Quyidagi hujjat `validator.go` ning shu qatorlariga tayanadi: `:76-84` (`app.env`), `:119` (`vod.root_path`), `:180-195` (`auth.secret_key`), `:226-231` va `:237` (ffmpeg/ffprobe). Chiqishni o'qing va agar biror shart boshqacha bo'lsa hujjatni haqiqiy kodga moslang — **kodni hujjatga moslamang**.
 
+> **TUZATISH (Task 3 review'i, kod bilan tasdiqlangan). Pastdagi hujjat matni
+> uchta joyda XATO edi — shipped `deployments/PREFLIGHT.md` tuzatilgan versiya
+> bilan yozildi. Bu blokni reja tarixiy yozuv sifatida saqlaydi, lekin quyidagi
+> matnni manba sifatida ishlatmang:**
+>
+> 1. **To'rtta tekshiruvdan uchtasi faqat `app.env == "production"` da ishlaydi** —
+>    `validator.go:120` (`vod.root_path`), `:179` (butun `auth.secret_key` bloki),
+>    `:229` va `:238` (ffmpeg/ffprobe). Shartsiz ishlaydigani faqat `app.env`
+>    ning o'zi (`:76-84`). Hujjatning dastlabki matni buni aytmagan.
+> 2. **`vod.root_path` tekshiruvi ulanmagan volume'ni USHLAMAYDI.** `app.go:133`
+>    `initInfrastructure` ni chaqiradi, u `app.go:182` da
+>    `os.MkdirAll(VOD.RootPath)` qiladi; `ValidateConfig` esa undan KEYIN,
+>    `app.go:146` da ishlaydi — `app.go:143-145` izohi buni ochiq aytadi.
+>    Validatsiya paytida katalog doim mavjud. Ulanmagan volume hech qanday start
+>    xatosi bermaydi va videolar doimiy bo'lmagan xotiraga yoziladi. Dastlabki
+>    matn buning TESKARISINI da'vo qilgan edi.
+> 3. **`${VAR}` faqat yo'l maydonlari uchun kengaytiriladi degani xato** —
+>    spec'ning yuqoridagi tuzatishiga qarang; `expandEnvVars` `auth.*` va
+>    `s3.endpoint/access_key/secret_key/bucket` ni ham qamraydi.
+> 4. `auth.secret_key` ning "weak marker" tekshiruvi `:196` da, ya'ni
+>    `:180-195` oralig'idan tashqarida.
+
 - [ ] **Step 2: `deployments/PREFLIGHT.md` ni yarating**
 
 ```markdown

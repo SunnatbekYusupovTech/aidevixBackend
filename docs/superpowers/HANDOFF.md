@@ -8,6 +8,12 @@ Undan keyin **whole-branch review ham o'tkazildi va topilmalari yopildi** — qa
 "Whole-branch review — tuzatilgan bandlar".
 **Merge qilinmagan.** Keyingi qadam — bosqich 8 (xavfsizlik tozalash) va 9 (deploy).
 
+> **2026-08-12 yangilanishi:** bosqich 8 BAJARILDI —
+> `feat/stage8-security-cleanup` branchida, merge qilinmagan. To'liq tafsilot:
+> pastdagi "Bosqich 8 — nima qilindi" bo'limi. **Eng muhimi: Bunny API kaliti
+> hali bekor qilinmagan va u public git tarixida qoladi.** Keyingi qadam —
+> bosqich 9 (deploy).
+
 ---
 
 ## Shu hujjat yozilgandan KEYIN nima bo'ldi (eng muhim qism)
@@ -482,21 +488,94 @@ yiqilishi tekshirildi.
    — har biri alohida to'g'ri ko'ringan tasklar orasidan (masalan `getVideo`
    populate proyeksiyasi, `useVideoLink` sizishi — barchasi alohida task
    review'lardan o'tib ketgan edi, faqat butun-branch review ushladi).
-2. **Bosqich 8 — xavfsizlik tozalash:**
-   - `backend/utils/bunny.js` — o'chirilmagan, deprecated. `deleteBunnyVideo`
-     (eski `deleteVideo` yo'lida) va `bulkLinkBunny`da (`adminController.js`,
-     `adminRoutes.js:69` `POST /videos/bulk-link`) hali ishlatiladi. Qolgan
-     import'lar (`createBunnyVideo`, `getBunnyVideoInfo`,
-     `generateSignedEmbedUrl`, `streamUploadToBunny`) o'lik.
-   - Model'dagi eskirgan `bunnyVideoId`/`bunnyStatus` maydonlari (endi faqat
-     eski yozuvlar uchun, `streamStatus`dan hisoblangan ko'zgu).
-   - `bulk-link` endpointi (yuqorida).
-   - Repo ildizidagi `fetch_bunny.html`.
+2. ~~**Bosqich 8 — xavfsizlik tozalash.**~~ **BAJARILDI** — pastdagi
+   "Bosqich 8 — nima qilindi" bo'limiga qarang. Branch
+   `feat/stage8-security-cleanup`, **merge qilinmagan**.
 3. **Bosqich 9 — deploy.** CORS placeholder'ini haqiqiy domen bilan
    almashtirish (yuqorida) qattiq blokator. Spec §15.2 (mkhls'ning uchta
    oldindan mavjud bug'i — `LocalVideoSource.findVideoFile` kengaytma bug'i,
    prod config `${VAR}` kengaytirilmasligi, `App.New`ning qattiq validatsiyasi)
    ham shu bosqichdan oldin hal qilinishi shart, spec §16 bilan birga o'qing.
+
+---
+
+## Bosqich 8 — nima qilindi (2026-08-12)
+
+Branch `feat/stage8-security-cleanup`, `main`dan `9d74676`da ajralgan, **14 commit**,
+**merge qilinmagan va push qilinmagan**. Spec: `specs/2026-08-11-stage8-security-cleanup-design.md`,
+reja: `plans/2026-08-11-stage8-security-cleanup.md`. Bosqich subagent-driven, 8 task,
+har biri alohida review, oxirida butun-branch review.
+
+Bunny **butunlay** olib tashlandi: `utils/bunny.js` moduli, `deleteVideo` dagi oxirgi
+chaqiruv, `POST /api/admin/videos/bulk-link` + `bulkLinkBunny`, o'lik
+`GET /api/videos/:id/upload-credentials` (backend + frontend), model'dagi
+`bunnyVideoId`/`bunnyStatus` + `index({bunnyStatus:1})`, `/status` javobidagi
+`bunnyStatus` ko'zgusi, swagger'dagi `BunnyPlayer` (→ `StreamPlayer`) va
+`.env.example` dagi `BUNNY_*` bloki, frontend matnlari, hamda `sw.js` dagi Bunny
+bypass hostlari.
+
+### SIZNING ISHINGIZ — hali bajarilmagan
+
+- **Bunny API kaliti hali bekor qilinmagan.** `fetch_bunny.html` ichida qattiq yozilgan
+  kalit (`164b15f1-…`, library `621910`) bor edi; fayl o'chirildi, lekin repo
+  **public** (`github.com/SunnatbekYusupovTech/aidevixBackend`) va kalit **git tarixida
+  qoladi**. Git tarixi ataylab qayta yozilmadi (fork/klon/kesh/scraper sizishni orqaga
+  qaytarmaydi). Yagona samarali chora: `dash.bunny.net` → Stream → library `621910` →
+  API Key'ni **bekor qilish/almashtirish**.
+- **`test-gemini.js` hali repo ildizida, ikkita Google Gemini kaliti bilan.** Siz uni
+  keyinga qoldirdingiz — bu bosqich unga umuman tegmadi (branch tarixida yo'q).
+  Xuddi shu kalitlar ham public tarixda.
+
+### Ataylab qilinmagan qarorlar
+
+- **DB migratsiyasi yo'q.** `bunnyVideoId`/`bunnyStatus` ma'lumoti va `bunnyStatus_1`
+  indeksi MongoDB'da qoladi. Mongoose `strict` rejimi ularni ko'rmaydi, ya'ni zararsiz.
+  Qo'lda tozalash: `db.videos.dropIndex('bunnyStatus_1')` — bu eslatma
+  `backend/models/Video.js` da izoh sifatida yozib qo'yilgan.
+- **Xatti-harakat o'zgarishi:** `bunnyVideoId` tashigan eski video o'chirilganda endi
+  Bunny tomonda yetim yozuv qoladi (backend endi Bunny'ga DELETE yubormaydi).
+- **Uchta izoh ataylab qoldirildi** — ular Bunny nima uchun ketgani va nima
+  qoldirganini tushuntiradi: `models/Video.js` (indeks yo'riqnomasi),
+  `controllers/videoController.js` (mkhls nima uchun slot talab qilmasligi),
+  `frontend/src/app/admin/courses/[id]/page.tsx` (6 daqiqalik polling timeout).
+- **`team/page.tsx` va i18n'da vendor nomi almashtirilmadi, olib tashlandi** — u matn
+  bir odamning tarixiy hissasini tasvirlaydi, "mkhls" deb yozish mkhls ishini
+  (Plan 1-3) unga noto'g'ri yozib qo'ygan bo'lardi.
+- **`.playwright-cli/` dan faqat 2 ta fayl o'chirildi** (Bunny matni tutgani), qolgan
+  37 tasi qoldi.
+
+### Yangi qo'riqchi test — buni bilmasdan o'zgartirmang
+
+`backend/__tests__/no-bunny.test.js`, **ikki qatlamli**:
+
+- **1-qatlam (qattiq):** `FORBIDDEN_IDENTIFIERS` — `bunnycdn`, `mediadelivery.net`,
+  `b-cdn.net`, `BUNNY_*` kalitlari, `utils/bunny`, `bunnyVideoId`, `bunnyStatus:`
+  (ikki nuqta bilan!), `BunnyPlayer`, eski funksiya nomlari. **Istalgan faylda**
+  qizaradi — allowlist uni teshib o'tolmaydi.
+- **2-qatlam (yumshoq):** yalang'och `bunny` so'zi — yuqoridagi uchta izoh fayli
+  (`PROSE_ALLOWLIST`) dan tashqari hamma joyda qizaradi.
+- Istisnolar: `docs/`, `frontend/e2e/`, `backend/__tests__/` — ular yo'qlikni
+  TASDIQLAYDI, shuning uchun Bunny nomini aytishi shart.
+- `bunnyStatus:` ataylab ikki nuqta bilan: `Video.js` dagi `bunnyStatus_1` izohini
+  yolg'on aybdor qilmasligi uchun. Bo'sh joyli variant (`bunnyStatus :`) va
+  TS `bunnyStatus?:` ushlanmaydi — bilib qilingan murosaga.
+- **Allowlist'ga fayl qo'shib testni yashil qilmang.** Ikki marta shu qo'riqchi
+  haqiqiy qoldiqni topdi (`sw.js` dagi Bunny bypass hostlari, keyin swagger'dagi
+  `vz-*.b-cdn.net` thumbnail misoli).
+
+### Tekshirilgan / tekshirilmagan
+
+- Backend: **9 to'plam / 159 test / 0 xato.** Typecheck darvozasi PASS. Frontend build PASS.
+- e2e: ikkala Bunny-yo'qligi testi 6 ta brauzer profilida **12/12 yashil**.
+- **Qolgan 40 e2e xatoligi bu branch'ga aloqasi yo'q**, sababi mexanik ravishda
+  aniqlandi: `admin/layout.tsx:236` da sidebar `hidden lg:block`, ya'ni 1024px dan
+  past ekranlarda ko'rinmaydi; `admin-videos.spec.ts:93,114` esa `getByText('Aidevix
+  Admin')` ni kutadi → 2 test × 3 tor profil = aynan 6 ta. Qolgan 34 tasi WebKit
+  oilasida: player `hls.js` ishlatadi, u MSE talab qiladi, Playwright'ning WebKit
+  build'i esa bunda ma'lum cheklovga ega. Desktop Chromium 45/45 yashil.
+- **Tekshirilmagan:** jonli Docker stack'da uchidan-uchigacha smoke (spec §4.6) —
+  ijro paytida Docker'da konteyner yo'q edi. Deploy'dan keyin bir marta yugurtiring:
+  backend ko'tarilishi va `GET /api/videos/:id` tokenli `hlsUrl` qaytarishi.
 
 ---
 
@@ -517,5 +596,5 @@ yiqilishi tekshirildi.
 
 ## Yangi suhbatni shu bilan boshlang
 
-> `aidevixBackend/docs/superpowers/HANDOFF.md` ni o'qing. Plan 3 tugadi,
-> whole-branch review kutilmoqda.
+> `aidevixBackend/docs/superpowers/HANDOFF.md` ni o'qing. "Bosqich 8 — nima
+> qilindi" bo'limiga alohida e'tibor bering. Bosqich 9 (deploy) ga o'ting.

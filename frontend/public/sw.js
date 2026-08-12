@@ -53,9 +53,6 @@ self.addEventListener('message', (event) => {
 const isBypass = (url) => {
   return (
     url.pathname.startsWith('/api/') ||
-    url.hostname.includes('iframe.mediadelivery.net') ||
-    url.hostname.includes('vz-') ||
-    url.hostname.endsWith('b-cdn.net') ||
     url.pathname.startsWith('/socket.io')
   );
 };

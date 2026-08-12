@@ -417,7 +417,7 @@ Plan 3 davomida topilgan, ataylab tuzatilmagan yangi bo'shliqlar:
 - **`e2e/fixtures/hls-sample-long/` uchun aniq `ffmpeg` buyrug'i yozilmagan
   edi** (Task 7da bayroq qilingan). Task 8'da `ffprobe` bilan mavjud
   segmentlarning har bir parametrini (kodek, profil, o'lcham, fps, audio)
-  mos kelтиradigan buyruq qayta tiklandi va tasdiqlandi (bir xil kodek/
+  mos keltiradigan buyruq qayta tiklandi va tasdiqlandi (bir xil kodek/
   profil/o'lcham/fps, bir xil 4×10s segment chegaralari) —
   `frontend/e2e/fixtures/hls-sample-long/README.md`ga yozildi. Fayl hajmlari
   asl nusxadan sal farq qiladi (asl encoder sifat sozlamasi noma'lum) —

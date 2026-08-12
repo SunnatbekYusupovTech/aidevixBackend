@@ -90,9 +90,20 @@ tuzatish uchun kerak emas (YAGNI).
 
 ### 4.1 Bug — aniq shakli
 
-`internal/infrastructure/config/config.go:507-528` dagi `expandEnvVars` faqat yo'l
-maydonlari va `auth.*` ni `os.ExpandEnv` bilan kengaytiradi. `s3.*`,
-`vod.source_type`, `vod.cache_max_size` qamrab olinmagan.
+`internal/infrastructure/config/config.go:508-551` dagi `expandEnvVars` yo'l
+maydonlarini, `auth.*` ni **va `s3.endpoint`/`access_key`/`secret_key`/`bucket`**
+ni `os.ExpandEnv` bilan kengaytiradi (oxirgi to'rttasi `:537-549`, har biri
+`strings.HasPrefix(x, "${")` qorovuli bilan). Qamrab OLINMAGANLARI:
+`vod.source_type`, `vod.cache_max_size`, va `s3.region`.
+
+> **Tuzatish (Task 2 review'i, kod bilan tasdiqlangan).** Bu spec'ning avvalgi
+> tahriri "`s3.*` qamrab olinmagan" degan edi — bu NOTO'G'RI. Farqning oqibati
+> katta: `os.ExpandEnv("${S3_ENDPOINT}")` env qo'yilmaganda `""` qaytaradi, ya'ni
+> qamrab olingan maydonlar strukturaga **bo'sh satr** bo'lib yetadi, literal
+> `${...}` bo'lib emas. Shuning uchun "qiymatda `${` yo'q" degan tekshiruv ular
+> uchun **trivial o'tadi** va regressiyani ushlamaydi. Faqat yuqoridagi uchta
+> qamrab olinmagan maydon literal placeholder bo'lib ko'rinadi — `s3.region`
+> ning boshqa `s3.*` lardan farq qilishi ham aynan shundan.
 
 Bundan tashqari Go'da `${VAR:-default}` sintaksisi **umuman yo'q** —
 `os.ExpandEnv` uni yaroqsiz o'zgaruvchi nomi deb bo'sh satrga aylantiradi.

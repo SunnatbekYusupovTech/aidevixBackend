@@ -579,6 +579,70 @@ bypass hostlari.
 
 ---
 
+## Plan 4 — mkhls §15.2 blokatorlari (2026-08-12)
+
+Ish **`mkhls-streamer` repo'sida**, `feat/vod-local-pipeline` ga merge qilingan
+(`bc97f80` → `d04955f`, 7 commit). **Push hamon bloklangan** — sentinel joyida.
+Spec: `specs/2026-08-12-mkhls-stage9-blockers-design.md`,
+reja: `plans/2026-08-12-mkhls-stage9-blockers.md`.
+
+Spec §15.2 ning uchala bandi yopildi:
+
+1. **`LocalVideoSource.findVideoFile`** endi kengaytmani ko'r-ko'rona qo'shmaydi
+   (`findS3Video` mantiqi ko'chirildi). `pkg/storage/` da birinchi test fayli paydo bo'ldi.
+2. **Prod config'dagi `${VAR}` placeholder'lari** aniq qiymatlarga almashtirildi;
+   override yagona mexanizm — `MKHLS_` + nuqtali kalit yo'li.
+3. **`deployments/PREFLIGHT.md`** — `App.New` sovuq startda nimani tekshirishi yozildi.
+   Kod o'zgartirilmadi.
+
+### Bu bosqichda spec/rejamning uchta faktik xatosi topildi
+
+Review'lar har birini kod bilan isbotladi; spec va reja tuzatish bloklari bilan yangilandi:
+
+- `expandEnvVars` `s3.endpoint/access_key/secret_key/bucket` va `auth.*` ni **kengaytiradi**
+  (`config.go:537-549`). Qamrab olinmaganlari faqat `vod.source_type`, `vod.cache_max_size`,
+  `s3.region`. Muhimi: `os.ExpandEnv` qo'yilmagan env uchun `""` qaytaradi, ya'ni qamrab
+  olingan maydonlar uchun "qiymatda `${` yo'q" tekshiruvi **trivial o'tadi**.
+- `vod.root_path` tekshiruvi **ulanmagan volume'ni ushlamaydi**: `app.go:133`
+  `initInfrastructure` → `app.go:182` `MkdirAll`, `ValidateConfig` esa `app.go:146` da.
+  Ulanmagan volume hech qanday start xatosi bermaydi — videolar doimiy bo'lmagan xotiraga yoziladi.
+- Validator tekshiruvlarining uchtasi **faqat `app.env == "production"`** da ishlaydi
+  (`validator.go:120, 179, 229, 238`).
+
+### Yakuniy review topgan chok-orasidagi regressiya (eng muhim)
+
+`${VAR}` larni o'chirish repo'ning **o'z** `deployments/docker/docker-compose.yml` idagi
+prefikssiz env o'zgaruvchilarining yagona kanalini uzgan edi. Eng xavflisi:
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` e'tiborsiz qolib, `app.go:330-334` Debug'da log yozib
+`return nil` qiladi — **admin user yaratilmaydi, server ko'tariladi, kirish mumkin emas,
+hech qanday xato yo'q**. Compose'dagi 12 ta o'zgaruvchi `MKHLS_` shakliga o'tkazildi.
+
+Task review'lari buni ko'ra olmasdi: biri YAML'ni, ikkinchisi hujjatni ko'rgan,
+compose faylini hech kim ochmagan.
+
+### Ochiq bandlar
+
+- **`.flv` / `.wmv` / `.m4v` uchun DOIMIY 404 hamon jonli.** `admin_handler.go:791-794`
+  bu formatlarni yuklashga ruxsat beradi, `vod.allowed_extensions` da esa ular yo'q →
+  `findVideoFile` to'g'ridan-to'g'ri stat filialini o'tkazib yuboradi va Task 1 aynan
+  `.mp4` uchun yopgan xato takrorlanadi. Oldindan mavjud, bu branch kiritmagan.
+- `docker-compose.yml:25` `/data/videos` ni `:ro` qilib ulaydi, `admin_handler.go:819-820`
+  esa unga yozadi.
+- `deployments/PREFLIGHT.md` da bitta havola oralig'i qisqa: `338-360` → `338-387`
+  (`validateLogging` 339-387). Bir qatorlik tuzatish, parklangan.
+- `aidevixBackend/docker-compose.dev.yml:33-41` izohi endi yolg'on — prod config'da
+  `${VAR:-default}` qolmagan.
+- **`mkhls-streamer/CLAUDE.md`** "No Claude attribution in commits" deydi, bu reja esa
+  `Co-Authored-By` trailer'ini majbur qilgan — ettala commitda ham bor. Hal qilinmagan.
+
+### Bosqich 9 uchun qolgani
+
+CORS hamon qattiq blokator: `configs/production/config.yaml` da `your-domain.com`
+placeholder'lari. Kutilayotgan qiymat — **`stream.aidevix.uz`**. Foydalanuvchi uni
+ulangandan keyin qaytishni so'radi.
+
+---
+
 ## Ishlash uslubi (uch marta ketma-ket yaxshi ishladi, Plan 3'da to'rtinchi marta ham)
 
 `superpowers` skill'lari: brainstorming → writing-plans → subagent-driven-development.
@@ -596,5 +660,5 @@ bypass hostlari.
 
 ## Yangi suhbatni shu bilan boshlang
 
-> `aidevixBackend/docs/superpowers/HANDOFF.md` ni o'qing. "Bosqich 8 — nima
+> `aidevixBackend/docs/superpowers/HANDOFF.md` ni oqing. "Bosqich 8" va "Plan 4"
 > qilindi" bo'limiga alohida e'tibor bering. Bosqich 9 (deploy) ga o'ting.

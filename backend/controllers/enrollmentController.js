@@ -69,10 +69,20 @@ const markVideoWatched = async (req, res) => {
     // fire-and-forget side effects below would already have run.
     const position = sanitizePosition(positionSeconds ?? watchedSeconds);
 
-    // PB-005: parallelize independent reads
-    const [enrollment, course] = await Promise.all([
+    // The active Video set replaces Course.videos as the source of truth here.
+    // That array is written by createVideo but never repaired: deleteVideo does
+    // not pull from it and updateVideo can set isActive:false without touching
+    // it. One stale entry made progressPercent unable to reach 100, so the
+    // certificate could never issue for that course again.
+    //
+    // This is the same query getCourseVideos runs, so progress is now computed
+    // over exactly the lessons the student can actually see. It replaces the
+    // Course load rather than adding to it — the course document was used for
+    // nothing else here, and _issueCertificate takes the courseId string.
+    // Covered by the { course: 1, isActive: 1 } index on Video.
+    const [enrollment, activeVideos] = await Promise.all([
       Enrollment.findOne({ userId: req.user._id, courseId }),
-      Course.findById(courseId).select('videos').lean(),
+      Video.find({ course: courseId, isActive: true }).select('_id').lean(),
     ]);
     if (!enrollment)
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
@@ -83,14 +93,12 @@ const markVideoWatched = async (req, res) => {
     // 100 and _issueCertificate fires below — and the viewCount $inc at the
     // end of this handler is what orders videos on the home page.
     //
-    // course.videos is already loaded above, so this costs no extra query.
+    // activeVideos is already loaded above, so this costs no extra query.
     // 404 rather than 403: "not part of this course" and "does not exist"
     // are the same thing from the caller's side, and the neighbouring
     // "not enrolled" response above is a 404 too.
-    const belongsToCourse = course
-      && Array.isArray(course.videos)
-      && course.videos.some(v => v && v.toString() === videoId);
-    if (!belongsToCourse) {
+    const activeVideoIds = new Set((activeVideos || []).map((v) => v._id.toString()));
+    if (!activeVideoIds.has(videoId)) {
       return res.status(404).json({ success: false, message: 'Bu dars ushbu kursga tegishli emas' });
     }
 
@@ -107,9 +115,16 @@ const markVideoWatched = async (req, res) => {
     }
 
     // Progress hisoblash
-    const totalVideos = course ? course.videos.length : 0;
+    // Numerator and denominator come from the same set, so progress cannot
+    // exceed 100 when a watched lesson is later deactivated or deleted. The
+    // user loses credit for such a lesson — deliberate: the alternative is a
+    // numerator that outgrows its denominator.
+    const totalVideos = activeVideoIds.size;
+    const watchedActive = enrollment.watchedVideos.filter(
+      (w) => activeVideoIds.has(w.videoId.toString())
+    ).length;
     enrollment.progressPercent = totalVideos > 0
-      ? Math.round((enrollment.watchedVideos.length / totalVideos) * 100)
+      ? Math.round((watchedActive / totalVideos) * 100)
       : 0;
     enrollment.totalWatchedSeconds += delta;
 

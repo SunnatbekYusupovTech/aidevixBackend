@@ -53,26 +53,27 @@ const mockEnrollment = () => {
   return doc;
 };
 
-// Course carries exactly one video, so a single accepted write would take
-// progressPercent to 100 and mint a certificate. That makes the foreign-id
-// case unambiguous: if the guard fails, the test sees a certificate.
+// _issueCertificate still loads the course for its title. markVideoWatched no
+// longer reads Course at all — it derives everything from the Video set below.
 const mockCourse = () => {
-  Course.findById.mockImplementation((id) => ({
-    select: jest.fn((fields) => {
-      if (fields === 'videos') {
-        return { lean: async () => ({ _id: COURSE_ID, videos: [OWN_VIDEO_ID] }) };
-      }
-      if (fields === 'title') {
-        return Promise.resolve({ _id: COURSE_ID, title: 'Test Course' });
-      }
-      return {};
-    }),
+  Course.findById.mockImplementation(() => ({
+    select: jest.fn(() => Promise.resolve({ _id: COURSE_ID, title: 'Test Course' })),
   }));
+};
+
+// The active-video set is now the single source for membership, the progress
+// denominator, and which watched entries still count. Tests pass the ids they
+// want Video.find({course, isActive:true}) to return.
+const mockActiveVideos = (ids) => {
+  Video.find.mockReturnValue({
+    select: () => ({ lean: async () => ids.map((id) => ({ _id: id })) }),
+  });
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockCourse();
+  mockActiveVideos([OWN_VIDEO_ID]);
   Video.updateOne.mockReturnValue({
     exec: jest.fn().mockResolvedValue({}),
   });
@@ -108,5 +109,64 @@ describe('POST /api/enrollments/:courseId/watch/:videoId', () => {
     expect(res.status).toBe(200);
     expect(doc.watchedVideos).toHaveLength(1);
     expect(doc.save).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/enrollments/:courseId/watch/:videoId — progress Video to\'plamidan', () => {
+  const STALE_ID = '68f00112233445566778899e';
+
+  it('massivda qolgan, lekin endi mavjud bo\'lmagan dars sertifikatni to\'smaydi', async () => {
+    const doc = mockEnrollment();
+    // The array still lists two lessons, but only one is a live active Video —
+    // the other was deleted or deactivated and never pulled. Reading the array
+    // would give a denominator of 2, so watching the only real lesson would
+    // stop at 50% and the certificate would never issue for this course.
+    // This single case covers both stale-deleted and soft-deleted (isActive:false)
+    // entries: the mechanism is identical — an id the Video query does not return.
+    Course.findById.mockImplementation(() => ({
+      select: jest.fn(() => Promise.resolve({ _id: COURSE_ID, title: 'Test Course', videos: [OWN_VIDEO_ID, STALE_ID] })),
+    }));
+    mockActiveVideos([OWN_VIDEO_ID]);
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 30 });
+
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBe(100);
+    expect(doc.isCompleted).toBe(true);
+    expect(Certificate.create).toHaveBeenCalled();
+  });
+
+  it('ko\'rilgan dars keyin nofaol bo\'lsa progress 100 dan oshmaydi', async () => {
+    const doc = mockEnrollment();
+    // The user already watched two lessons; one of them is no longer in the
+    // active set. Counting raw watchedVideos.length against a denominator of 1
+    // would give 200%.
+    doc.watchedVideos = [
+      { videoId: OWN_VIDEO_ID, watchedSeconds: 10 },
+      { videoId: STALE_ID, watchedSeconds: 10 },
+    ];
+    mockActiveVideos([OWN_VIDEO_ID]);
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 40 });
+
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBe(100);
+  });
+
+  it('kursda faol dars bo\'lmasa 404 qaytaradi va hech narsani o\'zgartirmaydi', async () => {
+    const doc = mockEnrollment();
+    mockActiveVideos([]);
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 30 });
+
+    expect(res.status).toBe(404);
+    expect(doc.save).not.toHaveBeenCalled();
+    expect(Video.updateOne).not.toHaveBeenCalled();
   });
 });

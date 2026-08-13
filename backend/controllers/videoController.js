@@ -506,6 +506,15 @@ const deleteVideo = async (req, res) => {
       }
     }
 
+    // Course.videos is written by createVideo and, until this line existed, never
+    // repaired. Nothing reads it any more — markVideoWatched derives progress
+    // from Video.find({course, isActive:true}) — but leaving a knowingly wrong
+    // array in the database misleads the next reader, and anything that starts
+    // reading it later would be silently wrong.
+    if (video.course) {
+      await Course.updateOne({ _id: video.course }, { $pull: { videos: video._id } });
+    }
+
     await video.deleteOne();
 
     res.json({

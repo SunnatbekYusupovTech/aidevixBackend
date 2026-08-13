@@ -35,6 +35,7 @@ const Video = require('../../models/Video');
 const Enrollment = require('../../models/Enrollment');
 const VideoLink = require('../../models/VideoLink');
 const User = require('../../models/User');
+const Course = require('../../models/Course');
 const mkhls = require('../../utils/mkhls');
 
 const VIDEO_ID = '68f00112233445566778899a';
@@ -590,5 +591,27 @@ describe('PUT /api/videos/:id/upload-proxy — hajm chegarasi', () => {
     // which is why the status below ends up 502, not 200).
     expect(mkhls.uploadVideo).toHaveBeenCalled();
     expect(res.status).not.toBe(413);
+  });
+});
+
+describe('DELETE /api/videos/:id — Course.videos tozalanadi', () => {
+  it('o\'chirilgan videoni kursning videos massividan chiqaradi', async () => {
+    const COURSE = '68f00112233445566778899b';
+    Video.findById.mockResolvedValue({
+      _id: VIDEO_ID,
+      course: COURSE,
+      streamPath: null,
+      bunnyVideoId: null,
+      deleteOne: jest.fn().mockResolvedValue(undefined),
+    });
+    Course.updateOne.mockResolvedValue({});
+
+    const res = await request(app).delete(`/api/videos/${VIDEO_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(Course.updateOne).toHaveBeenCalledWith(
+      { _id: COURSE },
+      { $pull: { videos: VIDEO_ID } }
+    );
   });
 });

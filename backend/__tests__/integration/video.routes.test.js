@@ -510,9 +510,10 @@ describe("GET /api/videos/:id/status — bunnyStatus ko'zgusi olib tashlandi", (
 
 describe('GET /api/videos/:id — course proyeksiyasi', () => {
   it('faqat _id, title va category qaytaradi', async () => {
-    // mockVideo's course object deliberately carries a field no client needs.
-    // Before the projection it reached the response verbatim; the assertion
-    // below is what proves it no longer does.
+    // The populate mock checks that the controller passes the projection
+    // argument correctly. The response key assertion below confirms the
+    // response shape (no extra fields added by hand), not that the
+    // projection was applied — that's what the populate assertion proves.
     Video.findById.mockReturnValue({
       populate: (path, projection) => {
         expect(path).toBe('course');

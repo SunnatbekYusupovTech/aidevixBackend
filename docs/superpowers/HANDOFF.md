@@ -622,10 +622,14 @@ compose faylini hech kim ochmagan.
 
 ### Ochiq bandlar
 
-- **`.flv` / `.wmv` / `.m4v` uchun DOIMIY 404 hamon jonli.** `admin_handler.go:791-794`
-  bu formatlarni yuklashga ruxsat beradi, `vod.allowed_extensions` da esa ular yo'q →
-  `findVideoFile` to'g'ridan-to'g'ri stat filialini o'tkazib yuboradi va Task 1 aynan
-  `.mp4` uchun yopgan xato takrorlanadi. Oldindan mavjud, bu branch kiritmagan.
+- ~~**`.flv` / `.wmv` / `.m4v` uchun DOIMIY 404 hamon jonli.**~~ **YOPILDI**
+  (Plan 5, mkhls `86651cf`, `beb9cb6`, `52172c7`). Yuklash ro'yxati beshtaga
+  toraytirildi (`.flv`/`.wmv`/`.m4v` endi butunlay rad etiladi, foydalanuvchi
+  qarori — pastdagi "Plan 5" bo'limiga qarang) va ikkala kirish nuqtasi —
+  yuklash (`admin_handler.go` upload handler) ham, `ScanVideos` ham — endi
+  qattiq yozilgan ro'yxat emas, `vod.allowed_extensions`ning o'zini o'qiydi.
+  Ikki ro'yxatning mustaqil ajralib ketishi endi tuzilishi mumkin emas —
+  yagona haqiqat manbai bitta joyda.
 - `docker-compose.yml:25` `/data/videos` ni `:ro` qilib ulaydi, `admin_handler.go:819-820`
   esa unga yozadi.
 - `deployments/PREFLIGHT.md` da bitta havola oralig'i qisqa: `338-360` → `338-387`
@@ -640,6 +644,69 @@ compose faylini hech kim ochmagan.
 CORS hamon qattiq blokator: `configs/production/config.yaml` da `your-domain.com`
 placeholder'lari. Kutilayotgan qiymat — **`stream.aidevix.uz`**. Foydalanuvchi uni
 ulangandan keyin qaytishni so'radi.
+
+---
+
+## Plan 5 — beshta jonli xato (2026-08-13)
+
+Spec: `docs/superpowers/specs/2026-08-12-plan5-live-bugs-design.md`. Ikkita repo:
+
+- **`mkhls-streamer`**, branch `feat/plan5-extensions` — Band 1
+  (`86651cf`, `beb9cb6`, `52172c7`, yuqoridagi "Ochiq bandlar"da yopilgan deb
+  belgilandi).
+- **`aidevixBackend`**, branch `feat/plan5-live-bugs` — Band 2-5: `398a56c`
+  (bosh sahifa `motion`→`m`), `25c6ddc`+`15a463b` (`getVideo` proyeksiyasi),
+  `1c6e4c3`+`3d7dc0c` (yuklash 5 GB chegarasi). Band 4
+  (`markVideoWatched` a'zolik tekshiruvi) shu branch commitlari ichida —
+  aniq commit uchun `git log --oneline` bilan `enrollmentController.js`ni
+  qidiring.
+
+Ikkala branch ham **merge qilinmagan, push qilinmagan** — mkhls'da sentinel
+hamon joyida.
+
+Whole-branch review (final) o'tkazildi va uchta topilma yopildi (kod
+o'zgarishlari yuqoridagi ochiq band ro'yxatiga ta'sir qilmadi, bundan
+mustasno — pastga qarang): mkhls'da extension-gate `header.Filename`ni emas,
+saqlash yo'lini tekshirishi kerakligi (Minor) va normalizatsiya bitta
+iste'molchida emas, config qatlamida bo'lishi kerakligi (Minor) tuzatildi.
+Uchinchi topilma quyida yangi ochiq band sifatida yozildi — u tuzatilmadi,
+chunki qamrovi shu spec'dan tashqarida (aidevix yuklash yo'li, mkhls emas).
+
+### Yangi ochiq bandlar (Plan 5 spec §5.3, §6 va final review)
+
+- **Eski `enrollment.watchedVideos` yozuvlari begona `videoId`larni hali ham
+  ko'tarib yuribdi.** Band 4 (§5.1-5.2) faqat **yangi** yozuvlarni himoya
+  qildi — `push`dan oldin a'zolik tekshiriladi. Bu tuzatishdan **oldin**
+  yozilgan qatorlar tekshiruvsiz o'tib ketgan, ular hali bazada turibdi va
+  bugun ham `progressPercent`ni shishirib turibdi. Tozalash **migratsiya**
+  bo'ladi; spec §5.3 buni ataylab qamrovdan tashqarida qoldirdi (bosqich 8,
+  Plan 4 bilan izchil — DB'ga tegmaslik qarori). Migratsiya yozilmagan.
+- **mkhls'ning o'z yuklash hajmi chegarasi yo'q.** Band 5 (§6) faqat backend
+  proxy'ni 5 GB bilan chegaraladi (`videoController.js`, `uploadVideoProxy`).
+  Ilova mkhls'ga faqat shu proxy orqali boradi, shuning uchun amaliy
+  bo'shliq **chegaralangan**, lekin mkhls'ning o'z admin API'siga
+  to'g'ridan-to'g'ri murojaat qiladigan har qanday boshqa chaqiruvchi uchun
+  haqiqiy bo'shliq qoladi. Spec bu holni ataylab tuzatmaslikka qaror qildi
+  (YAGNI, §6).
+- **Eng muhimi — aidevix yuklash yo'li mkhls'ga har doim `.mp4` deb
+  taqdim etadi, admin nima tanlagani muhim emas.** Final review topdi.
+  `backend/utils/mkhls.js:214` yuklashda `filename:
+  streamPath.split('/').pop()` deb qo'yadi, `streamPath` esa
+  `buildStreamPath` (`:54`) orqali doim `<namespace>/<videoId>.mp4`
+  ko'rinishida quriladi — ya'ni haqiqiy fayl kengaytmasi (`.flv`, `.avi`,
+  nima bo'lishidan qat'i nazar) mkhls'ga hech qachon yetib bormaydi, mkhls
+  esa har doim `.mp4` ko'radi. Natijada Band 1'ning mkhls tomonidagi
+  kengaytma darvozasi (yuqoridagi "YOPILDI" bandi) **aidevix admin panelidan
+  kelgan yuklashlarni umuman ko'rmaydi** — admin `lesson.flv`ni admin panel
+  orqali yuklasa, u baribir qabul qilinadi va `<id>.mp4` deb saqlanadi,
+  keyin esa doimiy 404 (aynan Band 1 yopgan sinf xato) qaytadan sodir
+  bo'ladi, faqat bu safar mkhls tomonidagi darvoza uni to'xtatolmaydi. Band
+  1'ning spec'dagi asoslamasi — "admin darhol aniq xato oladi" (§2.2) — bu
+  yo'l uchun **to'g'ri emas**: darvoza faqat mkhls admin API'sining
+  to'g'ridan-to'g'ri chaqiruvchilarini himoya qiladi, aidevix oqimini emas.
+  Tuzatish bu spec qamrovidan tashqarida qoldirildi — keyingi kishi
+  `mkhls.js`da haqiqiy fayl kengaytmasini (masalan asl fayl nomidan yoki
+  MIME turidan) `streamPath`/`filename`ga o'tkazish yo'lini ko'rib chiqsin.
 
 ---
 

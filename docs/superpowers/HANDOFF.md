@@ -92,8 +92,8 @@ qoldirmang — shu faylga yozing.
 
 | Repo | Branch | Holat |
 |---|---|---|
-| `AiDeVix/mkhls-streamer` | `feat/vod-local-pipeline` | `bc97f80`, o'zgarishsiz. Push hali **bloklangan** (`origin` push URL — `PUSH-DISABLED--fork-qiling-spec-5-bolim` sentinel, tekshirilgan — hali joyida). |
-| `AiDeVix/aidevixBackend` | `feat/plan3-frontend-player` | `eaa274f`da **50 commit oldinda** `origin/main`dan (`34c4c47`), merge-base = `origin/main` — ya'ni branch `main`dan **toza descendant**, konflikt yo'q, fast-forward mumkin. Bu son har HANDOFF commit'ida o'zgaradi (masalan shu tuzatish commit'i bilan 51 bo'ladi) — aniq raqamga ishonmang, `git log --oneline origin/main..HEAD \| wc -l` bilan qayta hisoblang. Hech narsa push qilinmagan. Har bir commit `Co-Authored-By: Claude Opus 5 (1M context)` trailer bilan. |
+| `AiDeVix/mkhls-streamer` | `feat/vod-local-pipeline` | **`d04955f`** — Plan 4 shu branchga merge qilindi (`bc97f80` dan 7 commit, fast-forward). Push hali **bloklangan** (`origin` push URL — `PUSH-DISABLED--fork-qiling-spec-5-bolim` sentinel, tekshirilgan — hali joyida). |
+| `AiDeVix/aidevixBackend` | **`main`** | Plan 3 ham, bosqich 8 ham `main`ga merge qilingan; feature branchlar o'chirilgan. `origin/main` (`34c4c47`) dan ~76+ commit oldinda va **hech narsa push qilinmagan**. Aniq raqamga ishonmang — `git log --oneline origin/main..HEAD \| wc -l` bilan qayta hisoblang. Har bir commit `Co-Authored-By: Claude Opus 5 (1M context)` trailer bilan. |
 
 mkhls Aidevix repo'sining **ichida emas, yonida** (`../mkhls-streamer`) — spec'ning
 "mijoz, klonuvchi emas" qoidasi. Bu qoida saqlanadi.

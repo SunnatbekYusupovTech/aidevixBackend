@@ -710,6 +710,68 @@ chunki qamrovi shu spec'dan tashqarida (aidevix yuklash yo'li, mkhls emas).
 
 ---
 
+## Plan 6 — `Course.videos` drift'i (2026-08-13)
+
+Spec: `docs/superpowers/specs/2026-08-12-plan6-course-videos-drift-design.md`, reja:
+`docs/superpowers/plans/2026-08-12-plan6-course-videos-drift.md`. `aidevixBackend`
+branch `feat/plan6-course-videos-drift`, **merge qilinmagan**. Ikkita task:
+
+- Task 1 (`eeb7b31`): `markVideoWatched` endi progressni `Course.videos`dan emas,
+  `Video.find({course, isActive:true})`dan hisoblaydi. Sertifikatning abadiy
+  bo'g'ilishi, nofaol darsning maxrajni shishirishi va progressning 100 dan oshib
+  ketishi shu bilan yopildi.
+- Task 2 (`e40db62`, `2c2bff9`): `deleteVideo` endi `Course.videos`dan `$pull`
+  qiladi.
+
+Shundan keyin bitta whole-branch review + tuzatish to'lqini o'tkazildi (xuddi shu
+sana), uch topilma bilan: (1) spec/reja/HANDOFF'ning "yagona o'quvchi" da'vosi
+noto'g'ri ekani hujjatlarda tuzatildi (pastda batafsil); (2) `_issueCertificate`
+xatosi endi sukut bo'yicha yutilmaydi, `isCompleted` faqat sertifikat haqiqatan
+chiqqanda (yoki duplikat sifatida allaqachon mavjud bo'lganda) belgilanadi; (3)
+`markVideoWatched`dagi progress hisobi endi `watchedVideos`dagi takroriy
+`videoId` yozuvlarini alohida sanamaydi (`Set` orqali distinct hisoblanadi) —
+aks holda ikkita bir vaqtdagi so'rov bitta darsni ikki marta push qilib, progress
+100 dan oshib, `ValidationError` bilan enrollment abadiy buzilishi mumkin edi.
+
+### Ochiq band — spec/reja "yagona o'quvchi" da'vosi noto'g'ri edi
+
+Spec §2 `Course.videos` ning yagona o'quvchisi `markVideoWatched` degan da'vo
+qilgan edi. Bu **noto'g'ri**. Uchta o'quvchi bugun ham tirik:
+
+- `backend/controllers/courseController.js:58` — `getAllCourses`,
+  `Course.find(filter)...lean()`, proyeksiyasiz — xom massiv har bir
+  `GET /api/courses` elementida jo'natiladi.
+- `backend/controllers/courseController.js:155-160` — `getCourse`,
+  `.populate({ path: 'videos', match: { isActive: true } })` — bu **xavfsiz**
+  (Mongoose eskirgan/nofaol ID'larni filtrlaydi).
+- `backend/controllers/rankingController.js:46` — `getTopCourses`,
+  `.select('... videos ...')` — xom massiv `GET /api/ranking/courses`da ham
+  jo'natiladi.
+
+**Foydalanuvchiga ko'rinadigan oqibat:**
+`frontend/src/components/courses/CourseCard.tsx:90` —
+`course.videos?.length ?? course.videoCount ?? 0` — dars-soni belgisini shu bilan
+hisoblaydi. Yuqoridagi ikkita xavfli o'quvchi har doim `videos`ni ta'minlagani
+uchun `videoCount` fallback'i hech qachon ishga tushmaydi: belgi **bugun** xom
+massiv uzunligining o'zi, va har o'chirilgan/nofaol qilingan video uni abadiy
+shishiradi.
+
+Shu sababli spec §5'dagi "massiv saqlanadi, migratsiya kerak emas — chunki hech
+kim o'qimaydi" qarori **noto'g'ri asosda qabul qilingan** va endi yopilgan qaror
+emas — ochiq savol: foydalanuvchi (a) migratsiyani (eskirgan massiv yozuvlarini
+`Video` to'plamiga moslab tozalash) yoki (b) uchta o'quvchini proyeksiya bilan
+tuzatishni (`getAllCourses`/ranking'ning `getTopCourses`iga `.select('-videos')`
+qo'shish, `getRecommendedCourses` dagidek) tanlashi kerak. Ikkalasi ham bu
+tuzatish to'lqini qamrovidan tashqarida qoldirildi — faqat hujjatlashtirildi.
+
+Task 1 Step 9'ning tekshiruv grep'i
+(`course\.videos\|\.videos\.length\|\.videos\.some`) bu uchta o'quvchidan hech
+birini tuta olmaydi — `.populate`, `.select('...videos...')` va proyeksiyasiz
+`.find().lean()` shu naqshlarga mos kelmaydi. Shuning uchun u hech narsani
+isbotlamadi; spec va reja faylida bu holat alohida tuzatildi.
+
+---
+
 ## Ishlash uslubi (uch marta ketma-ket yaxshi ishladi, Plan 3'da to'rtinchi marta ham)
 
 `superpowers` skill'lari: brainstorming → writing-plans → subagent-driven-development.

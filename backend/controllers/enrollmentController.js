@@ -119,20 +119,38 @@ const markVideoWatched = async (req, res) => {
     // exceed 100 when a watched lesson is later deactivated or deleted. The
     // user loses credit for such a lesson — deliberate: the alternative is a
     // numerator that outgrows its denominator.
+    //
+    // watchedActive counts DISTINCT ids, not entries. watchedVideos has no
+    // uniqueness constraint, and isFirstWatch only dedupes within a single
+    // request — two concurrent POSTs for the same new videoId can each find
+    // nothing, each push, and both survive their own save(). Counting entries
+    // would let progressPercent exceed 100 (min/max validator rejects the
+    // save with a ValidationError), permanently bricking the enrollment.
     const totalVideos = activeVideoIds.size;
-    const watchedActive = enrollment.watchedVideos.filter(
-      (w) => activeVideoIds.has(w.videoId.toString())
-    ).length;
+    const watchedActive = new Set(
+      enrollment.watchedVideos
+        .map((w) => w.videoId.toString())
+        .filter((id) => activeVideoIds.has(id))
+    ).size;
     enrollment.progressPercent = totalVideos > 0
       ? Math.round((watchedActive / totalVideos) * 100)
       : 0;
     enrollment.totalWatchedSeconds += delta;
 
-    // Kurs tugallandi
+    // Kurs tugallandi — isCompleted/completedAt faqat sertifikat haqiqatan
+    // chiqqanda (yoki allaqachon mavjud bo'lganda) belgilanadi. Bundan oldin
+    // bu ikkalasi _issueCertificate natijasidan qat'i nazar yozilardi: bitta
+    // vaqtinchalik xato (masalan kurs allaqachon o'chirilgan bo'lsa) enrollment'ni
+    // "tugallangan, lekin sertifikatsiz" holatda abadiy qoldirardi — qayta
+    // urinish yo'li yo'q edi, chunki isCompleted hech qayerda qayta false
+    // qilinmaydi. Xato bo'lsa, enrollment tugallanmagan holda qoladi va
+    // keyingi watch shu yerni qayta uradi.
     if (enrollment.progressPercent >= 100 && !enrollment.isCompleted) {
-      enrollment.isCompleted = true;
-      enrollment.completedAt = new Date();
-      await _issueCertificate(req.user, courseId, enrollment._id);
+      const issued = await _issueCertificate(req.user, courseId, enrollment._id);
+      if (issued) {
+        enrollment.isCompleted = true;
+        enrollment.completedAt = new Date();
+      }
     }
 
     await enrollment.save();
@@ -193,10 +211,19 @@ const getCourseProgress = async (req, res) => {
   }
 };
 
-// Ichki sertifikat berish funksiyasi
+// Ichki sertifikat berish funksiyasi.
+// Return value drives markVideoWatched's isCompleted assignment: truthy means
+// "treat the enrollment as completed" (a certificate now exists, or already
+// existed), falsy means "do not complete — retry on the next watch".
 const _issueCertificate = async (user, courseId, enrollmentId) => {
+  // Course.deleteCourse has no cascade (Videos and Enrollments outlive their
+  // Course), so this can legitimately find nothing. Returning early here
+  // means the caller never marks the enrollment completed for a course that
+  // no longer exists.
+  const course = await Course.findById(courseId).select('title');
+  if (!course) return false;
+
   try {
-    const course = await Course.findById(courseId).select('title');
     const code = crypto.randomBytes(8).toString('hex').toUpperCase();
     const cert = await Certificate.create({
       userId: user._id,
@@ -218,7 +245,17 @@ const _issueCertificate = async (user, courseId, enrollmentId) => {
 
     return cert;
   } catch (err) {
-    // duplicate sertifikat bo'lsa skip
+    if (err.code === 11000) {
+      // Duplicate-key: a certificate for this enrollment already exists —
+      // that is success from the caller's point of view, not a failure.
+      return true;
+    }
+    // Anything else is a real failure. It used to be swallowed silently here,
+    // which is how a deleted-course TypeError ("course.title" of null) ended
+    // up marking enrollments completed with no certificate, permanently —
+    // isCompleted is set unconditionally by the caller and nothing resets it.
+    console.error('[enrollment] _issueCertificate:', err.message);
+    return false;
   }
 };
 

@@ -26,6 +26,7 @@ const Course = require('../../models/Course');
 const Video = require('../../models/Video');
 const Certificate = require('../../models/Certificate');
 const ActivityLog = require('../../models/ActivityLog');
+const { sendCertificateEmail } = require('../../utils/emailService');
 
 const COURSE_ID = '68f00112233445566778899b';
 const OWN_VIDEO_ID = '68f00112233445566778899a';
@@ -79,6 +80,13 @@ beforeEach(() => {
   });
   Certificate.create.mockResolvedValue({});
   ActivityLog.create.mockResolvedValue({});
+  // jest.mock('../../utils/emailService') automocks sendCertificateEmail as a
+  // plain jest.fn() that returns undefined by default — but the real function
+  // is async and always returns a Promise. _issueCertificate chains
+  // `.catch(() => {})` straight off the call, so without this the mock's
+  // `undefined` return blows up with "Cannot read properties of undefined
+  // (reading 'catch')" on every successful certificate issuance.
+  sendCertificateEmail.mockResolvedValue({});
 });
 
 describe('POST /api/enrollments/:courseId/watch/:videoId', () => {
@@ -168,5 +176,89 @@ describe('POST /api/enrollments/:courseId/watch/:videoId — progress Video to\'
     expect(res.status).toBe(404);
     expect(doc.save).not.toHaveBeenCalled();
     expect(Video.updateOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/enrollments/:courseId/watch/:videoId — sertifikat chiqmasa isCompleted belgilanmaydi', () => {
+  it('Certificate.create duplikat bo\'lmagan xato bilan rad etsa, isCompleted false qoladi', async () => {
+    const doc = mockEnrollment();
+    mockActiveVideos([OWN_VIDEO_ID]);
+    Certificate.create.mockRejectedValueOnce(new Error('Mongo bosh og\'rig\'i'));
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 30 });
+
+    // The request itself still succeeds — a certificate hiccup is not the
+    // caller's problem — but the enrollment must NOT be marked completed,
+    // so the next watch on this course retries certificate issuance.
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBe(100);
+    expect(doc.isCompleted).toBe(false);
+    expect(doc.completedAt).toBeUndefined();
+    expect(doc.save).toHaveBeenCalled();
+  });
+
+  it('Certificate.create duplikat-kalit (11000) bilan rad etsa, isCompleted baribir true bo\'ladi', async () => {
+    const doc = mockEnrollment();
+    mockActiveVideos([OWN_VIDEO_ID]);
+    const dupErr = new Error('E11000 duplicate key');
+    dupErr.code = 11000;
+    Certificate.create.mockRejectedValueOnce(dupErr);
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 30 });
+
+    // A duplicate certificate means one already exists for this enrollment —
+    // that is success from the caller's point of view, not a failure.
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBe(100);
+    expect(doc.isCompleted).toBe(true);
+    expect(doc.completedAt).toBeInstanceOf(Date);
+  });
+
+  it('kurs allaqachon o\'chirilgan bo\'lsa (Course topilmasa) yiqilmaydi va tugallanmaydi', async () => {
+    const doc = mockEnrollment();
+    mockActiveVideos([OWN_VIDEO_ID]);
+    // deleteCourse has no cascade — Videos and Enrollments can outlive their
+    // Course, so _issueCertificate's Course.findById(...).select('title')
+    // can legitimately resolve null here.
+    Course.findById.mockImplementation(() => ({
+      select: jest.fn(() => Promise.resolve(null)),
+    }));
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 30 });
+
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBe(100);
+    expect(doc.isCompleted).toBe(false);
+    expect(Certificate.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/enrollments/:courseId/watch/:videoId — progress 100 dan oshmaydi (takroriy yozuv)', () => {
+  it('watchedVideos da bir xil videoId ikki marta bo\'lsa ham progressPercent 100 dan oshmaydi', async () => {
+    const doc = mockEnrollment();
+    // Simulates two concurrent first-watch POSTs for the same videoId: each
+    // request hydrates its own document, each finds no existing entry, each
+    // pushes. watchedActive must count DISTINCT ids, not raw entries — else
+    // 2 entries / 1 active video = 200%, which the schema's max:100 validator
+    // would reject with a ValidationError (a 500 in production).
+    doc.watchedVideos = [
+      { videoId: OWN_VIDEO_ID, watchedSeconds: 5 },
+      { videoId: OWN_VIDEO_ID, watchedSeconds: 5 },
+    ];
+    mockActiveVideos([OWN_VIDEO_ID]);
+
+    const res = await request(app)
+      .post(`/api/enrollments/${COURSE_ID}/watch/${OWN_VIDEO_ID}`)
+      .send({ positionSeconds: 40 });
+
+    expect(res.status).toBe(200);
+    expect(doc.progressPercent).toBeLessThanOrEqual(100);
+    expect(doc.progressPercent).toBe(100);
   });
 });

@@ -242,6 +242,35 @@ cd aidevixBackend/backend && grep -rn "course\.videos\|\.videos\.length\|\.video
 
 Expected: hech qanday chiqish yo'q. Agar biror joy chiqsa — xabar bering; spec massivning yagona o'quvchisi shu funksiya deb da'vo qilgan.
 
+**TUZATISH (final whole-branch review, 2026-08-13): bu qadam hech narsani
+isbotlamagan edi.** Grep naqshi (`course\.videos\|\.videos\.length\|\.videos\.some`)
+massivga aynan shu uch shaklda murojaat qilingan joylarni topadi, xolos. U quyidagi
+uchta haqiqiy o'quvchini **tuta olmaydi** — hech biri shu naqshlarga mos kelmaydi:
+
+- `.populate({ path: 'videos', ... })` — `courseController.js:155-160`dagi `getCourse`
+- `.select('... videos ...')` — `rankingController.js:46`dagi `getTopCourses`
+- proyeksiyasiz `Course.find(...).lean()` — `courseController.js:58`dagi
+  `getAllCourses`, bu yerda `videos` so'zi hech qayerda satr sifatida yozilmagan,
+  chunki hech narsa chiqarib tashlanmagan
+
+Natijada bu uchta joy Step 9'dan yashiringan holda o'tib ketdi, va
+`frontend/src/components/courses/CourseCard.tsx:90` orqali foydalanuvchiga
+ko'rinadigan dars-soni xatosi (`course.videos?.length ?? course.videoCount ?? 0`,
+`videoCount` fallback'i hech qachon ishga tushmaydi) shu review'gacha topilmay
+qoldi.
+
+To'g'ri tekshiruv `videos` so'zining o'zini (nafaqat yuqoridagi uchta aniq naqshni)
+qidirar edi, masalan:
+
+```bash
+grep -rn "\bvideos\b" --include=*.js controllers/ utils/ | grep -v watchedVideos
+```
+
+— so'ng har bir topilgan qatorni qo'lda ko'rib, `.select`/`.populate`/proyeksiyasiz
+`.find()`+`.lean()` orqali xom massiv chiqib ketayotganini alohida baholash kerak
+edi. Grep yagona qadam bo'la olmaydi — u faqat nomzodlar ro'yxatini beradi,
+xulosani emas.
+
 - [ ] **Step 10: Commit**
 
 ```bash

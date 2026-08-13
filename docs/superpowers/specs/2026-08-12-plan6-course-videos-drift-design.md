@@ -39,6 +39,33 @@ Kod bo'yicha tekshirildi: `Course.videos` ning **yagona o'quvchisi** —
 `:110` maxraj). Boshqa hech kim. (`videosWatched` — `UserStats` dagi boshqa maydon,
 adashtirmang.)
 
+**TUZATISH (final whole-branch review, 2026-08-13): yuqoridagi "yagona o'quvchi"
+da'vosi NOTO'G'RI edi.** Kod bo'yicha qayta tekshirildi — uchta o'quvchi bugun ham
+tirik:
+
+| Joy | Nima qiladi |
+|---|---|
+| `courseController.js:58` (`getAllCourses`) | `Course.find(filter)...lean()` — **proyeksiyasiz**, ya'ni xom massiv `GET /api/courses`ning har bir elementida jo'natiladi |
+| `courseController.js:155-160` (`getCourse`) | `.populate({ path: 'videos', match: { isActive: true } })` — kurs tafsilot sahifasining dars ro'yxatini shakllantiradi |
+| `rankingController.js:46` (`getTopCourses`) | `.select('... instructor videos createdAt')` — xom massiv `GET /api/ranking/courses`da ham jo'natiladi |
+
+Ikkitasi (`getAllCourses` va ranking'ning `getTopCourses`i) xom massivni
+**o'zgarishsiz** jo'natadi. Faqat `getCourse`ning `populate`i xavfsiz — Mongoose
+`populate` mavjud bo'lmagan `ref`larni tashlab yuboradi va `match: { isActive: true }`
+bilan qo'shimcha filtrlaydi, ya'ni eskirgan yoki nofaol ID'lardan zararlanmaydi.
+
+Va bu foydalanuvchiga ko'rinadigan oqibatga olib keladi:
+`frontend/src/components/courses/CourseCard.tsx:90` —
+`course.videos?.length ?? course.videoCount ?? 0` — dars-soni belgisini shu bilan
+hisoblaydi. `getAllCourses` va ranking'ning `getTopCourses`i har doim `videos`ni
+ta'minlagani uchun `videoCount` fallback'i hech qachon ishga tushmaydi — ya'ni belgi
+bugun xom massiv uzunligining o'zi. Har o'chirilgan yoki nofaol qilingan video bu
+belgini abadiy shishiradi.
+
+**Xulosa: pastdagi §5'dagi "massiv saqlanadi, migratsiya kerak emas — chunki hech
+kim o'qimaydi" qarori noto'g'ri asosda qabul qilingan va endi hal qilinmagan ochiq
+savol, yopilgan qaror emas.**
+
 ## 3. Oqibatlari — uchta jonli xato
 
 1. **Sertifikat abadiy bo'g'iladi.** `Course.videos` da jonli `Video` hujjatiga mos
@@ -86,14 +113,32 @@ Bu to'g'ri: aks holda progress 100 dan oshib ketadi. Muqobili (surat filtrlanmas
 Foydalanuvchi qarori: **massiv saqlanadi**, lekin `deleteVideo` endi undan `$pull`
 qiladi (`videoController.js:509` yonida, `video.deleteOne()` bilan bir joyda).
 
-Sabab: shu o'zgarishdan keyin massivni hech kim o'qimaydi, lekin bazada bilib turib
-noto'g'ri ma'lumot qoldirish keyingi kishini chalg'itadi — va agar kimdir ertaga uni
-o'qisa, jimgina xato qiladi. Ikki qatorlik narx.
+Sabab (asl, 2026-08-12): shu o'zgarishdan keyin massivni hech kim o'qimaydi, lekin
+bazada bilib turib noto'g'ri ma'lumot qoldirish keyingi kishini chalg'itadi — va
+agar kimdir ertaga uni o'qisa, jimgina xato qiladi. Ikki qatorlik narx.
 
-**Schema'dan olib tashlanmaydi** va **migratsiya qilinmaydi** — bu loyihada DB'ga
-tegmaslik izchil qaror bo'lgan (bosqich 8, Plan 4, Plan 5). Mavjud kurslardagi eskirgan
-massiv yozuvlari o'z joyida qoladi; ular endi hech narsaga ta'sir qilmaydi, chunki
-`markVideoWatched` ularni o'qimaydi.
+**TUZATISH (final whole-branch review, 2026-08-13): yuqoridagi sabab noto'g'ri
+asosga qurilgan edi.** §2'da tuzatilganidek, massivni "hech kim" o'qimaydi degani
+yolg'on — uni bugun ham uchta joy o'qiydi, ikkitasi xom holda jo'natadi, va
+`CourseCard`ning dars-soni belgisi shu orqali shishadi. `$pull` qo'shish (Task 2)
+hamon o'zi to'g'ri qadam edi — eskirgan massivni tozalash hech qachon zarar
+qilmaydi — lekin "migratsiya kerak emas, chunki o'qilmaydi" degan asoslama endi
+ushlab turmaydi.
+
+**Bu endi yopilgan qaror emas, ochiq savol: foydalanuvchi ikkalasidan birini
+tanlashi kerak** — (a) migratsiya: mavjud kurslardagi eskirgan massiv yozuvlarini
+`Video.find({course, isActive:true})` to'plamiga moslab tozalash, yoki (b) uchta
+o'quvchini proyeksiya/populate bilan tuzatish (masalan `getAllCourses` va
+ranking'ning `getTopCourses`iga `getRecommendedCourses`dagidek `.select('-videos')`
+qo'shish). Bu tanlov shu review qamrovidan tashqarida — faqat hujjatlashtirildi.
+
+**Schema'dan olib tashlanmaydi** — bu hamon amal qiladi, chunki `getCourse`ning
+`.populate({ path: 'videos', ... })`i schema'dagi array `ref`ga tayanadi.
+**Migratsiya qilinmaydi** — bu endi ATAYLAB QARORI EMAS, yuqoridagi ochiq savolning
+javobi kutilmoqda. Mavjud kurslardagi eskirgan massiv yozuvlari o'z joyida qoladi;
+`markVideoWatched`ga ular ta'sir qilmaydi (Task 1 buni yopdi), lekin
+`getAllCourses` va ranking'ning `getTopCourses`i orqali hamon foydalanuvchiga xato
+ma'lumot ko'rsatadi.
 
 ## 6. Testlar
 

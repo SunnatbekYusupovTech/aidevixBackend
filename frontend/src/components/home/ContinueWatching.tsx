@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { IoPlayCircle, IoTimeOutline } from 'react-icons/io5';
 import { userApi } from '@/api/userApi';
 import { useTheme } from '@/context/ThemeContext';
@@ -54,7 +54,7 @@ export default function ContinueWatching() {
   const { course, nextVideo, progressPercent } = data;
 
   return (
-    <motion.section
+    <m.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-7xl px-4 py-8"
@@ -121,7 +121,7 @@ export default function ContinueWatching() {
                 <span className="text-platinum-400">{progressPercent}%</span>
               </div>
               <div className={`h-2 rounded-none overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-200'}`}>
-                <motion.div
+                <m.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(progressPercent, 4)}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -132,6 +132,6 @@ export default function ContinueWatching() {
           </div>
         </div>
       </Link>
-    </motion.section>
+    </m.section>
   );
 }

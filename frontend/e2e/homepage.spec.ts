@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures/test-fixtures';
 import { ROUTES, SELECTORS, TIMEOUTS } from './helpers/constants';
-import { MOCK_TOP_COURSES, MOCK_TOP_VIDEOS } from './fixtures/mock-data';
+import { MOCK_TOP_COURSES, MOCK_TOP_VIDEOS, MOCK_USER } from './fixtures/mock-data';
 import {
   waitForPageReady,
   assertSEOMeta,
@@ -356,5 +356,53 @@ test.describe('Homepage — Performance', () => {
     if (criticalErrors.length > 0) {
       console.warn('Console errors:', criticalErrors);
     }
+  });
+});
+
+// These two blocks render inside <LazyMotion strict> in HomeClient, which
+// forbids the `motion` export and throws when it sees one. Both components
+// return null when logged out, and the suite above mocks auth/me as 401 —
+// so this case needs its own logged-in setup or it proves nothing.
+test.describe('Homepage — logged-in sections render without a motion error', () => {
+  test.beforeEach(async ({ page }) => {
+    const json = (route: any, body: unknown) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+
+    await page.route('**/api/**/auth/me*', (route) => json(route, { success: true, data: MOCK_USER }));
+    await page.route('**/api/**/auth/csrf*', (route) => json(route, { success: true, data: { token: 'test-csrf' } }));
+    await page.route('**/api/**/courses/top*', (route) => json(route, MOCK_TOP_COURSES));
+    await page.route('**/api/**/videos/top*', (route) => json(route, MOCK_TOP_VIDEOS));
+
+    // ContinueWatching bails out unless course AND nextVideo are both present.
+    await page.route('**/api/**/enrollments/continue*', (route) =>
+      json(route, {
+        success: true,
+        data: {
+          course: { _id: 'c1', title: 'Test kurs', thumbnail: null },
+          nextVideo: { _id: 'v1', title: 'Dars 1', duration: 120 },
+          progressPercent: 40,
+        },
+      }),
+    );
+
+    // RecommendedForYou bails out when the list comes back empty.
+    await page.route('**/api/**/courses/recommended*', (route) =>
+      json(route, {
+        success: true,
+        data: { courses: [{ _id: 'c1', title: 'Test kurs', category: 'javascript' }], meta: { basedOn: [] } },
+      }),
+    );
+  });
+
+  test('bosh sahifada framer-motion strict xatosi yo\'q', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+
+    await page.goto(ROUTES.HOME);
+    await waitForPageReady(page);
+    // Both blocks fetch after mount; give their render a beat to land.
+    await page.waitForTimeout(1000);
+
+    const motionErrors = errors.filter((e) => /motion|LazyMotion|strict/i.test(e));
+    expect(motionErrors, `framer-motion xatolari:\n${motionErrors.join('\n')}`).toHaveLength(0);
   });
 });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { courseApi } from '@/api/courseApi';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
@@ -68,7 +68,7 @@ export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
           ))}
         </div>
       ) : (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
@@ -76,7 +76,7 @@ export default function RecommendedForYou({ limit = 6 }: { limit?: number }) {
           {courses.map((c) => (
             <CourseCard key={c._id} course={c as any} />
           ))}
-        </motion.div>
+        </m.div>
       )}
     </section>
   );

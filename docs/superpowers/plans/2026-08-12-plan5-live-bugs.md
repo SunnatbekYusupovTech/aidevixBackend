@@ -758,7 +758,7 @@ Expected: **kompilyatsiya xatosi** — `AdminHandler` da hali `allowedExtensions
 
 - [ ] **Step 3: Struct'ga maydon qo'shing**
 
-`internal/interfaces/http/handler/admin_handler.go`, `:50-62` dagi struct'ga, `videoRootPath` yonига:
+`internal/interfaces/http/handler/admin_handler.go`, `:50-62` dagi struct'ga, `videoRootPath` yoniga:
 
 ```go
 	allowedExtensions []string

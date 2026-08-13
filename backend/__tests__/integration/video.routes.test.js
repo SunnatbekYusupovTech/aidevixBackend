@@ -544,3 +544,51 @@ describe('GET /api/videos/:id — course proyeksiyasi', () => {
     expect(Object.keys(res.body.data.video.course).sort()).toEqual(['_id', 'category', 'title']);
   });
 });
+
+describe('PUT /api/videos/:id/upload-proxy — hajm chegarasi', () => {
+  const FIVE_GB = 5 * 1024 * 1024 * 1024;
+
+  const mockReadyTarget = () => {
+    Video.findById.mockReturnValue({
+      select: () => ({
+        _id: VIDEO_ID,
+        streamPath: `aidevix/${VIDEO_ID}.mp4`,
+        streamStatus: 'ready',
+      }),
+    });
+  };
+
+  it('rejects a body larger than the limit with 413', async () => {
+    mockReadyTarget();
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .set('Content-Length', String(FIVE_GB + 1))
+      .send();
+
+    expect(res.status).toBe(413);
+    // The upload must be refused before anything is streamed to mkhls.
+    expect(mkhls.uploadVideo).not.toHaveBeenCalled();
+  });
+
+  it('accepts a body exactly at the limit', async () => {
+    mockReadyTarget();
+    mkhls.uploadVideo.mockResolvedValue({});
+
+    const res = await request(app)
+      .put(`/api/videos/${VIDEO_ID}/upload-proxy`)
+      .set('Content-Type', 'application/octet-stream')
+      .set('Content-Length', String(FIVE_GB))
+      .send();
+
+    // Any status other than 413 proves the guard let it through; the request
+    // itself may still fail further down on mocked plumbing, which is fine.
+    // Verified while writing this test: at this exact boundary supertest
+    // does carry the hand-set Content-Length through, and the request lands
+    // on a 502 from mkhls.uploadVideo's mocked plumbing (mockReadyTarget's
+    // video stub has no `save`), not on the 411 guard — so this genuinely
+    // exercises the size check rather than accidentally passing via 411.
+    expect(res.status).not.toBe(413);
+  });
+});

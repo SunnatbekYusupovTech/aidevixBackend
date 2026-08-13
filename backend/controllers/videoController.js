@@ -8,6 +8,12 @@ const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
 const mkhls = require('../utils/mkhls');
 
+// Upload ceiling for the admin proxy. A 40-60 minute 1080p lesson source is
+// typically 2-4 GB, so this leaves headroom while still refusing an
+// accidental uncompressed export before it fills the disk. Express's own
+// body limits do not apply here: this route pipes raw octet-stream.
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+
 // Admin video yuklash uchun same-origin proxy ma'lumoti (AccessKey FRONTENDGA chiqmaydi).
 // Frontend bu URL'ga PUT qiladi (cookie auth), backend mkhls'ga oqizadi.
 const buildProxyUploadInfo = (videoDbId) => ({
@@ -706,6 +712,13 @@ const uploadVideoProxy = async (req, res) => {
       return res.status(411).json({
         success: false,
         message: 'Content-Length majburiy va noldan katta bo\'lishi kerak (chunked upload qo\'llab-quvvatlanmaydi).',
+      });
+    }
+
+    if (contentLength > MAX_UPLOAD_BYTES) {
+      return res.status(413).json({
+        success: false,
+        message: `Fayl juda katta. Maksimal hajm — ${MAX_UPLOAD_BYTES / (1024 * 1024 * 1024)} GB.`,
       });
     }
 

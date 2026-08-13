@@ -507,3 +507,39 @@ describe("GET /api/videos/:id/status — bunnyStatus ko'zgusi olib tashlandi", (
     expect(res.body.data).not.toHaveProperty('bunnyStatus');
   });
 });
+
+describe('GET /api/videos/:id — course proyeksiyasi', () => {
+  it('faqat _id, title va category qaytaradi', async () => {
+    // mockVideo's course object deliberately carries a field no client needs.
+    // Before the projection it reached the response verbatim; the assertion
+    // below is what proves it no longer does.
+    Video.findById.mockReturnValue({
+      populate: (path, projection) => {
+        expect(path).toBe('course');
+        expect(projection).toBe('_id title category');
+        return {
+          lean: async () => ({
+            _id: VIDEO_ID,
+            title: 'Dars 1',
+            description: 'test',
+            duration: 120,
+            order: 1,
+            thumbnail: null,
+            materials: [],
+            viewCount: 7,
+            isActive: true,
+            course: { _id: COURSE_ID, title: 'Kurs', category: 'general' },
+            streamPath: `aidevix/${VIDEO_ID}.mp4`,
+            streamStatus: 'ready',
+          }),
+        };
+      },
+    });
+    mkhls.generateStreamToken.mockResolvedValue({ token: 'tok-1', expiresAt: new Date() });
+
+    const res = await request(app).get(`/api/videos/${VIDEO_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(Object.keys(res.body.data.video.course).sort()).toEqual(['_id', 'category', 'title']);
+  });
+});

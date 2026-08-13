@@ -138,7 +138,11 @@ const getVideo = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const video = await Video.findById(id).populate('course').lean();
+    // Projection is not optional here: without it the whole Course document
+    // goes out to every subscribed user. These three fields are what the
+    // frontend type declares (frontend/src/types/video.ts) and all this
+    // controller reads — course.category for the Pro gate, course._id below.
+    const video = await Video.findById(id).populate('course', '_id title category').lean();
 
     if (!video || !video.isActive) {
       return res.status(404).json({

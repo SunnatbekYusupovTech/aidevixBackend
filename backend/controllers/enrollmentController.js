@@ -77,6 +77,23 @@ const markVideoWatched = async (req, res) => {
     if (!enrollment)
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
 
+    // The videoId must actually belong to this course. Without this, any
+    // enrolled user could POST arbitrary video ids: progressPercent is
+    // watchedVideos.length / course.videos.length, so N fake ids drive it to
+    // 100 and _issueCertificate fires below — and the viewCount $inc at the
+    // end of this handler is what orders videos on the home page.
+    //
+    // course.videos is already loaded above, so this costs no extra query.
+    // 404 rather than 403: "not part of this course" and "does not exist"
+    // are the same thing from the caller's side, and the neighbouring
+    // "not enrolled" response above is a 404 too.
+    const belongsToCourse = course
+      && Array.isArray(course.videos)
+      && course.videos.some(v => v && v.toString() === videoId);
+    if (!belongsToCourse) {
+      return res.status(404).json({ success: false, message: 'Bu dars ushbu kursga tegishli emas' });
+    }
+
     const alreadyWatched = enrollment.watchedVideos.find(w => w.videoId.toString() === videoId);
     const isFirstWatch = !alreadyWatched;
     const previousPosition = alreadyWatched ? alreadyWatched.watchedSeconds || 0 : 0;

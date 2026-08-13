@@ -510,9 +510,15 @@ const deleteVideo = async (req, res) => {
     // repaired. Nothing reads it any more — markVideoWatched derives progress
     // from Video.find({course, isActive:true}) — but leaving a knowingly wrong
     // array in the database misleads the next reader, and anything that starts
-    // reading it later would be silently wrong.
+    // reading it later would be silently wrong. This cleanup is best-effort only:
+    // failing to tidy the array is strictly less bad than leaving a video row
+    // whose stream asset is already gone.
     if (video.course) {
-      await Course.updateOne({ _id: video.course }, { $pull: { videos: video._id } });
+      try {
+        await Course.updateOne({ _id: video.course }, { $pull: { videos: video._id } });
+      } catch (err) {
+        console.error('[video] Course.videos cleanup:', err.code, err.message);
+      }
     }
 
     await video.deleteOne();

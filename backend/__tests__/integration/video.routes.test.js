@@ -596,10 +596,9 @@ describe('PUT /api/videos/:id/upload-proxy — hajm chegarasi', () => {
 
 describe('DELETE /api/videos/:id — Course.videos tozalanadi', () => {
   it('o\'chirilgan videoni kursning videos massividan chiqaradi', async () => {
-    const COURSE = '68f00112233445566778899b';
     Video.findById.mockResolvedValue({
       _id: VIDEO_ID,
-      course: COURSE,
+      course: COURSE_ID,
       streamPath: null,
       bunnyVideoId: null,
       deleteOne: jest.fn().mockResolvedValue(undefined),
@@ -610,8 +609,25 @@ describe('DELETE /api/videos/:id — Course.videos tozalanadi', () => {
 
     expect(res.status).toBe(200);
     expect(Course.updateOne).toHaveBeenCalledWith(
-      { _id: COURSE },
+      { _id: COURSE_ID },
       { $pull: { videos: VIDEO_ID } }
     );
+  });
+
+  it('o\'chirilgan video Course.updateOne xatosi tugmasini davom etadi', async () => {
+    const deleteOneMock = jest.fn().mockResolvedValue(undefined);
+    Video.findById.mockResolvedValue({
+      _id: VIDEO_ID,
+      course: COURSE_ID,
+      streamPath: null,
+      bunnyVideoId: null,
+      deleteOne: deleteOneMock,
+    });
+    Course.updateOne.mockRejectedValue(new Error('Database connection failed'));
+
+    const res = await request(app).delete(`/api/videos/${VIDEO_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(deleteOneMock).toHaveBeenCalled();
   });
 });

@@ -582,13 +582,13 @@ describe('PUT /api/videos/:id/upload-proxy — hajm chegarasi', () => {
       .set('Content-Length', String(FIVE_GB))
       .send();
 
-    // Any status other than 413 proves the guard let it through; the request
-    // itself may still fail further down on mocked plumbing, which is fine.
-    // Verified while writing this test: at this exact boundary supertest
-    // does carry the hand-set Content-Length through, and the request lands
-    // on a 502 from mkhls.uploadVideo's mocked plumbing (mockReadyTarget's
-    // video stub has no `save`), not on the 411 guard — so this genuinely
-    // exercises the size check rather than accidentally passing via 411.
+    // 411 !== 413, so `not.toBe(413)` alone can't tell "cleared the ceiling"
+    // from "never reached it because Content-Length got dropped". Assert
+    // uploadVideo was actually called: that proves execution reached the
+    // mkhls call, structurally, regardless of what mocked plumbing does
+    // with the response afterwards (mockReadyTarget's stub has no `save`,
+    // which is why the status below ends up 502, not 200).
+    expect(mkhls.uploadVideo).toHaveBeenCalled();
     expect(res.status).not.toBe(413);
   });
 });

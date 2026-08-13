@@ -764,6 +764,14 @@ tuzatishni (`getAllCourses`/ranking'ning `getTopCourses`iga `.select('-videos')`
 qo'shish, `getRecommendedCourses` dagidek) tanlashi kerak. Ikkalasi ham bu
 tuzatish to'lqini qamrovidan tashqarida qoldirildi — faqat hujjatlashtirildi.
 
+> **FOYDALANUVCHI QARORI (2026-08-13):** hozircha **hech biri qilinmadi**. Plan 5
+> va Plan 6 shu holatda merge qilindi; dars-soni belgisi masalasi **alohida ish**
+> sifatida keyinga qoldirildi. Ya'ni belgi bugun ham noto'g'ri son ko'rsatadi.
+> Qaytganda (b) tavsiya etiladi: migratsiyasiz, bir necha qatorlik, va massivni
+> foydalanuvchiga ko'rinadigan yo'ldan butunlay chiqaradi. Naqsh allaqachon
+> repo'da — `courseController.js:92-111` dagi **boshqa** `getTopCourses`
+> `.select('-videos')` ni qiladi.
+
 Task 1 Step 9'ning tekshiruv grep'i
 (`course\.videos\|\.videos\.length\|\.videos\.some`) bu uchta o'quvchidan hech
 birini tuta olmaydi — `.populate`, `.select('...videos...')` va proyeksiyasiz

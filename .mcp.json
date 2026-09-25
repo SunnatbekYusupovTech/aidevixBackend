@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "obsidian": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\User\\.codex\\obsidian-mcp\\server.js"
+      ],
+      "env": {
+        "REAL_PROJECT_ROOT": "E:\\Desktop\\Real Project",
+        "OBSIDIAN_VAULT": "C:\\Users\\User\\Documents\\Obsidian Vault",
+        "OBSIDIAN_PROJECTS_DIR": "C:\\Users\\User\\Documents\\Obsidian Vault\\RealProjects"
+      }
+    }
+  }
+}

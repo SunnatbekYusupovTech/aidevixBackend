@@ -135,10 +135,9 @@ courseSchema.index({ isActive: 1, rating: -1 });
 
 // SEO-007: yangi kurs yaratilganda yoki title o'zgarganda slug avtomatik generatsiya
 courseSchema.pre('save', async function (next) {
-  // Slug allaqachon belgilangan bo'lsa — qayta generatsiya shart emas
+  // Slug allaqachon belgilangan bo'lsa — qayta generatsiya shart emas (URL barqaror qoladi).
+  // Slug'siz eski hujjatlar title o'zgarmagan bo'lsa ham shu yerda backfill qilinadi.
   if (this.slug) return next();
-  // Mavjud hujjatda title o'zgarmagan bo'lsa — o'tkazib yubor
-  if (!this.isNew && !this.isModified('title')) return next();
 
   const base = toSlug(this.title);
   let slug   = base;

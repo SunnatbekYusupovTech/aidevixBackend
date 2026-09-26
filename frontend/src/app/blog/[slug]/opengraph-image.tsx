@@ -28,7 +28,7 @@ export default function BlogOpengraphImage({
           justifyContent: 'space-between',
           padding: 80,
           background:
-            'radial-gradient(1200px 630px at 25% 15%, #141b3a 0%, #0A0E1A 55%)',
+            'linear-gradient(135deg, #141b3a 0%, #0A0E1A 60%)',
           fontFamily: 'sans-serif',
         }}
       >

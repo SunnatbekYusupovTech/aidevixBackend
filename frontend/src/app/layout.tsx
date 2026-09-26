@@ -25,9 +25,9 @@ export const metadata: Metadata = {
     template: '%s | Aidevix',
     default: 'Aidevix — Dasturlash kurslari va Onlayn IT ta\'lim platformasi',
   },
-  description: 'Online dasturlash kurslari — Aidevix platformasida O\'zbek tilida sifatli ta\'lim o\'rganing. Google dasturlash kurslari standartlaridagi Frontend, Backend va AI yo\'nalishlari.',
+  description: 'Online dasturlash kurslari — Aidevix platformasida O\'zbek tilida sifatli ta\'lim o\'rganing. Frontend, Backend va AI yo\'nalishlari.',
   keywords: [
-    'dasturlash kurslari', 'onlayn dasturlash kurslari', 'frontend kurslari', 'google dasturlash kurslari',
+    'dasturlash kurslari', 'onlayn dasturlash kurslari', 'frontend kurslari',
     'aidevix', 'dasturlash', 'online ta\'lim', 'uzbek tilida', 'backend kurslari',
     'react', 'nextjs', 'javascript', 'backend o\'rganish', 'frontend kurslar',
     'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish'
@@ -56,13 +56,13 @@ export const metadata: Metadata = {
     siteName: 'Aidevix',
     title: 'Aidevix — Eng yaxshi onlayn dasturlash kurslari',
     description: 'Onlayn dasturlash kurslari, Frontend, Backend va IT texnologiyalar O\'zbek tilida.',
-    images: [{ url: '/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Aidevix' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Aidevix — Online dasturlash kurslari',
     description: 'Online dasturlash kurslari va IT texnologiyalar O\'zbek tilida.',
-    images: ['/Logo.jpg'],
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,

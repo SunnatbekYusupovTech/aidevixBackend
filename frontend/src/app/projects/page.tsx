@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     title: 'Aidevix loyihalari — portfolio',
     description:
       "econur.uz, autokran.uz va boshqa production loyihalar — Aidevix jamoasi tomonidan qurilgan.",
-    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix' }],
+    images: [{ url: 'https://aidevix.uz/og-image.png', width: 1200, height: 630, alt: 'Aidevix' }],
   },
 };
 

@@ -18,13 +18,13 @@ export const metadata: Metadata = {
     description: "Har kun yangi vazifa — react, python, AI prompts. Streak va XP bilan o'sing.",
     siteName: 'Aidevix',
     locale: 'uz_UZ',
-    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix Challenges' }],
+    images: [{ url: 'https://aidevix.uz/og-image.png', width: 1200, height: 630, alt: 'Aidevix Challenges' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Kunlik Challenges — Aidevix',
     description: "Har kun yangi dasturlash vazifasi. +80 / +150 / +250 XP.",
-    images: ['https://aidevix.uz/Logo.jpg'],
+    images: ['https://aidevix.uz/og-image.png'],
   },
 };
 

@@ -47,13 +47,13 @@ export async function generateMetadata(
       description: cat.description,
       siteName: 'Aidevix',
       locale: 'uz_UZ',
-      images: [{ url: `${BASE}/Logo.jpg`, width: 1200, height: 630, alt: cat.title }],
+      images: [{ url: `${BASE}/og-image.png`, width: 1200, height: 630, alt: cat.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${cat.title} — Aidevix`,
       description: cat.description,
-      images: [`${BASE}/Logo.jpg`],
+      images: [`${BASE}/og-image.png`],
     },
   };
 }

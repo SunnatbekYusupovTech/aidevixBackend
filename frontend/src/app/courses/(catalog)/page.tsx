@@ -12,7 +12,7 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Barcha dasturlash kurslari | Onlayn Frontend, Backend, va IT ta\'lim',
   description: 'Aidevix platformasida barcha yo\'nalishdagi onlayn dasturlash kurslarini topishingiz mumkin. O\'zbek tilida eng zo\'r Frontend, Python va AI kurslari ro\'yxati.',
-  keywords: ['google dasturlash kurslari', 'onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'barcha it kurslar', 'backend kurslari']
+  keywords: ['onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'barcha it kurslar', 'backend kurslari']
 }
 
 type Course = { _id: string; [k: string]: any }

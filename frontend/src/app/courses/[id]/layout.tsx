@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     course.metaDescription || (course.description?.slice(0, 160) ||
     `${course.title} — O'zbek tilidagi professional dasturlash kursi.`);
-  const image = course.thumbnail || 'https://aidevix.uz/Logo.jpg';
+  const image = course.thumbnail || 'https://aidevix.uz/og-image.png';
   // SEO-007: canonical URL slug bilan (slug yo'q bo'lsa params.id)
   const canonicalSlug = (course.slug as string | undefined) || params.id;
   const url = `https://aidevix.uz/courses/${canonicalSlug}`;
@@ -107,7 +107,7 @@ export default async function CourseLayout({ params, children }: Props) {
       url,
     },
     url,
-    image: course.thumbnail || 'https://aidevix.uz/Logo.jpg',
+    image: course.thumbnail || 'https://aidevix.uz/og-image.png',
     inLanguage: 'uz',
     courseMode: 'online',
     hasCourseInstance: {

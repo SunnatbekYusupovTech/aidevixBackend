@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     video.description?.slice(0, 160) ||
     `${video.title} — Aidevix platformasidagi video dars.`;
-  const image = video.thumbnail || 'https://aidevix.uz/Logo.jpg';
+  const image = video.thumbnail || 'https://aidevix.uz/og-image.png';
   const url = `https://aidevix.uz/videos/${params.id}`;
 
   return {

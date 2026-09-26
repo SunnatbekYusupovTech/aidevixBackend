@@ -28,7 +28,7 @@ export const coursesMetadata: Metadata = {
     locale: 'uz_UZ',
     images: [
       {
-        url: 'https://aidevix.uz/Logo.jpg',
+        url: 'https://aidevix.uz/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Aidevix dasturlash kurslari',
@@ -39,6 +39,6 @@ export const coursesMetadata: Metadata = {
     card: 'summary_large_image',
     title: "Dasturlash va IT kurslari — Aidevix",
     description: "O'zbek tilidagi professional dasturlash kurslari.",
-    images: ['https://aidevix.uz/Logo.jpg'],
+    images: ['https://aidevix.uz/og-image.png'],
   },
 };

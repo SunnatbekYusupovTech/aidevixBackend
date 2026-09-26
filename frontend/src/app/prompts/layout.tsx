@@ -19,13 +19,13 @@ export const metadata: Metadata = {
       "O'zbek developerlar uchun sinab ko'rilgan AI promptlar: Claude, Cursor, Copilot, ChatGPT.",
     siteName: 'Aidevix',
     locale: 'uz_UZ',
-    images: [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630, alt: 'Aidevix Prompts' }],
+    images: [{ url: 'https://aidevix.uz/og-image.png', width: 1200, height: 630, alt: 'Aidevix Prompts' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AI Prompt Library | Aidevix',
     description: 'Eng yaxshi promptlar bir joyda — like, copy, share.',
-    images: ['https://aidevix.uz/Logo.jpg'],
+    images: ['https://aidevix.uz/og-image.png'],
   },
 };
 

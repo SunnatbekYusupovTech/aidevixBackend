@@ -41,13 +41,13 @@ export async function generateMetadata({ params }: { params: { username: string 
       siteName: 'Aidevix',
       images: profile.user.avatar
         ? [{ url: profile.user.avatar, width: 400, height: 400, alt: profile.user.username }]
-        : [{ url: 'https://aidevix.uz/Logo.jpg', width: 1200, height: 630 }],
+        : [{ url: 'https://aidevix.uz/og-image.png', width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary',
       title: `${profile.user.username} | Aidevix`,
       description: profile.stats.bio || `Level ${profile.stats.level} dasturchi`,
-      images: profile.user.avatar ? [profile.user.avatar] : ['https://aidevix.uz/Logo.jpg'],
+      images: profile.user.avatar ? [profile.user.avatar] : ['https://aidevix.uz/og-image.png'],
     },
   };
 }

@@ -8,8 +8,6 @@ export const metadata: Metadata = {
     canonical: 'https://aidevix.uz/leaderboard',
     languages: {
       'uz-UZ': 'https://aidevix.uz/leaderboard',
-      'ru-RU': 'https://aidevix.uz/leaderboard',
-      'en-US': 'https://aidevix.uz/leaderboard',
       'x-default': 'https://aidevix.uz/leaderboard',
     },
   },

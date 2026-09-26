@@ -291,7 +291,9 @@ export default function ProjectsClient() {
             <p className={`max-w-xl mx-auto text-base mb-6 ${muted}`}>{copy.cta.subtitle}</p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link
-                href="/contact"
+                href="https://t.me/aidevix"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-indigo-500/30 transition-shadow"
               >
                 {copy.cta.contact} <IoArrowForward />

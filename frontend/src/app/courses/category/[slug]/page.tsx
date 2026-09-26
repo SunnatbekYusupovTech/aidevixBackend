@@ -35,10 +35,8 @@ export async function generateMetadata(
     keywords: cat.keywords,
     alternates: {
       canonical: url,
-      // hreflang reciprocal: узбекская ↔ русская версия категории (одинаковый slug).
       languages: {
         'uz-UZ': url,
-        'ru-RU': `${BASE}/ru/courses/category/${cat.slug}`,
         'x-default': url,
       },
     },

@@ -44,8 +44,8 @@ async function fetchJson<T>(url: string, key: string): Promise<T[]> {
 // `new Date()` o'rniga qo'yiladi — haqiqatan o'zgarmaydigan statik sahifalar uchun.
 const STATIC_LAST_MODIFIED = new Date('2026-06-24');
 
-// Asoschi identifikatsiyasi sahifalari (Person schema + sameAs) 2026-07-08da
-// yangilandi — yangi lastmod Google'ni /team va /about'ni qayta indekslashga undaydi.
+// Asoschi identifikatsiyasi sahifasi (Person schema + sameAs) 2026-07-08da
+// yangilandi — yangi lastmod Google'ni /team'ni qayta indekslashga undaydi.
 const FOUNDER_PAGES_UPDATED = new Date('2026-07-08');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -93,42 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: now,
     changeFrequency: 'weekly' as const,
     priority: 0.7,
-    alternates: {
-      languages: {
-        'uz-UZ': `${BASE}/courses/category/${c.slug}`,
-        'ru-RU': `${BASE}/ru/courses/category/${c.slug}`,
-      },
-    },
   }));
-
-  // Ruscha marshrutlar — "курсы программирования" va yo'nalish so'rovlari uchun.
-  // hreflang alternate'lari uz ↔ ru juftligini bildiradi.
-  const ruUrls = [
-    {
-      url: `${BASE}/ru/courses`,
-      lastModified: now,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-      alternates: {
-        languages: {
-          'uz-UZ': `${BASE}/courses`,
-          'ru-RU': `${BASE}/ru/courses`,
-        },
-      },
-    },
-    ...COURSE_CATEGORIES.map((c) => ({
-      url: `${BASE}/ru/courses/category/${c.slug}`,
-      lastModified: now,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-      alternates: {
-        languages: {
-          'uz-UZ': `${BASE}/courses/category/${c.slug}`,
-          'ru-RU': `${BASE}/ru/courses/category/${c.slug}`,
-        },
-      },
-    })),
-  ];
 
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
@@ -145,26 +110,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: BASE,                  lastModified: now,                    changeFrequency: 'daily',   priority: 1   },
-    { url: `${BASE}/courses`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.9,
-      alternates: { languages: { 'uz-UZ': `${BASE}/courses`, 'ru-RU': `${BASE}/ru/courses` } } },
+    { url: `${BASE}/courses`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.9 },
     { url: `${BASE}/leaderboard`, lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
     { url: `${BASE}/challenges`,  lastModified: now,                    changeFrequency: 'daily',   priority: 0.7 },
     { url: `${BASE}/prompts`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.8 },
     { url: `${BASE}/playground`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${BASE}/roadmap`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'weekly',  priority: 0.6 },
     { url: `${BASE}/projects`,    lastModified: new Date('2026-07-07'), changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${BASE}/mentorship`,  lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/careers`,     lastModified: now,                    changeFrequency: 'daily',   priority: 0.6 },
-    { url: `${BASE}/pricing`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${BASE}/about`,       lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/team`,        lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/blog`,        lastModified: now,                    changeFrequency: 'weekly',  priority: 0.5 },
-    { url: `${BASE}/help`,        lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${BASE}/contact`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${BASE}/privacy`,     lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
-    { url: `${BASE}/terms`,       lastModified: STATIC_LAST_MODIFIED,   changeFrequency: 'yearly',  priority: 0.3 },
     ...categoryUrls,
-    ...ruUrls,
     ...blogUrls,
     ...courseUrls,
     // Profil sahifalari SEO sifatini pasaytirgani (thin-content) uchun 

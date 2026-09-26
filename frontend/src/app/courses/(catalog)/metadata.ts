@@ -16,7 +16,6 @@ export const coursesMetadata: Metadata = {
     // hreflang reciprocal: узбекская ↔ русская версия страницы курсов.
     languages: {
       'uz-UZ': 'https://aidevix.uz/courses',
-      'ru-RU': 'https://aidevix.uz/ru/courses',
       'x-default': 'https://aidevix.uz/courses',
     },
   },

@@ -265,7 +265,7 @@ export default function VideoPage() {
           )}
           {isPro && (
             <Link
-              href="/pricing"
+              href="/subscription"
               className="btn btn-primary rounded-full px-8"
             >
               {localText.buyProBtn}

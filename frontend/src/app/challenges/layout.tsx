@@ -8,8 +8,6 @@ export const metadata: Metadata = {
     canonical: 'https://aidevix.uz/challenges',
     languages: {
       'uz-UZ': 'https://aidevix.uz/challenges',
-      'ru-RU': 'https://aidevix.uz/challenges',
-      'en-US': 'https://aidevix.uz/challenges',
       'x-default': 'https://aidevix.uz/challenges',
     },
   },

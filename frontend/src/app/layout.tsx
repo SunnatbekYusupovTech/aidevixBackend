@@ -192,7 +192,7 @@ const organizationSchema = {
     contactType: 'customer support',
     telephone: '+998909712160',
     email: 'support@aidevix.uz',
-    url: 'https://aidevix.uz/contact',
+    url: 'https://t.me/aidevix',
     availableLanguage: ['uz', 'ru', 'en'],
   },
   sameAs: [

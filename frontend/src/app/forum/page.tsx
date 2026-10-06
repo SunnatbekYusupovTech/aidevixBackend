@@ -1,7 +1,17 @@
 import React from 'react';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import { IoChatbubblesOutline, IoCheckmarkCircle, IoTrendingUp, IoFlame } from 'react-icons/io5';
 import { SSR_API_BASE_URL } from '@/utils/constants';
+
+export const metadata: Metadata = {
+  title: "Muhokamalar — dasturlash bo'yicha savol-javob",
+  description: "Dasturlash bo'yicha savollaringizni bering — Aidevix hamjamiyati javob beradi. Yordam berganlar XP va daraja oladi.",
+  alternates: { canonical: 'https://aidevix.uz/forum' },
+  // Forum hali bo'sh (savollar yo'q) — bo'sh ro'yxat sahifasi thin content.
+  // Kontent yig'ilgach `index: true` qilinadi va sitemap'ga qo'shiladi.
+  robots: { index: false, follow: true },
+};
 
 async function fetchQuestions(page = 1, sort = 'newest') {
   try {

@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Barcha dasturlash kurslari | Onlayn Frontend, Backend, va IT ta\'lim',
-  description: 'Aidevix platformasida barcha yo\'nalishdagi onlayn dasturlash kurslarini topishingiz mumkin. O\'zbek tilida eng zo\'r Frontend, Python va AI kurslari ro\'yxati.',
+  // ≤60 belgi (template " | Aidevix" bilan) — SERP'da kesilmaydi
+  title: 'Dasturlash kurslari — onlayn IT kurslar katalogi',
+  description: "O'zbek tilidagi onlayn dasturlash kurslari katalogi: Frontend, Backend, Python, AI va kiberxavfsizlik. Boshlang'ichdan professional darajagacha.",
   keywords: ['onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'barcha it kurslar', 'backend kurslari']
 }
 

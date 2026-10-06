@@ -4,7 +4,7 @@ import { safeJsonLd } from '@/utils/jsonLd';
 export const metadata: Metadata = {
   title: 'Jamoa — asoschilar va dasturchilar',
   description:
-    "Aidevix jamoasi — O'zbek tilidagi eng yirik AI va dasturlash o'quv platformasini yaratgan dasturchilar. Founder & CEO Sunnatbek Yusupov boshchiligidagi yosh jamoa.",
+    "Aidevix jamoasi — o'zbek tilidagi AI va dasturlash o'quv platformasini yaratgan dasturchilar. Founder & CEO Sunnatbek Yusupov boshchiligidagi yosh jamoa.",
   alternates: { canonical: 'https://aidevix.uz/team' },
   openGraph: {
     type: 'profile',

@@ -40,19 +40,12 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: 'https://aidevix.uz',
-    // [SEO-007] Lokalizatsiyalangan marshrutlar yo'q — barcha til hreflanglar
-    // bir xil URL'ga ishora qilardi (ru-RU/en-US ortiqcha). Faqat uz + x-default.
-    languages: {
-      'uz-UZ': 'https://aidevix.uz',
-      'x-default': 'https://aidevix.uz',
-    },
-  },
+  // Root'da canonical/hreflang BELGILANMAYDI: Next.js metadata meros oladi va o'z
+  // canonical'i yo'q har bir sahifa (/forum, /battle ...) bosh sahifaga
+  // canonicalize bo'lib qolardi. Har bir indekslanadigan sahifa o'zinikini beradi.
   openGraph: {
     type: 'website',
     locale: 'uz_UZ',
-    url: 'https://aidevix.uz',
     siteName: 'Aidevix',
     title: 'Aidevix — Eng yaxshi onlayn dasturlash kurslari',
     description: 'Onlayn dasturlash kurslari, Frontend, Backend va IT texnologiyalar O\'zbek tilida.',
@@ -207,8 +200,10 @@ const organizationSchema = {
 const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
+  '@id': 'https://aidevix.uz/#website',
   name: 'Aidevix',
   url: 'https://aidevix.uz',
+  publisher: { '@id': 'https://aidevix.uz/#organization' },
   potentialAction: {
     '@type': 'SearchAction',
     target: 'https://aidevix.uz/courses?search={search_term_string}',

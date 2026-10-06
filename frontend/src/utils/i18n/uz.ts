@@ -1146,7 +1146,7 @@ const uz: Record<string, string> = {
 
     // ─── Blog ───
     'blog.kicker': 'Blog',
-    'blog.title': 'AI Yangiliklar',
+    'blog.title': "Dasturlash va AI qo'llanmalari",
     'blog.subtitle': "Claude, Cursor, Copilot va boshqa AI tools haqida har kuni yangiliklar — o'zbek tilida.",
     'blog.search': 'Sarlavha yoki matnda qidiring...',
     'blog.filter.all': 'Hammasi',

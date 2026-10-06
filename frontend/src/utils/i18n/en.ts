@@ -1117,7 +1117,7 @@ const en: Record<string, string> = {
 
     // ─── Blog ───
     'blog.kicker': 'Blog',
-    'blog.title': 'AI News',
+    'blog.title': 'Programming & AI Guides',
     'blog.subtitle': 'Daily news on Claude, Cursor, Copilot and other AI tools — in Uzbek.',
     'blog.search': 'Search by title or content...',
     'blog.filter.all': 'All',

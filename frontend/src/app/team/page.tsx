@@ -182,6 +182,7 @@ const LOCALIZED_CONTENT = {
     socials: 'ALOQA KANALLARI',
     portfolio: 'PORTFOLIO ULANISHI',
     dragHint: "SICHQONCHA BILAN AYLANTIRING YOKI G'ILDIRAKNI AYLANTIRING",
+    heading: 'Aidevix jamoasi — asoschilar va dasturchilar',
   },
   en: {
     years: 'Y.O',
@@ -190,6 +191,7 @@ const LOCALIZED_CONTENT = {
     socials: 'COMMUNICATION NODES',
     portfolio: 'PORTFOLIO INTERCONNECT',
     dragHint: 'DRAG OR SCROLL TO DRIFT THE GRID',
+    heading: 'Aidevix team — founders and engineers',
   },
   ru: {
     years: 'ЛЕТ',
@@ -198,6 +200,7 @@ const LOCALIZED_CONTENT = {
     socials: 'УЗЛЫ СВЯЗИ',
     portfolio: 'ПОРТФОЛИО СВЯЗЬ',
     dragHint: 'ПЕРЕТАЩИТЕ ИЛИ ПРОКРУТИТЕ КОЛЕСО',
+    heading: 'Команда Aidevix — основатели и разработчики',
   },
 } as const;
 
@@ -756,6 +759,11 @@ export default function TeamPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        {/* SEO: sahifada yagona H1 — crawlerlar va AI qidiruv uchun mavzu signali */}
+        <h1 className={`mb-4 text-center text-lg sm:text-2xl font-black tracking-wider uppercase ${isDark ? 'text-zinc-100' : 'text-slate-900'}`}>
+          {c.heading}
+        </h1>
+
         {/* Drag hint */}
         <div className={`mb-6 flex items-center justify-center gap-3 text-[10px] ${mutedText} font-bold tracking-widest uppercase`}>
           <span className={`w-8 h-px ${hrLine}`} />

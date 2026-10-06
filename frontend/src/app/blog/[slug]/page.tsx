@@ -18,6 +18,9 @@ export async function generateMetadata(
   if (!article) return { title: 'Maqola topilmadi' };
 
   const url = `${BASE}/blog/${article.slug}`;
+  // Har maqola uchun opengraph-image.tsx generatsiya qilgan 1200x630 rasm
+  // (sarlavha bilan) — umumiy og-image.png o'rniga, ijtimoiy tarmoqlarda CTR uchun.
+  const ogImage = `${url}/opengraph-image`;
   return {
     title: article.title, // brandsiz — root template "| Aidevix" qo'shadi
     description: article.description,
@@ -32,13 +35,13 @@ export async function generateMetadata(
       locale: 'uz_UZ',
       publishedTime: article.date,
       modifiedTime: article.updated || article.date,
-      images: [{ url: `${BASE}/og-image.png`, width: 1200, height: 630, alt: article.title }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: article.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${article.title} — Aidevix`,
       description: article.description,
-      images: [`${BASE}/og-image.png`],
+      images: [ogImage],
     },
   };
 }
@@ -63,7 +66,7 @@ export default function ArticlePage(
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     author: { '@type': 'Organization', name: 'Aidevix', '@id': `${BASE}/#organization` },
     publisher: { '@id': `${BASE}/#organization` },
-    image: `${BASE}/og-image.png`,
+    image: `${url}/opengraph-image`,
     keywords: article.keywords.join(', '),
   };
 

@@ -6,10 +6,14 @@ import { BLOG_ARTICLES } from '@/data/blogArticles';
 import { safeJsonLd } from '@/utils/jsonLd';
 
 export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'AI dunyosi va dasturlash bo\'yicha yangiliklar, qo\'llanmalar va tahlillar — o\'zbek tilida.',
-  alternates: { canonical: '/blog' },
+  title: "Dasturlash va AI qo'llanmalari — Blog",
+  description: "Dasturlash va sun'iy intellekt bo'yicha o'zbek tilidagi amaliy qo'llanmalar: Claude Code, Cursor, Python, Frontend, Git va IT karyera.",
+  alternates: { canonical: 'https://aidevix.uz/blog' },
   openGraph: {
+    type: 'website',
+    url: 'https://aidevix.uz/blog',
+    siteName: 'Aidevix',
+    locale: 'uz_UZ',
     title: 'Aidevix Blog — AI va dasturlash yangiliklari',
     description: 'Eng so\'nggi AI tools yangiliklari va amaliy qo\'llanmalar.',
     images: [{ url: 'https://aidevix.uz/og-image.png', width: 1200, height: 630, alt: 'Aidevix Blog' }],

@@ -165,7 +165,10 @@ const getCourse = async (req, res) => {
     }
 
     // Ko'rishlar sonini oshirish (background'da) — unhandled rejection oldini olish
-    Course.findByIdAndUpdate(course._id, { $inc: { viewCount: 1 } })
+    // timestamps: false — ko'rish hisoblagichi kontent o'zgarishi emas; aks holda
+    // har bir ko'rishda updatedAt yangilanib, sitemap <lastmod> doim "hozir" bo'lardi
+    // va Google lastmod signaliga ishonmay qo'yadi.
+    Course.findByIdAndUpdate(course._id, { $inc: { viewCount: 1 } }, { timestamps: false })
       .exec()
       .catch((err) => console.error('[courseController] viewCount inc xato:', err.message));
 

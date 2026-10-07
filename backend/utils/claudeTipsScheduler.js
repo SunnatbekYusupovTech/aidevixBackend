@@ -22,6 +22,19 @@ const schedulerState = require('./schedulerState');
 
 const STATE_FILE = path.join(__dirname, '..', '.sent_tips.json');
 
+// ─── HTML xavfsizligi (LLM-07) ───────────────────────────────────────────
+// Telegram parse_mode 'HTML': matndagi <, >, & escape qilinmasa 400 "can't parse entities"
+// yoki model qo'ygan <a href> fishing havola kanalga chiqadi. Model/brief matni faqat oddiy matn.
+const escapeHtml = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+// Model chiqishidagi barcha HTML teglarni olib tashlab, keyin escape qilamiz (<b>/<a> faqat shablonda)
+const stripTags = (s) => String(s ?? '').replace(/<\/?[a-zA-Z][^>]*>/g, '');
+const safeText = (s, max) => escapeHtml(stripTags(s).trim().slice(0, max));
+const LLM_MAX_TOKENS = 600;
+
 // ─── Curated Claude topic pool ────────────────────────────────────────────
 
 const CLAUDE_TOPICS = [
@@ -149,7 +162,7 @@ async function generatePost(topic) {
     `3. tip — 1 ta amaliy maslahat yoki misol. "💡" bilan boshlanadi.\n\n` +
     `Cheklovlar:\n` +
     `- Sarlavha qisqa, vibe-bro emas, professional\n` +
-    `- Markdown belgilari ishlatma (#, *, **). Faqat oddiy matn yoki HTML <b>...</b> ishlat.\n` +
+    `- Markdown belgilari va HTML teglar ishlatma (#, *, **, <b>, <a>). Faqat oddiy matn. Havola (URL) qo'yma.\n` +
     `- Texnik atamalarni o'zbekchaga zo'rg'a tarjima qilmagin (MCP, hook, subagent — o'zicha qoldir)\n` +
     `- Audience: o'rta darajadagi dasturchilar va AI tools bilan tanish bo'lganlar\n\n` +
     `FAQAT JSON qaytar:\n` +
@@ -161,13 +174,19 @@ async function generatePost(topic) {
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
       temperature: 0.8,
+      max_tokens: LLM_MAX_TOKENS,
     }, {
       headers: { Authorization: `Bearer ${apiKey}` },
       timeout: 30000,
     });
 
+    // LLM-11: faqat usage metrikasi (kontent emas)
+    const usage = response.data?.usage || {};
+    console.log('[llm] claude_tips', JSON.stringify({ model: 'llama-3.3-70b-versatile', prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens }));
+
     const parsed = JSON.parse(response.data.choices[0].message.content);
-    if (!parsed?.title || !parsed?.content) throw new Error('AI response incomplete');
+    if (typeof parsed?.title !== 'string' || typeof parsed?.content !== 'string' || !parsed.title || !parsed.content) throw new Error('AI response incomplete');
+    if (typeof parsed.tip !== 'string') parsed.tip = '';
     if (!parsed.tip) parsed.tip = '💡 Bu mavzuda chuqurroq bilim uchun Aidevix Prompt Library\'ga qarang.';
     return parsed;
   } catch (err) {
@@ -184,15 +203,20 @@ async function sendTipToChat(botToken, chatId, topic, aiData) {
   const igLink        = process.env.INSTAGRAM_URL || 'https://instagram.com/aidevix.uz';
   const siteLink      = process.env.SITE_URL || 'https://aidevix.uz';
 
+  // LLM-07: barcha dinamik qiymatlar escape qilinadi; <b>/<a> faqat shu shablonda
+  const title   = safeText(aiData.title, 200);
+  const content = safeText(aiData.content, 2500);
+  const tip     = safeText(aiData.tip, 600);
+
   const message =
-    `${topic.emoji} <b>${aiData.title}</b>\n\n` +
-    `${aiData.content}\n\n` +
-    `${aiData.tip}\n\n` +
+    `${topic.emoji} <b>${title}</b>\n\n` +
+    `${content}\n\n` +
+    `${tip}\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
     `<b>Aidevix</b> — AI & Dasturlash O'quv Platformasi 🇺🇿\n\n` +
-    `📢 Kanal: <a href="${tgChannelLink}">@${tgChannel.replace('@', '')}</a>\n` +
-    `📸 Instagram: <a href="${igLink}">@aidevix.uz</a>\n` +
-    `🌐 Sayt: <a href="${siteLink}">aidevix.uz</a>\n\n` +
+    `📢 Kanal: <a href="${escapeHtml(tgChannelLink)}">@${escapeHtml(tgChannel.replace('@', ''))}</a>\n` +
+    `📸 Instagram: <a href="${escapeHtml(igLink)}">@aidevix.uz</a>\n` +
+    `🌐 Sayt: <a href="${escapeHtml(siteLink)}">aidevix.uz</a>\n\n` +
     `#Claude #ClaudeCode #MCP #AItools #skills #plugins`;
 
   const keyboard = {
@@ -206,17 +230,30 @@ async function sendTipToChat(botToken, chatId, topic, aiData) {
         { text: "📢 Kanalga obuna bo'l", url: tgChannelLink },
         { text: '🎓 Kurslar', url: siteLink },
       ],
-      [{ text: "↗️ Do'stlarga ulash", url: `https://t.me/share/url?url=${encodeURIComponent(siteLink)}&text=${encodeURIComponent(aiData.title + ' | Aidevix')}` }],
+      [{ text: "↗️ Do'stlarga ulash", url: `https://t.me/share/url?url=${encodeURIComponent(siteLink)}&text=${encodeURIComponent(stripTags(aiData.title).slice(0, 200) + ' | Aidevix')}` }],
     ],
   };
 
-  await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    chat_id: chatId,
-    text: message,
-    parse_mode: 'HTML',
-    disable_web_page_preview: true,
-    reply_markup: keyboard,
-  });
+  try {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+      reply_markup: keyboard,
+    });
+  } catch (err) {
+    // HTML parse xatosi bo'lsa — oddiy matn sifatida qayta urinish (post yo'qolmasin)
+    const desc = String(err.response?.data?.description || '');
+    if (err.response?.status !== 400 || !/parse entities/i.test(desc)) throw err;
+    const plain = message.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text: plain,
+      disable_web_page_preview: true,
+      reply_markup: keyboard,
+    });
+  }
 }
 
 // ─── Maqsadli kanallar ────────────────────────────────────────────────────
@@ -276,12 +313,17 @@ async function runSchedulerTick() {
 
   for (const channel of pending) {
     const slotKey = `${todayStr}-${tashkentHour}`;
-    lastPostedSlots.set(channel.chatId, slotKey); // oldindan belgilab qo'yamiz
+    // Parallel tick'lar ikki marta yubormasligi uchun vaqtincha band qilamiz;
+    // muvaffaqiyatsiz bo'lsa bo'shatiladi (keyingi 10 daqiqalik tick qayta urinadi).
+    lastPostedSlots.set(channel.chatId, slotKey);
 
     try {
       const topic  = pickTopic(state);
       const aiData = await generatePost(topic);
-      if (!aiData) continue;
+      if (!aiData) {
+        lastPostedSlots.delete(channel.chatId);
+        continue;
+      }
 
       await sendTipToChat(botToken, channel.chatId, topic, aiData);
       state.sent.push({ id: topic.id, ts: Date.now() });
@@ -291,6 +333,7 @@ async function runSchedulerTick() {
       console.log(`[ClaudeTips] ✅ ${channel.title || channel.chatId} (${tashkentHour}:00) → "${topic.title}"`);
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
+      lastPostedSlots.delete(channel.chatId); // LLM-07: yuborilmadi — slot bo'shatiladi
       schedulerState.addLog('news', channel.chatId, 'Xatolik: ' + (err.response?.data?.description || err.message), false);
       console.error(`[ClaudeTips] ❌ ${channel.chatId}:`, err.response?.data?.description || err.message);
     }

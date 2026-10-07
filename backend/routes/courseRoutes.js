@@ -19,6 +19,10 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 
 const cacheMiddleware = require('../middleware/cacheMiddleware');
+const { invalidateCacheOnSuccess } = require('../middleware/cacheMiddleware');
+
+// P-B09: kurs mutatsiyasidan keyin /api/courses* kesh kalitlari tozalanadi
+const invalidateCourses = invalidateCacheOnSuccess('cache:/api/courses');
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses  |  POST /api/courses
@@ -33,7 +37,7 @@ router.get('/recommended', authenticate, getUserRecommendedCourses);
 // Bonus-14: sitemap uchun lightweight endpoint (50-clamp yo'q, slug bilan)
 // MUHIM: /:id dan OLDIN turishi shart — Express route tartibi
 router.get('/sitemap', getSitemapCourses);
-router.post('/', authenticate, requireAdmin, createCourse);
+router.post('/', authenticate, requireAdmin, invalidateCourses, createCourse);
 
 // ════════════════════════════════════════════════════════════════
 // GET /api/courses/:id  |  PUT /api/courses/:id  |  DELETE /api/courses/:id
@@ -44,8 +48,8 @@ router.get('/:id', getCourse);
 
 router.get('/:id/recommended', getRecommendedCourses);
 
-router.put('/:id', validateObjectId(), authenticate, requireAdmin, updateCourse);
-router.delete('/:id', validateObjectId(), authenticate, requireAdmin, deleteCourse);
+router.put('/:id', validateObjectId(), authenticate, requireAdmin, invalidateCourses, updateCourse);
+router.delete('/:id', validateObjectId(), authenticate, requireAdmin, invalidateCourses, deleteCourse);
 
 // SEO-007: users slug URL'da rate qilishi mumkin
 router.post('/:id/rate', authenticate, rateCourse);

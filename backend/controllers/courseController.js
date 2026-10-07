@@ -53,15 +53,18 @@ const getAllCourses = async (req, res) => {
     const lim  = Math.min(Math.max(1, parseInt(limit) || 12), 50);
     const pg   = Math.max(1, parseInt(page) || 1);
     const skip = (pg - 1) * lim;
-    const [total, courses] = await Promise.all([
+    const [total, rawCourses] = await Promise.all([
       Course.countDocuments(filter),
       Course.find(filter)
-        .populate('instructor', 'username email jobTitle position')
+        .select('-metaKeywords')
+        .populate('instructor', 'username jobTitle position')
         .sort(sortOption)
         .skip(skip)
         .limit(lim)
         .lean(),
     ]);
+    // P-B17: ro'yxatda videos[] ObjectId massivi o'rniga faqat videoCount (CourseCard shu bilan ishlaydi)
+    const courses = rawCourses.map(({ videos, ...c }) => ({ ...c, videoCount: Array.isArray(videos) ? videos.length : 0 }));
 
     // Map through courses to populate videoCount and calculate valid video stats
     // Even without populating full video details, we have the IDs in the array to count
@@ -98,7 +101,7 @@ const getTopCourses = async (req, res) => {
     if (category) filter.category = category;
 
     const courses = await Course.find(filter)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username jobTitle position')
       .sort({ viewCount: -1, rating: -1 })
       .limit(limit)
       .select('-videos')
@@ -151,7 +154,7 @@ const getCourse = async (req, res) => {
       : Course.findOne({ slug: param });
 
     const course = await query
-      .populate('instructor', 'username email jobTitle position')
+      .populate('instructor', 'username jobTitle position')
       .populate({
         path:   'videos',
         match:  { isActive: true },
@@ -209,7 +212,7 @@ const getRecommendedCourses = async (req, res) => {
       category: course.category,
       _id: { $ne: course._id },
     })
-      .populate('instructor', 'username email jobTitle position')
+      .populate('instructor', 'username jobTitle position')
       .sort({ rating: -1, viewCount: -1 })
       .limit(limit)
       .select('-videos')

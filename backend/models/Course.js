@@ -132,6 +132,8 @@ courseSchema.index({ title: 'text', description: 'text' });
 // PB-010: compound indexes for hot filter+sort queries (getTopCourses, getFilterCounts)
 courseSchema.index({ isActive: 1, viewCount: -1 });
 courseSchema.index({ isActive: 1, rating: -1 });
+// P-B17: katalog default sort — { isActive: true } sort createdAt
+courseSchema.index({ isActive: 1, createdAt: -1 });
 
 // SEO-007: yangi kurs yaratilganda yoki title o'zgarganda slug avtomatik generatsiya
 courseSchema.pre('save', async function (next) {

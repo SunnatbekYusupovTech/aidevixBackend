@@ -9,7 +9,9 @@ const getMyCertificates = async (req, res) => {
 
     res.json({ success: true, data: { certificates: certs } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    // ADM-10: ichki xato matni mijozga qaytarilmaydi
+    console.error('[certificateController] getMyCertificates:', err.message);
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -34,7 +36,9 @@ const verifyCertificate = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    // ADM-10: ichki xato matni mijozga qaytarilmaydi
+    console.error('[certificateController] verifyCertificate:', err.message);
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 
@@ -71,7 +75,9 @@ const downloadCertificate = async (req, res) => {
 
     res.json({ success: true, data: { downloadUrl: cert.pdfUrl } });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    // ADM-10: ichki xato matni mijozga qaytarilmaydi
+    console.error('[certificateController] downloadCertificate:', err.message);
+    res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };
 

@@ -4,6 +4,18 @@ const ErrorResponse = require('../utils/errorResponse');
 const { awardXp } = require('../utils/awardXp');
 const { getBot } = require('../utils/telegramBot');
 
+// ADM-05: pageUrl faqat http(s) — javascript:/data: URL admin panelda <a href> orqali XSS bo'lmasin
+const sanitizePageUrl = (value) => {
+  const raw = String(value || '').trim().slice(0, 800);
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString().slice(0, 800) : '';
+  } catch {
+    return '';
+  }
+};
+
 const BUG_XP = 100;
 const SUGGESTION_XP = 100;
 
@@ -13,7 +25,7 @@ const notifyAdminTelegram = async (report, user) => {
     const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '').trim();
     if (!bot || !adminId) return;
 
-    const safe = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 3500);
+    const safe = (s) => String(s || '').slice(0, 3500).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const text =
       `🐛 <b>Yangi bug xabari</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -49,7 +61,7 @@ const createBugReport = asyncHandler(async (req, res, next) => {
     user: req.user._id,
     title: String(title).trim().slice(0, 160),
     description: String(description).trim().slice(0, 8000),
-    pageUrl: String(pageUrl || '').trim().slice(0, 800),
+    pageUrl: sanitizePageUrl(pageUrl),
     suggestion: String(suggestion || '').trim().slice(0, 4000),
   });
 
@@ -92,9 +104,12 @@ const adminListBugReports = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('user', 'username email avatar'),
+      .populate('user', 'username email avatar')
+      .lean(),
     BugReport.countDocuments(filter),
   ]);
+  // ADM-05: eski (tuzatishdan oldingi) yozuvlardagi xavfli pageUrl ham chiqishda tozalanadi
+  for (const item of items) item.pageUrl = sanitizePageUrl(item.pageUrl);
 
   res.json({
     success: true,

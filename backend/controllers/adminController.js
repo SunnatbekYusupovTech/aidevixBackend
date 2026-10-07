@@ -465,50 +465,33 @@ const getAllEnrollments = async (req, res) => {
     if (isCompleted === 'true')  baseMatch.isCompleted = true;
     if (isCompleted === 'false') baseMatch.isCompleted = false;
 
-    // Agar search bo'lsa — Mongo aggregation orqali (populate-keyin-filter buggidan saqlanish)
+    // P-B14: avval users/courses regex bo'yicha topiladi (kichik to'plam), keyin enrollments
+    // $in bilan filtrlanadi — har bir enrollment uchun $lookup qilinmaydi.
+    let match = baseMatch;
     if (search) {
-      const r = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-
-      const pipeline = [
-        { $match: baseMatch },
-        { $lookup: { from: 'users',   localField: 'userId',   foreignField: '_id', as: 'u' } },
-        { $lookup: { from: 'courses', localField: 'courseId', foreignField: '_id', as: 'c' } },
-        { $unwind: { path: '$u', preserveNullAndEmptyArrays: true } },
-        { $unwind: { path: '$c', preserveNullAndEmptyArrays: true } },
-        { $match: { $or: [{ 'u.username': r }, { 'u.email': r }, { 'c.title': r }] } },
-        { $sort: { createdAt: -1 } },
-        {
-          $facet: {
-            items: [
-              { $skip: (page - 1) * limit },
-              { $limit: limit },
-              {
-                $project: {
-                  _id: 1, isCompleted: 1, progress: 1, completedAt: 1, createdAt: 1,
-                  userId: { _id: '$u._id', username: '$u.username', email: '$u.email', avatar: '$u.avatar' },
-                  courseId: { _id: '$c._id', title: '$c.title', thumbnail: '$c.thumbnail', category: '$c.category' },
-                },
-              },
-            ],
-            totalCount: [{ $count: 'c' }],
-          },
-        },
-      ];
-      const out = await Enrollment.aggregate(pipeline);
-      const row = out[0] || { items: [], totalCount: [] };
-      const total = row.totalCount[0]?.c || 0;
-      return res.json({ success: true, data: { enrollments: row.items, pagination: { total, page, limit } } });
+      const r = new RegExp(search.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const [users, courses] = await Promise.all([
+        User.find({ $or: [{ username: r }, { email: r }] }).select('_id').limit(1000).lean(),
+        Course.find({ title: r }).select('_id').limit(500).lean(),
+      ]);
+      const or = [];
+      if (users.length) or.push({ userId: { $in: users.map((u) => u._id) } });
+      if (courses.length) or.push({ courseId: { $in: courses.map((c) => c._id) } });
+      if (!or.length) {
+        return res.json({ success: true, data: { enrollments: [], pagination: { total: 0, page, limit } } });
+      }
+      match = { ...baseMatch, $or: or };
     }
 
     const [enrollments, total] = await Promise.all([
-      Enrollment.find(baseMatch)
+      Enrollment.find(match)
         .populate('userId',   'username email avatar')
         .populate('courseId', 'title thumbnail category')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
-      Enrollment.countDocuments(baseMatch),
+      Enrollment.countDocuments(match),
     ]);
 
     res.json({ success: true, data: { enrollments, pagination: { total, page, limit } } });

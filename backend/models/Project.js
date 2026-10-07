@@ -110,4 +110,9 @@ const projectSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// P-B07: kurs sahifasi — Project.find({ courseId, isActive }).sort({ order })
+projectSchema.index({ courseId: 1, isActive: 1, order: 1 });
+// P-B07: /projects/my va atomik completeProject — 'completedBy.userId'
+projectSchema.index({ 'completedBy.userId': 1 });
+
 module.exports = mongoose.model('Project', projectSchema);

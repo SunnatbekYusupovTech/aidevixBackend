@@ -78,5 +78,7 @@ videoSchema.index({ course: 1, order: 1 });
 videoSchema.index({ course: 1, isActive: 1 });
 videoSchema.index({ bunnyStatus: 1 });
 videoSchema.index({ title: 'text' });
+// P-B07: GET /api/videos/top — { isActive: true } sort viewCount
+videoSchema.index({ isActive: 1, viewCount: -1 });
 
 module.exports = mongoose.model('Video', videoSchema);

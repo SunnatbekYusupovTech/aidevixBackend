@@ -61,4 +61,7 @@ const quizSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// P-B07: dars sahifasi — Quiz.findOne({ videoId, isActive })
+quizSchema.index({ videoId: 1, isActive: 1 });
+
 module.exports = mongoose.model('Quiz', quizSchema);

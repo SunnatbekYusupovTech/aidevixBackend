@@ -5,35 +5,69 @@ const Enrollment = require('../models/Enrollment');
 const Prompt = require('../models/Prompt');
 const validator = require('validator');
 
+// P-B03: har sahifa ko'rishda chaqiriladi — public, user'ga bog'liq emas → 45s in-memory cache
+const LIVE_ACTIVITY_TTL_MS = 45 * 1000;
+let liveActivityCache = { data: null, expiresAt: 0, pending: null };
+
+const loadLiveActivity = async () => {
+  const [enrollments, prompts] = await Promise.all([
+    Enrollment.find()
+      .select('userId courseId createdAt')
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .populate('userId', 'username')
+      .populate('courseId', 'title')
+      .lean(),
+    Prompt.find({ isPublic: true })
+      .select('title author createdAt')
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .populate('author', 'username')
+      .lean(),
+  ]);
+
+  return [
+    ...enrollments.map((e) => ({
+      id: `enr-${e._id}`,
+      user: e.userId?.username || 'User',
+      action: `${e.courseId?.title || 'Kurs'} kursini boshladi`,
+      type: 'enrollment',
+      createdAt: e.createdAt,
+    })),
+    ...prompts.map((p) => ({
+      id: `prm-${p._id}`,
+      user: p.author?.username || 'User',
+      action: `yangi prompt ulashdi: ${p.title}`,
+      type: 'prompt',
+      createdAt: p.createdAt,
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 20);
+};
+
 const getLiveActivity = async (_req, res) => {
   try {
-    const [enrollments, prompts] = await Promise.all([
-      Enrollment.find().sort({ createdAt: -1 }).limit(12).populate('userId', 'username').populate('courseId', 'title'),
-      Prompt.find({ isPublic: true }).sort({ createdAt: -1 }).limit(12).populate('author', 'username'),
-    ]);
-
-    const activities = [
-      ...enrollments.map((e) => ({
-        id: `enr-${e._id}`,
-        user: e.userId?.username || 'User',
-        action: `${e.courseId?.title || 'Kurs'} kursini boshladi`,
-        type: 'enrollment',
-        createdAt: e.createdAt,
-      })),
-      ...prompts.map((p) => ({
-        id: `prm-${p._id}`,
-        user: p.author?.username || 'User',
-        action: `yangi prompt ulashdi: ${p.title}`,
-        type: 'prompt',
-        createdAt: p.createdAt,
-      })),
-    ]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 20);
-
+    const now = Date.now();
+    if (liveActivityCache.data && liveActivityCache.expiresAt > now) {
+      res.set('X-Cache', 'HIT');
+      return res.json({ success: true, data: { activities: liveActivityCache.data } });
+    }
+    // Bir vaqtdagi miss'lar bitta DB so'roviga birlashtiriladi (stampede himoyasi)
+    if (!liveActivityCache.pending) {
+      liveActivityCache.pending = loadLiveActivity()
+        .then((activities) => {
+          liveActivityCache.data = activities;
+          liveActivityCache.expiresAt = Date.now() + LIVE_ACTIVITY_TTL_MS;
+          return activities;
+        })
+        .finally(() => { liveActivityCache.pending = null; });
+    }
+    const activities = await liveActivityCache.pending;
+    res.set('X-Cache', 'MISS');
     return res.json({ success: true, data: { activities } });
   } catch (err) {
-    console.error('[publicController]', err);
+    console.error('[publicController]', err.message);
     return res.status(500).json({ success: false, message: 'Server xatosi' });
   }
 };

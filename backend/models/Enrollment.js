@@ -62,5 +62,9 @@ enrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
 enrollmentSchema.index({ userId: 1 });
 enrollmentSchema.index({ courseId: 1 });
 enrollmentSchema.index({ isCompleted: 1 });
+// P-B03: /public/live-activity — sort({ createdAt: -1 }).limit(12)
+enrollmentSchema.index({ createdAt: -1 });
+// P-B07: continueLearning/digest — { userId, isCompleted } sort updatedAt
+enrollmentSchema.index({ userId: 1, isCompleted: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

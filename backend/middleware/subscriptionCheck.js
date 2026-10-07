@@ -7,7 +7,8 @@ const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
  */
 const checkSubscriptions = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
+    // P-B06: authenticate allaqachon to'liq (hydrated) User hujjatini yuklagan — qayta so'rov yo'q.
+    const user = typeof req.user?.save === 'function' ? req.user : await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({

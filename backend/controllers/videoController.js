@@ -4,6 +4,7 @@ const VideoLink = require('../models/VideoLink');
 const VideoQuestion = require('../models/VideoQuestion');
 const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
+const Enrollment = require('../models/Enrollment');
 const {
   createBunnyVideo,
   deleteBunnyVideo,
@@ -27,12 +28,13 @@ const getCourseVideos = async (req, res) => {
     const { courseId } = req.params;
 
     // PB-008: faqat kerakli fieldlar — questions (embedded massiv) va materials chiqariladi
-    // Public: _id/title/duration/thumbnail/sectionId; Admin: + description/order/bunnyVideoId/bunnyStatus
+    // ADM-02: bunnyVideoId/bunnyStatus FAQAT admin uchun (public javobda Bunny GUID chiqmaydi)
+    const isAdmin = req.user?.role === 'admin';
     const videos = await Video.find({
       course: courseId,
       isActive: true
     })
-      .select('_id title description order duration thumbnail viewCount sectionId course bunnyVideoId bunnyStatus')
+      .select(`_id title description order duration thumbnail viewCount sectionId course${isAdmin ? ' bunnyVideoId bunnyStatus' : ''}`)
       .sort({ order: 1 })
       .lean();
 
@@ -53,38 +55,91 @@ const getCourseVideos = async (req, res) => {
 };
 
 // Get single video (requires subscription check)
+const hasActivePro = (user) =>
+  Boolean(user?.proSubscription?.active) &&
+  (!user?.proSubscription?.expiresAt || new Date(user.proSubscription.expiresAt).getTime() > Date.now());
+
 const getVideo = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const video = await Video.findById(id).populate('course').lean();
+    // P-B06: faqat kerakli course fieldlari (videos[]/description emas)
+    const video = await Video.findById(id)
+      .select('title description duration order thumbnail materials course viewCount rating isActive bunnyVideoId bunnyStatus')
+      .populate('course', 'title slug category thumbnail isFree price isActive')
+      .lean();
 
-    if (!video || !video.isActive) {
+    const isAdmin = req.user?.role === 'admin';
+    if (!video || !video.isActive || (!isAdmin && (!video.course || video.course.isActive === false))) {
       return res.status(404).json({
         success: false,
         message: 'Video not found.',
       });
     }
 
-    // User subscription status is already verified by checkSubscriptions middleware
-    const isAiVideo = video.course?.category === 'ai';
-    if (isAiVideo) {
-      const user = await User.findById(req.user._id).select('proSubscription');
-      const hasPro =
-        Boolean(user?.proSubscription?.active) &&
-        (!user?.proSubscription?.expiresAt || new Date(user.proSubscription.expiresAt).getTime() > Date.now());
+    const course = video.course;
+    const courseInfo = course
+      ? { _id: course._id, title: course.title, slug: course.slug, category: course.category, thumbnail: course.thumbnail, isFree: course.isFree, price: course.price }
+      : null;
+    // Gate'dan o'tmagan foydalanuvchiga faqat metadata (signed URL va materials yo'q)
+    const publicMeta = {
+      _id: video._id,
+      title: video.title,
+      description: video.description,
+      duration: video.duration,
+      order: video.order,
+      thumbnail: video.thumbnail,
+      course: courseInfo,
+    };
 
-      if (!hasPro) {
-        return res.status(402).json({
-          success: false,
-          code: 'PRO_REQUIRED',
-          message: 'Bu AI dars Pro obuna uchun ochiq. Davom etish uchun Pro sotib oling.',
-          data: {
-            requiresPro: true,
-            price: Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000),
-            currency: 'UZS',
-          },
-        });
+    // ADM-01: kirish huquqi — admin | bepul kurs | to'langan enrollment | AI kurs uchun Pro.
+    // Ijtimoiy obuna (Instagram/Telegram) checkSubscriptions middleware'da tekshirilgan.
+    // P-B06: req.user allaqachon yuklangan — qayta User.findById qilinmaydi.
+    if (!isAdmin) {
+      const isAiVideo = course.category === 'ai';
+      const isPaidCourse = !course.isFree && Number(course.price) > 0;
+
+      if (isAiVideo || isPaidCourse) {
+        const hasPro = isAiVideo && hasActivePro(req.user);
+        // enrollmentController.enrollCourse bilan izchil: pullik kursga yozilish faqat to'lov
+        // orqali ('paid'); 'free' — kurs bepul bo'lgan paytda yozilganlar. AI kursda 'free'
+        // enrollment Pro o'rnini bosmaydi (avvalgi xatti-harakat saqlanadi).
+        const allowedStatuses = isAiVideo ? ['paid'] : ['paid', 'free'];
+        const hasAccess = hasPro || Boolean(await Enrollment.exists({
+          userId: req.user._id,
+          courseId: course._id,
+          paymentStatus: { $in: allowedStatuses },
+        }));
+
+        if (!hasAccess) {
+          if (isAiVideo) {
+            return res.status(402).json({
+              success: false,
+              code: 'PRO_REQUIRED',
+              message: 'Bu AI dars Pro obuna uchun ochiq. Davom etish uchun Pro sotib oling.',
+              data: {
+                requiresPro: true,
+                price: Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000),
+                currency: 'UZS',
+                video: publicMeta,
+                player: null,
+              },
+            });
+          }
+          return res.status(402).json({
+            success: false,
+            code: 'ENROLLMENT_REQUIRED',
+            message: "Bu dars pullik kursga tegishli. Ko'rish uchun kursni sotib oling.",
+            data: {
+              requiresEnrollment: true,
+              courseId: course._id,
+              price: course.price,
+              currency: 'UZS',
+              video: publicMeta,
+              player: null,
+            },
+          });
+        }
       }
     }
 
@@ -114,14 +169,8 @@ const getVideo = async (req, res) => {
       success: true,
       data: {
         video: {
-          _id: video._id,
-          title: video.title,
-          description: video.description,
-          duration: video.duration,
-          order: video.order,
-          thumbnail: video.thumbnail,
+          ...publicMeta,
           materials: video.materials,
-          course: video.course,
           views: video.viewCount,
           rating: video.rating,
         },
@@ -741,7 +790,9 @@ const getTopVideos = async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
+    // ADM-02: explicit projection — bunnyVideoId/materials/questions public chiqmaydi
     const videos = await Video.find({ isActive: true })
+      .select('_id title duration thumbnail viewCount course order')
       .sort({ viewCount: -1 })
       .limit(limit)
       .populate('course', 'title category')

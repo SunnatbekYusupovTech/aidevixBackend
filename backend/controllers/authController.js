@@ -18,7 +18,7 @@ const {
   verify2FAChallenge,
   REFRESH_ABSOLUTE_TTL_SECONDS,
 } = require('../utils/jwt');
-const { verifyTotpCode } = require('./twoFactorController');
+const { verifyTotpStep } = require('./twoFactorController');
 const {
   sendWelcomeEmail,
   sendResetCodeEmail,
@@ -36,6 +36,7 @@ const {
   hashToken,
   hashCode,
   safeEqual,
+  isTrustedMobileClient,
   parseCookies,
   verifyCsrfToken,
   CSRF_COOKIE_NAME,
@@ -43,7 +44,7 @@ const {
 } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
 const { checkPasswordPwned } = require('../utils/hibp');
-const { isPasswordReused } = require('../utils/passwordHistory');
+const { isPasswordReused, HISTORY_SIZE } = require('../utils/passwordHistory');
 const { buildFromReq, extractIp, extractUa } = require('../utils/deviceFingerprint');
 const { issueReauthToken } = require('../middleware/stepUp');
 const { softDeleteUser } = require('../utils/accountDeletion');
@@ -74,8 +75,11 @@ const resolveIdentifier = async (raw, method = 'email', selectFields = '') => {
   let user = null;
   if (method === 'telegram') {
     const username = id.replace(/^@/, '').toLowerCase();
+    // AUTH-05: faqat Telegram ID'si isbot bilan (bot token-link / Mini App initData)
+    // bog'langan akkauntlar — top-level telegramUserId faqat shu yo'llar orqali yoziladi.
     user = await User.findOne({
       'socialSubscriptions.telegram.username': username,
+      telegramUserId: { $ne: null },
     }).select(selectFields || undefined);
   } else {
     user = await User.findOne({ email: normalizeEmail(id) }).select(selectFields || undefined);
@@ -84,10 +88,34 @@ const resolveIdentifier = async (raw, method = 'email', selectFields = '') => {
 };
 
 // Precomputed dummy hash to keep bcrypt.compare time constant across "user not found" vs "wrong password".
-// Cost MUST match the production hash cost (14) used in User pre-save hook —
-// mismatched costs leak the user-existence signal via response timing.
+// Cost MUST match the production hash cost (BCRYPT_COST=12, User pre-save hook) —
+// mismatched costs leak the user-existence signal via response timing. Legacy cost-14
+// hashes are transparently re-hashed to 12 on the next successful login (P-B05).
 // Hash of a random value; attacker can never match this.
-const DUMMY_HASH = '$2a$14$9BxHNzsN21NxBCdqgFQu0.xb./zSbPr.GeWqgy85gbqwgzMXEf3qC';
+const BCRYPT_COST = User.BCRYPT_COST || 12;
+const DUMMY_HASH = '$2a$12$pMpw1kEAHmN/Nr1xMrB97.1METB7MiNm92m3LwGMiw7JrlrS01JQS';
+
+// AUTH-02: reset-kod bo'yicha per-account limit (yangi kod so'rash hisoblagichni nolga tushirmaydi)
+const RESET_MAX_ATTEMPTS = 5;
+const RESET_LOCK_MS = 60 * 60 * 1000;
+// AUTH-04: per-account 2FA limit
+const TOTP_MAX_ATTEMPTS = 5;
+const TOTP_LOCK_MS = 15 * 60 * 1000;
+
+// P-B05: legacy cost-14 hash'ni joriy cost'ga o'tkazish. To'g'ridan-to'g'ri updateOne —
+// pre-save hook'ni (tokenVersion++, passwordHistory) chetlab o'tadi, chunki parol o'zgarmagan.
+// Fire-and-forget: login javobini kechiktirmaydi; xato bo'lsa keyingi login'da qayta urinadi.
+const rehashIfLegacyCost = (userId, plainPassword, currentHash) => {
+  let rounds;
+  try { rounds = bcrypt.getRounds(currentHash); } catch { return; }
+  if (!(rounds > BCRYPT_COST)) return;
+  bcrypt.hash(plainPassword, BCRYPT_COST)
+    .then((newHash) => User.updateOne(
+      { _id: userId, password: currentHash },
+      { $set: { password: newHash } }
+    ))
+    .catch(() => {});
+};
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -152,7 +180,9 @@ const issueTokens = async (user, req, existingSession = null) => {
     });
   }
 
-  const accessPayload = { userId: user._id, tv: tokenVersion };
+  // AUTH-10: access token ham session id (sid) ni olib yuradi — authenticate sessiya
+  // o'chirilganini (DELETE /api/sessions/:id, logout) darhol ko'radi.
+  const accessPayload = { userId: user._id, tv: tokenVersion, sid: String(session._id) };
   const refreshPayload = { userId: user._id, tv: tokenVersion, sid: String(session._id) };
   const accessToken = generateAccessToken(accessPayload);
   const refreshToken = generateRefreshToken(refreshPayload, absoluteExpSec);
@@ -203,7 +233,8 @@ const mobileTokenBody = (req, accessToken, refreshToken) => {
   // fall back to header-only (legacy) so the live mobile app keeps working until
   // its env is set — but warn once so the gap is visible in logs.
   if (secret) {
-    if (req.headers['x-mobile-secret'] !== secret) return {};
+    // Timing-safe solishtirish (utils/authSecurity.isTrustedMobileClient)
+    if (!isTrustedMobileClient(req)) return {};
     return { accessToken, refreshToken };
   }
   if (!mobileTokenBody._legacyWarned) {
@@ -416,11 +447,26 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select(
-    '+password +failedLoginAttempts +lockUntil +tokenVersion +totpEnabled +totpSecret +deletedAt'
+    '+password +failedLoginAttempts +lockUntil +tokenVersion +totpEnabled +totpSecret +deletedAt +knownDevices'
   );
 
+  // AUTH-01: lock holati parol natijasidan OLDIN hal qilinadi. bcrypt baribir ishlaydi
+  // (doimiy vaqt — enumeration/timing yo'q), lekin bloklangan akkaunt uchun javob parol
+  // to'g'ri yoki noto'g'riligidan qat'i nazar BIR XIL generic 401 — 423-vs-401 oracle yo'q.
+  // Blok paytidagi urinishlar blokni uzaytirmaydi (registerFailedLogin chaqirilmaydi).
+  // Lockout DoS'ni yumshatish: to'g'ri parol + egasining tanish qurilmasi (knownDevices,
+  // UA + /24 IP hash) bo'lsa blok chetlab o'tiladi — begona hujumchi buni qila olmaydi.
   const passwordHash = user?.password || DUMMY_HASH;
+  const isLockedNow = Boolean(user && user.password && user.isLocked());
   const isMatch = await bcrypt.compare(password, passwordHash).catch(() => false);
+
+  if (isLockedNow) {
+    const trustedDevice = isMatch && (user.knownDevices || []).includes(buildFromReq(req));
+    if (!trustedDevice) {
+      securityLogger.loginLocked(req, user);
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+  }
 
   if (!user || !user.password || !isMatch) {
     if (user && user.password) {
@@ -437,16 +483,8 @@ const login = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Invalid credentials', 401));
   }
 
-  // From here: password is correct. Account-state errors are safe to reveal.
-
-  if (user.isLocked()) {
-    securityLogger.loginLocked(req, user);
-    const retryAfterMs = user.lockUntil.getTime() - Date.now();
-    const retryMin = Math.max(1, Math.ceil(retryAfterMs / 60000));
-    return next(
-      new ErrorResponse(`Hisob vaqtincha bloklangan. ${retryMin} daqiqadan so'ng urinib ko'ring.`, 423)
-    );
-  }
+  // From here: password is correct (and the account is not locked, or the request comes
+  // from the owner's known device). Account-state errors are safe to reveal.
 
   if (!user.isActive || user.deletedAt) {
     securityLogger.loginFailed(req, 'account_inactive', { userId: String(user._id) });
@@ -454,6 +492,7 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   await user.resetLoginAttempts();
+  rehashIfLegacyCost(user._id, password, user.password);
 
   // Email verification gate — auto-resend code, do not issue tokens
   if (!user.emailVerified) {
@@ -520,7 +559,7 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findById(decoded.uid).select(
-    '+totpEnabled +totpSecret +totpBackupCodes +tokenVersion +password'
+    '+totpEnabled +totpSecret +totpBackupCodes +tokenVersion +password +totpFailedAttempts +totpLockUntil +totpLastUsedStep'
   );
   if (!user || !user.totpEnabled || !user.totpSecret) {
     return next(new ErrorResponse('2FA holati o\'zgargan. Qayta login qiling.', 401));
@@ -529,7 +568,34 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Account deactivated', 403));
   }
 
-  const totpOk = verifyTotpCode(user.totpSecret, code);
+  // AUTH-04: per-account blok — IP almashtirish yoki yangi challenge olish uni chetlab o'tmaydi.
+  if (user.totpLockUntil && user.totpLockUntil.getTime() > Date.now()) {
+    securityLogger.suspicious(req, '2fa_locked', { userId: String(user._id) });
+    return next(new ErrorResponse('Juda ko\'p noto\'g\'ri 2FA urinishi. 15 daqiqadan so\'ng qayta urinib ko\'ring.', 429));
+  }
+
+  // AUTH-12: TOTP replay himoyasi — shu yoki oldingi time-step qayta qabul qilinmaydi.
+  const totpStep = verifyTotpStep(user.totpSecret, code);
+  let totpOk = false;
+  if (totpStep !== null) {
+    const lastStep = typeof user.totpLastUsedStep === 'number' ? user.totpLastUsedStep : null;
+    if (lastStep === null || totpStep > lastStep) {
+      // Atomik "claim": parallel ikki so'rov bir xil kodni ishlata olmaydi.
+      const claimed = await User.updateOne(
+        {
+          _id: user._id,
+          $or: [
+            { totpLastUsedStep: null },
+            { totpLastUsedStep: { $exists: false } },
+            { totpLastUsedStep: { $lt: totpStep } },
+          ],
+        },
+        { $set: { totpLastUsedStep: totpStep } }
+      );
+      totpOk = Boolean(claimed && claimed.modifiedCount > 0);
+    }
+    if (!totpOk) securityLogger.suspicious(req, '2fa_code_replay', { userId: String(user._id) });
+  }
 
   // Backup code path — single-use, removed after use
   let backupOk = false;
@@ -537,9 +603,15 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
     const codeHash = hashToken(String(code).toUpperCase().replace(/\s+/g, ''));
     const idx = (user.totpBackupCodes || []).findIndex((h) => safeEqual(h, codeHash));
     if (idx >= 0) {
-      backupOk = true;
-      const remaining = user.totpBackupCodes.filter((_, i) => i !== idx);
-      await User.updateOne({ _id: user._id }, { $set: { totpBackupCodes: remaining } });
+      // Atomik single-use: parallel so'rovlar bir backup kodni ikki marta ishlata olmaydi.
+      const pulled = await User.updateOne(
+        { _id: user._id, totpBackupCodes: user.totpBackupCodes[idx] },
+        { $pull: { totpBackupCodes: user.totpBackupCodes[idx] } }
+      );
+      backupOk = Boolean(pulled && pulled.modifiedCount > 0);
+    }
+    if (backupOk) {
+      const remaining = (user.totpBackupCodes || []).filter((h) => !safeEqual(h, codeHash));
       securityLogger.suspicious(req, '2fa_backup_used', {
         userId: String(user._id),
         remaining: remaining.length,
@@ -552,7 +624,24 @@ const verify2FALogin = asyncHandler(async (req, res, next) => {
 
   if (!totpOk && !backupOk) {
     securityLogger.suspicious(req, '2fa_wrong_code', { userId: String(user._id) });
+    // AUTH-04: atomik $inc; chegaraga yetganda blok o'rnatiladi va hisoblagich nolga tushadi.
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { totpFailedAttempts: 1 } },
+      { new: true, projection: { totpFailedAttempts: 1 } }
+    ).catch(() => null);
+    if (updated && (updated.totpFailedAttempts || 0) >= TOTP_MAX_ATTEMPTS) {
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { totpFailedAttempts: 0, totpLockUntil: new Date(Date.now() + TOTP_LOCK_MS) } }
+      );
+      securityLogger.suspicious(req, '2fa_locked', { userId: String(user._id) });
+    }
     return next(new ErrorResponse('TOTP kodi noto\'g\'ri', 401));
+  }
+
+  if ((user.totpFailedAttempts || 0) > 0 || user.totpLockUntil) {
+    await User.updateOne({ _id: user._id }, { $set: { totpFailedAttempts: 0, totpLockUntil: null } });
   }
 
   const { accessToken, refreshToken } = await issueTokens(user, req);
@@ -780,6 +869,20 @@ const refresh = asyncHandler(async (req, res, next) => {
       return next(new ErrorResponse('Account deactivated', 403));
     }
 
+    // AUTH-09: atomik rotatsiya. Faqat hash hali ham incomingHash bo'lsa "claim" qilamiz —
+    // bir xil refresh token bilan parallel ikki so'rovdan faqat bittasi yangi token oladi.
+    // Yutqazgan so'rov oilani yoqmaydi (benign race, masalan ikki tab), shunchaki 401 oladi;
+    // eski tokenni keyinroq ketma-ket qayta ishlatish yuqoridagi reuse-detection'ga tushadi.
+    const claimed = await Session.findOneAndUpdate(
+      { _id: session._id, userId: user._id, refreshTokenHash: incomingHash },
+      { $set: { refreshTokenHash: `rotating:${crypto.randomBytes(16).toString('hex')}` } },
+      { new: false, projection: { _id: 1 } }
+    );
+    if (!claimed) {
+      securityLogger.refreshTokenInvalid(req, 'rotation_race');
+      return next(new ErrorResponse('Refresh token already rotated. Please retry.', 401));
+    }
+
     const { accessToken, refreshToken: newRefreshToken } =
       await issueTokens(user, req, session);
     const csrfToken = attachAuthCookies(res, accessToken, newRefreshToken);
@@ -982,7 +1085,7 @@ const claimDailyReward = asyncHandler(async (req, res, next) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const rawIdentifier = req.body?.identifier || req.body?.email;
   const method = req.body?.method === 'telegram' ? 'telegram' : 'email';
-  const { user, identifier } = await resolveIdentifier(rawIdentifier, method);
+  const { user, identifier } = await resolveIdentifier(rawIdentifier, method, '+resetPasswordLockUntil');
 
   const genericResponse = {
     success: true,
@@ -994,15 +1097,23 @@ const forgotPassword = asyncHandler(async (req, res) => {
     return res.json(genericResponse);
   }
 
+  // AUTH-02: brute-force blokidagi akkauntga yangi kod berilmaydi (javob baribir generic).
+  if (user.resetPasswordLockUntil && user.resetPasswordLockUntil.getTime() > Date.now()) {
+    securityLogger.suspicious(req, 'reset_locked', { userId: String(user._id) });
+    return res.json(genericResponse);
+  }
+
   const code = crypto.randomInt(100000, 1000000).toString();
   user.resetPasswordCode = hashCode(code);
   user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-  user.resetPasswordAttempts = 0;
+  // AUTH-02: resetPasswordAttempts bu yerda NOLGA TUSHIRILMAYDI — aks holda har yangi kod
+  // so'rovi 5 ta yangi taxmin beradi. Hisoblagich faqat muvaffaqiyatli verify yoki blokda tozalanadi.
   await user.save({ validateModifiedOnly: true });
 
   try {
     if (method === 'telegram') {
-      const tgId = user.socialSubscriptions?.telegram?.telegramUserId || user.telegramUserId;
+      // AUTH-05: OTP faqat isbot bilan bog'langan Telegram ID'ga yuboriladi.
+      const tgId = user.telegramUserId;
       if (!tgId) throw new Error('Telegram ID topilmadi — avval botni /start qiling');
       await sendOtpTelegram(tgId, code);
     } else {
@@ -1032,8 +1143,12 @@ const verifyCode = asyncHandler(async (req, res, next) => {
   const { user } = await resolveIdentifier(
     rawIdentifier,
     method,
-    '+resetPasswordCode +resetPasswordExpire +resetPasswordAttempts'
+    '+resetPasswordCode +resetPasswordExpire +resetPasswordAttempts +resetPasswordLockUntil'
   );
+
+  if (user && user.resetPasswordLockUntil && user.resetPasswordLockUntil.getTime() > Date.now()) {
+    return next(new ErrorResponse('Juda ko\'p noto\'g\'ri urinish. Keyinroq qayta urinib ko\'ring.', 400));
+  }
 
   if (!user || !user.resetPasswordCode || !user.resetPasswordExpire) {
     return next(new ErrorResponse('Invalid or expired code', 400));
@@ -1043,16 +1158,29 @@ const verifyCode = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Invalid or expired code', 400));
   }
 
-  if ((user.resetPasswordAttempts || 0) >= 5) {
-    user.resetPasswordCode = null;
-    user.resetPasswordExpire = null;
-    user.resetPasswordAttempts = 0;
-    await user.save({ validateModifiedOnly: true });
-    return next(new ErrorResponse('Juda ko\'p noto\'g\'ri urinish. Yangi kod so\'rang.', 400));
-  }
-
   if (!safeEqual(user.resetPasswordCode, hashCode(code))) {
-    await User.updateOne({ _id: user._id }, { $inc: { resetPasswordAttempts: 1 } });
+    // AUTH-02: per-account hisoblagich (forgot-password uni nolga tushirmaydi). Chegarada
+    // kod bekor qilinadi va akkaunt RESET_LOCK_MS ga reset'dan bloklanadi.
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { resetPasswordAttempts: 1 } },
+      { new: true, projection: { resetPasswordAttempts: 1 } }
+    ).catch(() => null);
+    if (updated && (updated.resetPasswordAttempts || 0) >= RESET_MAX_ATTEMPTS) {
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            resetPasswordCode: null,
+            resetPasswordExpire: null,
+            resetPasswordAttempts: 0,
+            resetPasswordLockUntil: new Date(Date.now() + RESET_LOCK_MS),
+          },
+        }
+      );
+      securityLogger.suspicious(req, 'reset_code_bruteforce_locked', { userId: String(user._id) });
+      return next(new ErrorResponse('Juda ko\'p noto\'g\'ri urinish. Keyinroq qayta urinib ko\'ring.', 400));
+    }
     return next(new ErrorResponse('Invalid or expired code', 400));
   }
 
@@ -1065,6 +1193,7 @@ const verifyCode = asyncHandler(async (req, res, next) => {
         resetPasswordCode: null,
         resetPasswordExpire: null,
         resetPasswordAttempts: 0,
+        resetPasswordLockUntil: null,
         resetTokenHash: hashToken(resetToken),
         resetTokenExpire: new Date(Date.now() + 15 * 60 * 1000),
       },
@@ -1126,8 +1255,10 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     ));
   }
 
-  // Password history — reject reuse of any of the last 5
-  const history = [user.password, ...(user.passwordHistory || [])].filter(Boolean);
+  // Password history — reject reuse of the current or any of the last HISTORY_SIZE passwords.
+  // P-B05: dedupe identical hashes and cap the list, so no bcrypt compare is wasted.
+  const history = [...new Set([user.password, ...(user.passwordHistory || [])].filter(Boolean))]
+    .slice(0, HISTORY_SIZE + 1);
   if (await isPasswordReused(newPassword, history)) {
     securityLogger.passwordReuseRejected(req, user._id);
     return next(new ErrorResponse('So\'nggi 5 ta paroldan birini takrorlay olmaysiz.', 400));
@@ -1187,8 +1318,16 @@ const changePassword = asyncHandler(async (req, res, next) => {
     ));
   }
 
-  // Password history reuse check
-  const history = [user.password, ...(user.passwordHistory || [])].filter(Boolean);
+  // Password history reuse check.
+  // P-B05: the current hash was already compared above (currentPassword matched it and
+  // newPassword !== currentPassword), so skip it here — one bcrypt compare fewer. Only
+  // when both passwords share the same first 72 bytes (bcrypt truncation) is it re-checked.
+  const sameBcryptPrefix =
+    Buffer.from(String(newPassword)).subarray(0, 72).equals(Buffer.from(String(currentPassword)).subarray(0, 72));
+  const previous = [...new Set((user.passwordHistory || []).filter(Boolean))]
+    .filter((h) => h !== user.password)
+    .slice(0, HISTORY_SIZE);
+  const history = sameBcryptPrefix ? [user.password, ...previous] : previous;
   if (await isPasswordReused(newPassword, history)) {
     securityLogger.passwordReuseRejected(req, user._id);
     return next(new ErrorResponse('So\'nggi 5 ta paroldan birini takrorlay olmaysiz.', 400));
@@ -1371,12 +1510,29 @@ const googleAuth = asyncHandler(async (req, res, next) => {
   let isNew = false;
 
   if (user) {
-    if (!user.googleId) {
-      await User.updateOne({ _id: user._id }, { $set: { googleId } });
-      user.googleId = googleId;
-    }
     if (!user.isActive) {
       return next(new ErrorResponse('Account deactivated', 403));
+    }
+    if (!user.googleId) {
+      if (user.emailVerified === false) {
+        // AUTH-06: pre-account-takeover himoyasi. Tasdiqlanmagan akkaunt emailni isbotlamagan
+        // kimdir tomonidan (o'z paroli bilan) yaratilgan bo'lishi mumkin. Google email egaligini
+        // isbotladi → emailni tasdiqlaymiz, begona parolni o'chiramiz va eski sessiyalarni bekor qilamiz.
+        await User.updateOne(
+          { _id: user._id },
+          {
+            $set: { googleId, emailVerified: true, refreshToken: null },
+            $unset: { password: 1 },
+            $inc: { tokenVersion: 1 },
+          }
+        );
+        await Session.deleteMany({ userId: user._id });
+        user.emailVerified = true;
+        securityLogger.suspicious(req, 'google_link_unverified_account_reset', { userId: String(user._id) });
+      } else {
+        await User.updateOne({ _id: user._id }, { $set: { googleId } });
+      }
+      user.googleId = googleId;
     }
   } else {
     isNew = true;
@@ -1461,13 +1617,27 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
   const tgUser = result.user; // { id, first_name, last_name, username, language_code, photo_url, is_premium }
   const telegramUserId = String(tgUser.id);
 
-  // Avval Telegram ID bo'yicha qidiramiz
-  let user = await User.findOne({
-    $or: [
-      { telegramUserId },
-      { 'socialSubscriptions.telegram.telegramUserId': telegramUserId },
-    ],
-  }).select('+tokenVersion +totpEnabled');
+  // AUTH-05 / D27: faqat isbot bilan bog'langan top-level telegramUserId bo'yicha qidiramiz
+  // (u faqat TMA ro'yxatdan o'tish, bot token-link yoki initData orqali yoziladi).
+  // `socialSubscriptions.telegram.telegramUserId` tarixan client yuborgan istalgan ID bilan
+  // to'ldirilgan bo'lishi mumkin — unga mos kelgan BEGONA akkauntga jimgina kiritish
+  // "account fixation" bo'lardi, shuning uchun bunday holatda login rad etiladi.
+  let user = await User.findOne({ telegramUserId }).select('+tokenVersion +totpEnabled');
+
+  if (!user) {
+    const unprovenClaim = await User.findOne({
+      'socialSubscriptions.telegram.telegramUserId': telegramUserId,
+    }).select('_id').lean();
+    if (unprovenClaim) {
+      securityLogger.suspicious(req, 'telegram_init_unproven_link', {
+        userId: String(unprovenClaim._id),
+      });
+      return next(new ErrorResponse(
+        'Bu Telegram hisob tasdiqlanmagan holda boshqa profilga bog\'langan. Saytga email orqali kiring va Telegramni bot orqali qayta ulang.',
+        409
+      ));
+    }
+  }
 
   let isNew = false;
 
@@ -1505,12 +1675,7 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
       // Race: parallel TMA auth bir vaqtda user yaratdi (placeholder email unique 11000) — mavjudini olamiz
       if (e && e.code === 11000) {
         isNew = false;
-        user = await User.findOne({
-          $or: [
-            { telegramUserId },
-            { 'socialSubscriptions.telegram.telegramUserId': telegramUserId },
-          ],
-        }).select('+tokenVersion +totpEnabled');
+        user = await User.findOne({ telegramUserId }).select('+tokenVersion +totpEnabled');
         if (!user) throw e;
       } else {
         throw e;
@@ -1532,10 +1697,8 @@ const telegramMiniAppAuth = asyncHandler(async (req, res, next) => {
     }
   } else {
     if (!user.isActive) return next(new ErrorResponse('Account deactivated', 403));
-    // Telegram ID ulash (eski user'da bo'lmasa)
-    if (!user.telegramUserId) {
-      await User.updateOne({ _id: user._id }, { $set: { telegramUserId, telegramChatId: telegramUserId } });
-    }
+    // User aynan telegramUserId bo'yicha topildi — boshqa akkauntga hech narsa ulanmaydi
+    // va mavjud boshqa link ustidan yozilmaydi (AUTH-05).
   }
 
   // 2FA gate — Telegram first factor solves identity, lekin TOTP mustaqil

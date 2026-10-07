@@ -32,6 +32,19 @@ const safeEqual = (a = '', b = '') => {
   }
 };
 
+// AUTH-03: "mobil ilova" da'vosining isboti. X-Client-Type header'ini istalgan skript
+// qo'yishi mumkin, shuning uchun u o'zi hech narsani isbotlamaydi. Faqat MOBILE_API_SECRET
+// o'rnatilgan va X-Mobile-Secret unga timing-safe mos kelganda true qaytadi.
+// Secret o'rnatilmagan bo'lsa → har doim false (mobil ham CAPTCHA'dan o'tishi kerak).
+const isTrustedMobileClient = (req) => {
+  if (!req || !req.headers || req.headers['x-client-type'] !== 'mobile') return false;
+  const secret = process.env.MOBILE_API_SECRET;
+  if (!secret) return false;
+  const provided = req.headers['x-mobile-secret'];
+  if (typeof provided !== 'string' || !provided) return false;
+  return safeEqual(hashToken(provided), hashToken(secret));
+};
+
 const parseCookies = (cookieHeader = '') =>
   cookieHeader
     .split(';')
@@ -159,6 +172,7 @@ module.exports = {
   hashToken,
   hashCode,
   safeEqual,
+  isTrustedMobileClient,
   parseCookies,
   generateCsrfToken,
   verifyCsrfToken,

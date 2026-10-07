@@ -6,13 +6,15 @@
  */
 const { verifyCaptcha, isEnabled } = require('../utils/captcha');
 const securityLogger = require('../utils/securityLogger');
+const { isTrustedMobileClient } = require('../utils/authSecurity');
 
 const captchaCheck = async (req, res, next) => {
   if (!isEnabled()) return next();
 
-  // Mobil ilovalar brauzer CAPTCHA'ni render qila olmaydi. X-Client-Type: mobile
-  // header'i bor so'rovlarni skip qilamiz — bu so'rovlar rate-limiter bilan himoyalangan.
-  if (req.headers['x-client-type'] === 'mobile') return next();
+  // Mobil ilovalar brauzer CAPTCHA'ni render qila olmaydi. AUTH-03: faqat header emas —
+  // X-Client-Type: mobile + to'g'ri X-Mobile-Secret (MOBILE_API_SECRET) bo'lsagina skip.
+  // Header'ni istalgan skript qo'ya oladi, shuning uchun u yolg'iz isbot emas.
+  if (isTrustedMobileClient(req)) return next();
 
   const token =
     req.headers['x-captcha-token'] ||

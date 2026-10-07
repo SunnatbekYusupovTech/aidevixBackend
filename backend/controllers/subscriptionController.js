@@ -3,6 +3,7 @@ const VerifyToken = require('../models/VerifyToken');
 const crypto = require('crypto');
 const { verifyInstagramSubscription, verifyTelegramSubscription, checkTelegramSubscription } = require('../utils/socialVerification');
 const { invalidate: invalidateCache } = require('../utils/subscriptionCache');
+const { validateInitData } = require('../utils/telegramWebAppAuth');
 
 // Verify Instagram subscription
 const verifyInstagram = async (req, res) => {
@@ -23,10 +24,12 @@ const verifyInstagram = async (req, res) => {
     // Update user's Instagram subscription status
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    // PAY-02: Instagram'ni API bilan tekshirib bo'lmaydi — 'self_reported' deb belgilanadi.
     user.socialSubscriptions.instagram = {
       subscribed: verification.subscribed,
       username: verification.username,
       verifiedAt: verification.verifiedAt,
+      verificationSource: verification.verificationSource || null,
     };
     await user.save();
     invalidateCache(userId); // Cache tozalash — keyingi checkda yangi holat yuklanadi
@@ -61,33 +64,86 @@ const verifyInstagram = async (req, res) => {
   }
 };
 
+// Boshqa akkauntlardagi ISBOTSIZ (faqat socialSubscriptions'da, top-level telegramUserId'siz)
+// da'volarni bekor qiladi — haqiqiy egasi (bot / initData bilan isbotlagan) ulanayotganda.
+// Tarixan verify-telegram client yuborgan istalgan ID'ni shu maydonga yozgan.
+const releaseUnprovenTelegramClaims = async (tgId, exceptUserId) => {
+  const result = await User.updateMany(
+    {
+      _id: { $ne: exceptUserId },
+      'socialSubscriptions.telegram.telegramUserId': tgId,
+      telegramUserId: { $ne: tgId },
+    },
+    {
+      $set: {
+        'socialSubscriptions.telegram.telegramUserId': null,
+        'socialSubscriptions.telegram.subscribed': false,
+        'socialSubscriptions.telegram.verifiedAt': null,
+      },
+    }
+  );
+  if (result && result.modifiedCount > 0) {
+    console.warn(`[telegram-link] ${result.modifiedCount} ta isbotsiz Telegram da'vosi bekor qilindi`);
+  }
+};
+
+// AUTH-05 / PAY-02 / D27: Telegram ID faqat egalik isboti bilan qabul qilinadi.
+// Isbot manbalari: (1) HMAC bilan tekshirilgan Mini App initData (body.initData),
+// (2) bot deep-link token oqimi (linkTelegramByToken) orqali allaqachon bog'langan
+// top-level user.telegramUserId. Client yuborgan xom `telegramUserId` HECH QACHON ishonilmaydi.
+// Qaytaradi: { telegramUserId, username } | { error: {status, message} }
+const resolveProvenTelegramIdentity = async (req, user) => {
+  const { initData } = req.body || {};
+  if (initData) {
+    if (typeof initData !== 'string' || initData.length > 8000) {
+      return { error: { status: 400, message: 'initData yaroqsiz' } };
+    }
+    const result = validateInitData(initData);
+    if (!result.valid) {
+      return { error: { status: 401, message: `Telegram tasdiqlash rad etildi (${result.reason})` } };
+    }
+    const tgId = String(result.user.id);
+    if (user.telegramUserId && user.telegramUserId !== tgId) {
+      // Mavjud boshqa link ustidan yozilmaydi — avval eski link olib tashlanishi kerak.
+      return { error: { status: 409, message: 'Hisobingizga boshqa Telegram hisob allaqachon ulangan.' } };
+    }
+    const taken = await User.findOne({ _id: { $ne: user._id }, telegramUserId: tgId }).select('_id').lean();
+    if (taken) {
+      return { error: { status: 409, message: 'Bu Telegram hisob allaqachon boshqa foydalanuvchiga bog\'langan' } };
+    }
+    await releaseUnprovenTelegramClaims(tgId, user._id);
+    return { telegramUserId: tgId, username: result.user.username || null, fromInitData: true };
+  }
+  if (user.telegramUserId) {
+    return { telegramUserId: String(user.telegramUserId), username: null, fromInitData: false };
+  }
+  return {
+    error: {
+      status: 400,
+      message: 'Telegram hisobingizni avval bot orqali ulang (GET /api/subscriptions/generate-token) yoki Telegram Mini App ichidan tasdiqlang.',
+    },
+  };
+};
+
 // Verify Telegram subscription
 const verifyTelegram = async (req, res) => {
   try {
-    const { username, telegramUserId } = req.body;
     const userId = req.user._id;
 
-    if (!username) {
-      return res.status(400).json({
-        success: false,
-        message: 'Telegram username is required.',
-      });
-    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    if (!telegramUserId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Telegram User ID is required for real-time verification.',
-      });
+    const proof = await resolveProvenTelegramIdentity(req, user);
+    if (proof.error) {
+      return res.status(proof.error.status).json({ success: false, message: proof.error.message });
     }
-
-    // Telegram user IDs are positive integers only
-    if (!/^\d{5,15}$/.test(String(telegramUserId))) {
-      return res.status(400).json({
-        success: false,
-        message: 'Noto\'g\'ri Telegram ID formati.',
-      });
-    }
+    const telegramUserId = proof.telegramUserId;
+    // Username: tasdiqlangan manba (initData / bot link) ustun; aks holda body'dagi qiymat
+    // faqat ko'rsatish uchun (ID allaqachon isbotlangan akkauntga tegishli).
+    const bodyUsername = String(req.body?.username || '').trim().replace(/^@/, '').toLowerCase().slice(0, 64) || null;
+    const username = (proof.username && String(proof.username).toLowerCase())
+      || user.socialSubscriptions?.telegram?.username
+      || bodyUsername;
 
     const channelUsername = process.env.TELEGRAM_CHANNEL_USERNAME;
 
@@ -95,8 +151,10 @@ const verifyTelegram = async (req, res) => {
     const verification = await verifyTelegramSubscription(username, telegramUserId, channelUsername);
 
     // Update user's Telegram subscription status
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (proof.fromInitData && !user.telegramUserId) {
+      user.telegramUserId = telegramUserId;
+      user.telegramChatId = telegramUserId;
+    }
     user.socialSubscriptions.telegram = {
       subscribed: verification.subscribed,
       username: verification.username,
@@ -145,7 +203,8 @@ const getSubscriptionStatus = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const telegramData = user.socialSubscriptions?.telegram;
-    const telegramId = user.telegramUserId || telegramData?.telegramUserId;
+    // PAY-02: faqat isbot bilan bog'langan top-level ID (socialSubscriptions ID tarixan client da'vosi)
+    const telegramId = user.telegramUserId || null;
 
     // Telegram ID mavjud bo'lsa, har doim real-time tekshiramiz
     if (telegramId) {
@@ -186,18 +245,27 @@ const getSubscriptionStatus = async (req, res) => {
   }
 };
 
-// Telegram ID saqlash
+// Telegram ID saqlash — AUTH-05/D27: faqat HMAC bilan tekshirilgan Mini App initData orqali.
+// Xom `telegramUserId` (egalik isbotisiz) endi qabul qilinmaydi.
 const setTelegramId = async (req, res) => {
   try {
-    const { telegramUserId } = req.body;
-    if (!telegramUserId) return res.status(400).json({ success: false, message: 'Telegram ID kiritilmadi' });
-    const tgId = String(telegramUserId);
-    // IDOR himoyasi: bu Telegram ID allaqachon boshqa userga bog'langan bo'lsa rad etamiz
-    const taken = await User.findOne({ _id: { $ne: req.user._id }, telegramUserId: tgId }).select('_id').lean();
-    if (taken) {
-      return res.status(409).json({ success: false, message: 'Bu Telegram hisob allaqachon boshqa foydalanuvchiga bog\'langan' });
+    if (!req.body?.initData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Telegram ID faqat tasdiqlangan holda ulanadi: bot havolasi (generate-token) yoki Telegram Mini App initData orqali.',
+      });
     }
-    await User.findByIdAndUpdate(req.user._id, { telegramUserId: tgId });
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const proof = await resolveProvenTelegramIdentity(req, user);
+    if (proof.error) {
+      return res.status(proof.error.status).json({ success: false, message: proof.error.message });
+    }
+    const tgId = proof.telegramUserId;
+    await User.updateOne(
+      { _id: req.user._id, $or: [{ telegramUserId: null }, { telegramUserId: tgId }] },
+      { $set: { telegramUserId: tgId, telegramChatId: tgId } }
+    );
     invalidateCache(req.user._id);
     res.json({ success: true, message: 'Telegram ID saqlandi' });
   } catch (err) {
@@ -210,7 +278,8 @@ const getRealtimeStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+    // PAY-02: faqat isbot bilan bog'langan top-level ID
+    const telegramId = user.telegramUserId || null;
     const instagramOk = user.socialSubscriptions?.instagram?.subscribed || false;
 
     if (!telegramId) {
@@ -268,18 +337,18 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
     const user = await User.findById(entry.userId);
     if (!user) return false;
 
-    // Bu Telegram ID allaqachon boshqa accountga bog'liq bo'lmasligi kerak
+    // Bu Telegram ID allaqachon boshqa accountga (isbot bilan, top-level) bog'liq bo'lmasligi kerak.
+    // Bot update'idagi `from.id` Telegram tomonidan tasdiqlangan — bu egalik isboti.
     const existing = await User.findOne({
       _id: { $ne: user._id },
-      $or: [
-        { telegramUserId: String(telegramUserId) },
-        { 'socialSubscriptions.telegram.telegramUserId': String(telegramUserId) },
-      ],
-    });
+      telegramUserId: String(telegramUserId),
+    }).select('_id').lean();
     if (existing) {
-      console.warn(`[linkTelegramByToken] Telegram ID ${telegramUserId} allaqachon boshqa userga bog'liq`);
+      console.warn('[linkTelegramByToken] Telegram ID allaqachon boshqa userga bog\'liq');
       return false;
     }
+    // Isbotsiz eski da'volar (faqat socialSubscriptions'da) haqiqiy egani bloklamasligi kerak.
+    await releaseUnprovenTelegramClaims(String(telegramUserId), user._id);
 
     // Telegram ID ni saqlash
     user.telegramUserId = String(telegramUserId);
@@ -322,7 +391,8 @@ const checkVerifyToken = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const telegramId = user.telegramUserId || user.socialSubscriptions?.telegram?.telegramUserId;
+    // PAY-02: faqat isbot bilan bog'langan top-level ID
+    const telegramId = user.telegramUserId || null;
 
     if (!telegramId) {
       // Token linked bo'lganini tekshirish (DB dan)

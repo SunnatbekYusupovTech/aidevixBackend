@@ -1,5 +1,6 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const User = require('../models/User');
+const Session = require('../models/Session');
 const { ACCESS_COOKIE_NAME, parseCookies } = require('../utils/authSecurity');
 const securityLogger = require('../utils/securityLogger');
 
@@ -8,6 +9,15 @@ const authDebug = (...args) => {
     console.log('[AUTH_DEBUG]', ...args);
   }
 };
+
+const AUTH_USER_FIELDS = [
+  'username', 'email', 'role', 'isActive', 'firstName', 'lastName', 'avatar',
+  'xp', 'streak', 'rankTitle', 'referralCode', 'referralsCount', 'emailVerified',
+  'googleId', 'telegramUserId', 'telegramChatId', 'socialSubscriptions', 'proSubscription',
+  'lastClaimedDaily', 'createdAt',
+  'totpEnabled', // NOT select:false — '+totpEnabled' in an inclusive projection would be a literal key
+  '+tokenVersion', '+deletedAt',
+].join(' ');
 
 const unauthorized = (res, message) =>
   res.status(401).json({ success: false, message });
@@ -38,12 +48,23 @@ const authenticate = async (req, res, next) => {
       return unauthorized(res, 'Invalid or expired token.');
     }
 
-    // password/refreshToken already have `select: false` in schema.
-    // Keep selection simple but reliably include tokenVersion + totpEnabled (for requireAdmin gate).
-    const user = await User.findById(decoded.userId).select('+tokenVersion +totpEnabled +deletedAt');
+    // P-B12: faqat downstream ishlatadigan maydonlar (req.user.* / checkSubscriptions /
+    // enrollment / video Pro tekshiruvi). Hujjat hydrate qilinadi (lean emas) — chunki
+    // checkSubscriptions req.user.save() chaqiradi; projection bilan save faqat o'zgargan
+    // path'larni yozadi. Yangi maydon kerak bo'lsa shu ro'yxatga qo'shing.
+    // AUTH-10: access token'dagi sid bo'yicha sessiya hali mavjudligini parallel tekshiramiz.
+    const [user, sessionAlive] = await Promise.all([
+      User.findById(decoded.userId).select(AUTH_USER_FIELDS),
+      decoded.sid ? Session.exists({ _id: decoded.sid, userId: decoded.userId }) : Promise.resolve(true),
+    ]);
 
     if (!user) {
       return unauthorized(res, 'User not found or inactive.');
+    }
+
+    if (!sessionAlive) {
+      authDebug('authenticate:session_revoked', { userId: String(user._id) });
+      return unauthorized(res, 'Session expired. Please login again.');
     }
 
     if (!user.isActive || user.deletedAt) {
@@ -80,6 +101,17 @@ const requireAdmin = (req, res, next) => {
     return res.status(403).json({
       success: false,
       message: 'Admin access required.',
+    });
+  }
+
+  // ADM-07: ixtiyoriy qattiqlashtirish — ADMIN_REQUIRE_2FA=true bo'lsa 2FA'siz admin rad etiladi.
+  // Default o'chiq: 2FA yoqmagan mavjud adminlar to'satdan bloklanib qolmasligi uchun.
+  if (process.env.ADMIN_REQUIRE_2FA === 'true' && !req.user.totpEnabled) {
+    securityLogger.suspicious(req, 'admin_without_2fa', { userId: String(req.user._id) });
+    return res.status(403).json({
+      success: false,
+      code: 'ADMIN_2FA_REQUIRED',
+      message: 'Admin amallari uchun 2FA yoqilgan bo\'lishi shart.',
     });
   }
 

@@ -41,7 +41,8 @@ const performSubscriptionCheck = async (user) => {
 
   // Telegram: public kanalni real-time tekshirish
   if (user.socialSubscriptions.telegram.username) {
-    const telegramUserId = user.socialSubscriptions.telegram.telegramUserId || null;
+    // Faqat isbotlangan (bot / initData orqali bog'langan) Telegram ID'ga ishoniladi
+    const telegramUserId = user.telegramUserId || null;
 
     if (telegramUserId) {
       const result = await checkTelegramSubscription(telegramUserId);

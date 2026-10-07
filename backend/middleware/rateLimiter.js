@@ -102,16 +102,25 @@ const uploadLimiter = rateLimit({
   keyGenerator: ipKey,
 });
 
-// OTP (forgot password / verify code) — IP + email
+// AUTH-02: handler'lar akkauntni `identifier || email` bo'yicha topadi — limiter ham
+// AYNAN shu normallashtirilgan qiymat (+ method) bo'yicha keylanishi shart. Aks holda
+// {identifier: victim, email: <random>} har so'rovda yangi bucket ochadi.
+const otpIdentityKey = (req) => {
+  const body = req.body || {};
+  const raw = body.identifier || body.email || '';
+  const method = body.method === 'telegram' ? 'telegram' : 'email';
+  let id = String(raw).trim().toLowerCase();
+  if (method === 'telegram') id = id.replace(/^@/, '');
+  return `${method}:${id.slice(0, 254) || 'anon'}`;
+};
+
+// OTP (forgot password / verify code) — IP + normallashtirilgan identifier
 const otpLimiter = rateLimit({
   ...baseOpts('otp'),
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: jsonMessage('Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
-  keyGenerator: (req, res) => {
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    return `${ipKey(req, res)}|${email || 'anon'}`;
-  },
+  keyGenerator: (req, res) => `${ipKey(req, res)}|${otpIdentityKey(req)}`,
 });
 
 // Daily reward limiter
@@ -217,5 +226,6 @@ module.exports = {
   reauthLimiter,
   bugReportLimiter,
   docsLimiter,
+  otpIdentityKey,
   _redisClient: getRedisClient,
 };

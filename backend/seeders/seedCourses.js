@@ -773,10 +773,15 @@ async function seedData() {
     // Admin foydalanuvchi yaratish yoki topish
     let admin = await User.findOne({ role: 'admin' });
     if (!admin) {
+      // SEC-01: parol hech qachon repo'da bo'lmasligi kerak — faqat env'dan.
+      const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
+      if (!seedAdminPassword || seedAdminPassword.length < 12) {
+        throw new Error('Admin yaratish uchun SEED_ADMIN_PASSWORD (kamida 12 belgi) env o\'zgaruvchisi majburiy');
+      }
       admin = await User.create({
         username: 'aidevix_admin',
-        email: 'admin@aidevix.com',
-        password: 'Admin@123456',
+        email: process.env.SEED_ADMIN_EMAIL || 'admin@aidevix.com',
+        password: seedAdminPassword,
         role: 'admin',
         isActive: true,
       });

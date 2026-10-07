@@ -35,6 +35,26 @@ const verifyTotpCode = (secret, code) => {
   });
 };
 
+const TOTP_STEP_SECONDS = 30;
+
+// AUTH-12: kod mos kelgan absolyut time-step'ni qaytaradi (yoki null). Chaqiruvchi uni
+// user.totpLastUsedStep bilan solishtirib, bir xil kodni qayta ishlatishni (replay) rad etadi.
+const verifyTotpStep = (secret, code, nowMs = Date.now()) => {
+  const plain = decryptSecret(secret);
+  if (!plain) return null;
+  const token = String(code).replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(token)) return null;
+  const delta = speakeasy.totp.verifyDelta({
+    secret: plain,
+    encoding: 'base32',
+    token,
+    window: 1, // ±30s clock drift
+    time: Math.floor(nowMs / 1000),
+  });
+  if (!delta || typeof delta.delta !== 'number') return null;
+  return Math.floor(nowMs / 1000 / TOTP_STEP_SECONDS) + delta.delta;
+};
+
 // @desc    Begin 2FA enrollment — generate secret + QR code (NOT yet enabled)
 const setup2FA = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id).select('+totpEnabled +totpPendingSecret');
@@ -206,5 +226,6 @@ module.exports = {
   regenerateBackupCodes,
   // exported helpers for login flow
   verifyTotpCode,
+  verifyTotpStep,
   generateBackupCodes,
 };

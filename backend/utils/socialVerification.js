@@ -52,21 +52,29 @@ const getChatMemberStatus = async (botToken, chatId, userId) => {
 
 // ─── Instagram ────────────────────────────────────────────────────────────────
 
+// Instagram username qoidasi: 1-30 belgi, harf/raqam/nuqta/pastki chiziq.
+const INSTAGRAM_USERNAME_RE = /^[a-z0-9._]{3,30}$/;
+
 /**
- * Instagram obunasini soft-verify qilish.
- * Instagram API cheklovlari sababli haqiqiy tekshiruv imkonsiz —
- * username berilsa, tasdiqlanadi va admin audit uchun metadata saqlanadi.
+ * Instagram obunasini soft-check qilish.
+ * Instagram API cheklovlari sababli haqiqiy tekshiruv IMKONSIZ — bu foydalanuvchining
+ * o'z da'vosi (honor system). PAY-02: natija `verified: false`,
+ * `verificationSource: 'self_reported'` bilan qaytadi — bu kriptografik/API isbot emas va
+ * xavfsizlik qarorlari uchun ishlatilmasligi kerak. `subscribed` UX/gate uchun saqlanadi
+ * (aks holda hech kim Instagram shartini bajara olmaydi).
  */
 const verifyInstagramSubscription = async (username, userId) => {
-  if (!username || username.trim().length < 3) {
-    return { subscribed: false, username: null, verifiedAt: null };
+  const normalized = String(username || '').trim().replace(/^@/, '').toLowerCase();
+  if (!INSTAGRAM_USERNAME_RE.test(normalized)) {
+    return { subscribed: false, username: null, verifiedAt: null, verified: false, verificationSource: null };
   }
 
   return {
     subscribed: true,
-    username: username.trim().toLowerCase(),
+    username: normalized,
     verifiedAt: new Date(),
-    verificationSource: 'soft_check',
+    verified: false,
+    verificationSource: 'self_reported',
   };
 };
 

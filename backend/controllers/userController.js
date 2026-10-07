@@ -156,7 +156,8 @@ const getHomeStats = async (_req, res) => {
  */
 const getPublicProfile = async (req, res) => {
   try {
-    const { username } = req.params;
+    // IDX-01: explicit string cast — never let a non-string reach the filter.
+    const username = String(req.params.username || '').slice(0, 50);
 
     const user = await User.findOne({ username, isActive: true })
       .select('username firstName lastName avatar aiStack createdAt role jobTitle')

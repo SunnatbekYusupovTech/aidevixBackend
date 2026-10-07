@@ -329,14 +329,49 @@ describe('POST /api/auth/login', () => {
     expect(res.body.data?.user?.password).toBeUndefined();
   });
 
-  test('423 for locked account (after correct password)', async () => {
+  // AUTH-01: a locked account returns the SAME generic 401 whether the password is right
+  // or wrong (no 423-vs-401 oracle), and attempts during the lock do not extend it.
+  test('locked account + correct password from unknown device → generic 401', async () => {
     const lockedUser = makeUser({
       isLocked: jest.fn().mockReturnValue(true),
       lockUntil: new Date(Date.now() + 15 * 60 * 1000),
+      knownDevices: [],
     });
     User.findOne.mockReturnValue(q(lockedUser));
     const res = await request(app).post('/api/auth/login').send(credentials);
-    expect(res.status).toBe(423);
+    expect(res.status).toBe(401);
+    expect(res.body.message).toMatch(/invalid credentials/i);
+    expect(lockedUser.registerFailedLogin).not.toHaveBeenCalled();
+  });
+
+  test('locked account: correct and wrong password responses are identical', async () => {
+    const mk = () => makeUser({
+      isLocked: jest.fn().mockReturnValue(true),
+      lockUntil: new Date(Date.now() + 15 * 60 * 1000),
+      knownDevices: [],
+    });
+    const lockedA = mk();
+    User.findOne.mockReturnValue(q(lockedA));
+    const right = await request(app).post('/api/auth/login').send(credentials);
+    const lockedB = mk();
+    User.findOne.mockReturnValue(q(lockedB));
+    const wrong = await request(app).post('/api/auth/login')
+      .send({ email: 'test@example.com', password: 'Wrong@Pass1!' });
+    expect(right.status).toBe(wrong.status);
+    expect(right.body).toEqual(wrong.body);
+    expect(lockedB.registerFailedLogin).not.toHaveBeenCalled();
+  });
+
+  test('locked account + correct password from the owner\'s known device → 200', async () => {
+    const lockedUser = makeUser({
+      isLocked: jest.fn().mockReturnValue(true),
+      lockUntil: new Date(Date.now() + 15 * 60 * 1000),
+      knownDevices: ['testhash'], // buildFromReq is mocked to 'testhash'
+    });
+    User.findOne.mockReturnValue(q(lockedUser));
+    const res = await request(app).post('/api/auth/login').send(credentials);
+    expect(res.status).toBe(200);
+    expect(lockedUser.resetLoginAttempts).toHaveBeenCalled();
   });
 
   test('403 for inactive account', async () => {

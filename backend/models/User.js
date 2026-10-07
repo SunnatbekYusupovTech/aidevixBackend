@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 
+// P-B05: bcryptjs main thread'da ishlaydi — cost 14 (~1-3s CPU) o'rniga 12 (OWASP minimumi 10).
+// Faqat YANGI hash'lar uchun; eski cost-14 hash'lar bcrypt.compare bilan tekshirilishda davom etadi
+// (cost hash ichida saqlanadi) va login paytida 12 ga qayta hash'lanadi (authController).
+const BCRYPT_COST = 12;
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -110,6 +115,30 @@ const userSchema = new mongoose.Schema({
     default: 0,
     select: false,
   },
+  // AUTH-02: reset-kod brute-force'idan keyin akkaunt bo'yicha blok (yangi kod so'rash
+  // hisoblagichni nolga tushirmaydi).
+  resetPasswordLockUntil: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  // AUTH-04: per-account 2FA xato urinishlar hisoblagichi + blok.
+  totpFailedAttempts: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+  totpLockUntil: {
+    type: Date,
+    default: null,
+    select: false,
+  },
+  // AUTH-12: oxirgi qabul qilingan TOTP time-step (replay himoyasi).
+  totpLastUsedStep: {
+    type: Number,
+    default: null,
+    select: false,
+  },
   socialSubscriptions: {
     instagram: {
       subscribed: {
@@ -122,6 +151,12 @@ const userSchema = new mongoose.Schema({
       },
       verifiedAt: {
         type: Date,
+        default: null,
+      },
+      // PAY-02: Instagram obunasini API orqali tekshirib bo'lmaydi — 'self_reported'
+      // (foydalanuvchi da'vosi) ekanini aniq belgilaymiz; bu API/kriptografik isbot EMAS.
+      verificationSource: {
+        type: String,
         default: null,
       },
     },
@@ -322,6 +357,7 @@ userSchema.index({ isActive: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ xp: -1 });
 userSchema.index({ telegramUserId: 1 }, { sparse: true });
+userSchema.index({ referredBy: 1 }, { partialFilterExpression: { referredBy: { $type: 'objectId' } } });
 // userSchema.index({ referralCode: 1 }, { sparse: true }); // Duplicate index removed
 
 // Hash password before saving
@@ -349,7 +385,7 @@ userSchema.pre('save', async function (next) {
       }
     }
 
-    this.password = await bcrypt.hash(this.password, 14);
+    this.password = await bcrypt.hash(this.password, BCRYPT_COST);
     this.passwordChangedAt = new Date();
     this.tokenVersion = (this.tokenVersion || 0) + 1;
     this.failedLoginAttempts = 0;
@@ -402,5 +438,7 @@ userSchema.methods.hasActivePro = function () {
   if (!this.proSubscription?.expiresAt) return true;
   return this.proSubscription.expiresAt.getTime() > Date.now();
 };
+
+userSchema.statics.BCRYPT_COST = BCRYPT_COST;
 
 module.exports = mongoose.model('User', userSchema);

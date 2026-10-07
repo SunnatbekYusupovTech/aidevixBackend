@@ -54,6 +54,13 @@ const promoCodeSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  // Promo'ni band qilgan/ishlatgan userlar — bir user bitta promo'ni faqat bir marta ishlatadi.
+  // Rezervatsiya bekor bo'lsa ($pull) qaytariladi. Eski hujjatlarda maydon yo'q = hech kim ishlatmagan.
+  redeemedBy: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    default: undefined,
+    select: false,
+  },
 }, { timestamps: true });
 
 // `code` field'da `unique: true` avtomatik unique index yaratadi — alohida `.index({code:1})` kerakmas.

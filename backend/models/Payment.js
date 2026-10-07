@@ -33,10 +33,11 @@ const paymentSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'expired'],
     default: 'pending',
   },
-  // To'lov provayderidan kelgan ID
+  // To'lov provayderidan kelgan ID.
+  // default YO'Q (undefined): unique index faqat string qiymatlarni indekslaydi (partialFilterExpression);
+  // explicit null bo'lsa 2-pending to'lov E11000 berardi (deep-audit D03).
   providerTransactionId: {
     type: String,
-    default: null,
   },
   // Payme / Click dan kelgan to'liq javob
   providerResponse: {
@@ -65,8 +66,13 @@ const paymentSchema = new mongoose.Schema({
   paymeCancelTime:   { type: Number, default: null },
   paymeCancelReason: { type: Number, default: null },
   // Click fields
-  clickTransId:  { type: String, default: null },
+  clickTransId:  { type: String }, // default yo'q — D03 (yuqoridagi izohga qarang)
   clickPaydocId: { type: String, default: null },
+  // Click Prepare'da beriladigan merchant_prepare_id (int); Complete shu qiymat bilan keladi
+  clickPrepareId: { type: Number, default: null },
+  // Promo rezervatsiyasi: initiate'da band qilinadi, expire/cancel/fail'da bir marta qaytariladi
+  promoCodeId:   { type: mongoose.Schema.Types.ObjectId, ref: 'PromoCode', default: null },
+  promoReleased: { type: Boolean, default: false },
 }, {
   timestamps: true,
 });
@@ -74,9 +80,14 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index({ userId: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ createdAt: -1 });
-paymentSchema.index({ providerTransactionId: 1 }, { unique: true, sparse: true });
+// sparse null'larni ham indekslaydi — partial index faqat string qiymatlarni (D03).
+// Prod'da eski sparse index'ni drop qilib qayta yaratish kerak (audit hisobotidagi mongosh buyruqlari).
+paymentSchema.index({ providerTransactionId: 1 }, { unique: true, partialFilterExpression: { providerTransactionId: { $type: 'string' } } });
 paymentSchema.index({ userId: 1, courseId: 1 });
-paymentSchema.index({ clickTransId: 1 }, { unique: true, sparse: true });
+// Bitta user+kurs uchun bir vaqtda faqat BITTA pending to'lov (concurrent initiate race, D26)
+// (key pattern {userId,courseId,status} — yuqoridagi oddiy {userId,courseId} index bilan to'qnashmasin)
+paymentSchema.index({ userId: 1, courseId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'pending' }, name: 'uniq_pending_user_course' });
+paymentSchema.index({ clickTransId: 1 }, { unique: true, partialFilterExpression: { clickTransId: { $type: 'string' } } });
 paymentSchema.index({ status: 1, createdAt: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

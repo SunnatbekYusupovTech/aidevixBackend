@@ -11,7 +11,8 @@ const crypto = require('crypto');
  */
 
 const verifyPaymeAuth = (req) => {
-  const merchantKey = process.env.PAYME_MERCHANT_KEY;
+  // PAYME_MERCHANT_KEY asosiy nom; PAYME_SECRET_KEY — eski .env.example nomi (D33)
+  const merchantKey = process.env.PAYME_MERCHANT_KEY || process.env.PAYME_SECRET_KEY;
   if (!merchantKey) {
     console.error('[payme] PAYME_MERCHANT_KEY o\'rnatilmagan — auth deny'); // FAIL-CLOSED har doim
     return false;
@@ -30,15 +31,17 @@ const verifyPaymeAuth = (req) => {
   return login === 'Paycom' && pwBuf.length === keyBuf.length && crypto.timingSafeEqual(pwBuf, keyBuf);
 };
 
-const buildClickSignString = (body) => [
-  body.click_trans_id,
-  body.service_id,
-  process.env.CLICK_SECRET_KEY || '',
-  body.merchant_trans_id,
-  body.amount,
-  body.action,
-  body.sign_time,
-].join('');
+/**
+ * Click SHOP-API sign string:
+ *  Prepare  (action=0): click_trans_id + service_id + SECRET_KEY + merchant_trans_id + amount + action + sign_time
+ *  Complete (action=1): click_trans_id + service_id + SECRET_KEY + merchant_trans_id + merchant_prepare_id + amount + action + sign_time
+ */
+const buildClickSignString = (body, secretKey = process.env.CLICK_SECRET_KEY || '') => {
+  const parts = [body.click_trans_id, body.service_id, secretKey, body.merchant_trans_id];
+  if (Number(body.action) === 1) parts.push(body.merchant_prepare_id);
+  parts.push(body.amount, body.action, body.sign_time);
+  return parts.map((p) => (p === undefined || p === null ? '' : String(p))).join('');
+};
 
 const verifyClickSignature = (req) => {
   const secretKey = process.env.CLICK_SECRET_KEY;
@@ -46,13 +49,15 @@ const verifyClickSignature = (req) => {
     console.error('[click] CLICK_SECRET_KEY o\'rnatilmagan — sign deny'); // FAIL-CLOSED har doim
     return false;
   }
+  // Boshqa servis uchun imzolangan so'rovni qabul qilmaymiz
+  if (process.env.CLICK_SERVICE_ID && String(req.body.service_id) !== String(process.env.CLICK_SERVICE_ID)) return false;
 
   const providedSign = String(req.body.sign_string || '').toLowerCase();
   if (!providedSign) return false;
 
   const expectedSign = crypto
     .createHash('md5')
-    .update(buildClickSignString(req.body))
+    .update(buildClickSignString(req.body, secretKey))
     .digest('hex');
 
   const a = Buffer.from(String(providedSign), 'utf8');
@@ -61,6 +66,86 @@ const verifyClickSignature = (req) => {
 };
 
 const PRO_PRICE_UZS = Number(process.env.PRO_SUBSCRIPTION_PRICE_UZS || 99000);
+
+// Payme: state=1 tranzaksiya 12 soatdan keyin bekor qilinadi (reason 4) — Merchant API talabi
+const PAYME_TX_TIMEOUT_MS = 43_200_000;
+const isPaymeTxExpired = (createTime, now = Date.now()) =>
+  Number.isFinite(Number(createTime)) && Number(createTime) > 0 && now - Number(createTime) > PAYME_TX_TIMEOUT_MS;
+
+// Provayder tranzaksiyasi boshlanmagan pending to'lovning ichki yaroqlilik muddati
+const PENDING_TTL_MS = 30 * 60 * 1000;
+
+// Payme state: 1 yaratilgan, 2 bajarilgan, -1 perform'dan oldin bekor, -2 perform'dan keyin bekor
+const paymeStateOf = (p) => {
+  if (p.status === 'pending') return 1;
+  if (p.status === 'completed') return 2;
+  return p.paymePerformTime ? -2 : -1;
+};
+
+/** Promo rezervatsiyasini qaytarish (usedCount-- va user'ni redeemedBy'dan chiqarish). */
+const releasePromo = (promoId, userId) => PromoCode.updateOne(
+  { _id: promoId, redeemedBy: userId, usedCount: { $gt: 0 } },
+  { $inc: { usedCount: -1 }, $pull: { redeemedBy: userId } }
+);
+
+/**
+ * To'lov expire/cancel/fail bo'lganda uning promo rezervatsiyasini BIR MARTA qaytaradi
+ * (promoReleased flag atomik o'rnatiladi — qayta chaqiruv no-op). Xato to'lov oqimini to'xtatmaydi.
+ */
+const releasePaymentPromo = async (paymentId) => {
+  try {
+    const p = await Payment.findOneAndUpdate(
+      { _id: paymentId, promoCodeId: { $ne: null }, promoReleased: { $ne: true } },
+      { $set: { promoReleased: true } },
+      { new: true }
+    );
+    if (p) await releasePromo(p.promoCodeId, p.userId);
+  } catch (err) {
+    console.error('[Payment] promo release failed:', err.message);
+  }
+};
+
+/**
+ * 30 daqiqadan oshgan pending to'lovni expired qiladi — FAQAT provayder tranzaksiyasi
+ * boshlanmagan bo'lsa (Payme CreateTransaction / Click Prepare bo'lmagan). Jonli tranzaksiyani
+ * Payme timeout (12h) yoki CancelTransaction / Click error<0 yakunlaydi (D16).
+ * @returns expired hujjat yoki null (holat o'zgarmadi)
+ */
+const expireIfStale = async (payment) => {
+  if (!payment || payment.status !== 'pending') return null;
+  if (Date.now() - new Date(payment.createdAt).getTime() <= PENDING_TTL_MS) return null;
+  const expired = await Payment.findOneAndUpdate(
+    { _id: payment._id, status: 'pending', providerTransactionId: null, clickPrepareId: null },
+    { $set: { status: 'expired', expiredAt: new Date() } },
+    { new: true }
+  );
+  if (expired) await releasePaymentPromo(expired._id);
+  return expired;
+};
+
+const buildPaymentUrl = (payment) => {
+  if (payment.provider === 'payme') {
+    const encoded = Buffer.from(`m=${process.env.PAYME_MERCHANT_ID};ac.order_id=${payment._id};a=${Math.round(payment.amount * 100)}`).toString('base64');
+    return `https://checkout.paycom.uz/${encoded}`;
+  }
+  if (payment.provider === 'click') {
+    // Click: service_id = CLICK_SERVICE_ID, merchant_id = CLICK_MERCHANT_ID (ular odatda farq qiladi, D15)
+    const params = new URLSearchParams({
+      service_id: String(process.env.CLICK_SERVICE_ID),
+      merchant_id: String(process.env.CLICK_MERCHANT_ID),
+      amount: String(payment.amount),
+      transaction_param: String(payment._id),
+    });
+    return `https://my.click.uz/services/pay?${params.toString()}`;
+  }
+  return null;
+};
+
+const pendingPaymentResponse = (res, p) => res.status(200).json({
+  success: true,
+  message: 'Mavjud to\'lov',
+  data: { payment: { _id: p._id, amount: p.amount, provider: p.provider, status: 'pending' }, paymentUrl: buildPaymentUrl(p) },
+});
 
 const maybeGrantProSubscription = async (payment, course) => {
   if (!payment || !course) return;
@@ -87,8 +172,9 @@ const maybeGrantProSubscription = async (payment, course) => {
 
 /**
  * To'lov "completed" bo'lgach bajarilishi kerak bo'lgan side-effect'lar — IDEMPOTENT.
- * Enrollment upsert; studentsCount FAQAT yangi enrollment yaratilganda oshiriladi (rawResult.upserted).
+ * Enrollment upsert; studentsCount FAQAT yangi enrollment yaratilganda oshiriladi (lastErrorObject.upserted).
  * Payme/Click retry'da qayta chaqirilsa ham studentsCount ikki marta oshmaydi.
+ * Mongoose 8: `rawResult` olib tashlangan — `includeResultMetadata` ishlatiladi (D17).
  */
 const ensurePaidSideEffects = async (payment, course) => {
   const r = await Enrollment.findOneAndUpdate(
@@ -97,7 +183,7 @@ const ensurePaidSideEffects = async (payment, course) => {
       $setOnInsert: { userId: payment.userId, courseId: payment.courseId },
       $set: { paymentStatus: 'paid', paymentId: payment._id },
     },
-    { upsert: true, new: true, rawResult: true }
+    { upsert: true, new: true, includeResultMetadata: true }
   );
   if (r?.lastErrorObject?.upserted) {
     await Course.findByIdAndUpdate(payment.courseId, { $inc: { studentsCount: 1 } });
@@ -117,7 +203,7 @@ const initiatePayment = async (req, res) => {
     if (provider === 'payme' && !process.env.PAYME_MERCHANT_ID) {
       return res.status(503).json({ success: false, message: 'To\'lov tizimi sozlanmagan' });
     }
-    if (provider === 'click' && !process.env.CLICK_SERVICE_ID) {
+    if (provider === 'click' && (!process.env.CLICK_SERVICE_ID || !process.env.CLICK_MERCHANT_ID)) {
       return res.status(503).json({ success: false, message: 'To\'lov tizimi sozlanmagan' });
     }
 
@@ -129,24 +215,15 @@ const initiatePayment = async (req, res) => {
     if (existing && existing.paymentStatus === 'paid')
       return res.status(400).json({ success: false, message: 'Siz bu kursni allaqachon sotib olgansiz' });
 
-    // Mavjud pending to'lovni qaytarish (duplikat oldini olish)
-    const pendingPayment = await Payment.findOne({ userId: req.user._id, courseId, status: 'pending' });
-    if (pendingPayment) {
-      let paymentUrl = null;
-      if (pendingPayment.provider === 'payme') {
-        const merchantId = process.env.PAYME_MERCHANT_ID;
-        const encoded = Buffer.from(`m=${merchantId};ac.order_id=${pendingPayment._id};a=${Math.round(pendingPayment.amount * 100)}`).toString('base64');
-        paymentUrl = `https://checkout.paycom.uz/${encoded}`;
-      } else if (pendingPayment.provider === 'click') {
-        const serviceId = process.env.CLICK_SERVICE_ID;
-        paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${pendingPayment.amount}&transaction_param=${pendingPayment._id}`;
-      }
-      return res.status(200).json({
-        success: true,
-        message: 'Mavjud to\'lov',
-        data: { payment: { _id: pendingPayment._id, amount: pendingPayment.amount, provider: pendingPayment.provider, status: 'pending' }, paymentUrl },
-      });
+    // Mavjud (muddati o'tmagan) pending to'lovni qaytarish (duplikat oldini olish).
+    // Eskirgan (30 daq+, provayder tranzaksiyasisiz) pending expired qilinadi va promo qaytariladi.
+    let pendingPayment = await Payment.findOne({ userId: req.user._id, courseId, status: 'pending' });
+    if (pendingPayment && Date.now() - new Date(pendingPayment.createdAt).getTime() > PENDING_TTL_MS) {
+      pendingPayment = (await expireIfStale(pendingPayment))
+        ? null // expired + promo qaytarildi — yangi to'lov yaratamiz
+        : await Payment.findOne({ _id: pendingPayment._id, status: 'pending' }); // jonli tranzaksiya / parallel o'zgarish
     }
+    if (pendingPayment) return pendingPaymentResponse(res, pendingPayment);
 
     // ── Promo kod (atomik consume, server-side discount) ──────────────────────
     // Narx HAR DOIM serverda hisoblanadi; client amount ishlatilmaydi.
@@ -177,8 +254,15 @@ const initiatePayment = async (req, res) => {
         if (candidate && Array.isArray(candidate.courseIds) && candidate.courseIds.length > 0) {
           filter.courseIds = courseId;
         }
-        // Atomik: usedCount++ faqat barcha shartlar bajarilsa (race-safe)
-        const promo = await PromoCode.findOneAndUpdate(filter, { $inc: { usedCount: 1 } }, { new: true });
+        // Bir user bitta promo'ni faqat bir marta band qiladi/ishlatadi (PAY-04 / D18)
+        filter.redeemedBy = { $ne: req.user._id };
+        // Atomik: usedCount++ va redeemedBy += user faqat barcha shartlar bajarilsa (race-safe).
+        // Rezervatsiya to'lov expire/cancel/fail bo'lganda releasePaymentPromo orqali qaytariladi.
+        const promo = await PromoCode.findOneAndUpdate(
+          filter,
+          { $inc: { usedCount: 1 }, $addToSet: { redeemedBy: req.user._id } },
+          { new: true }
+        );
         if (promo) {
           consumedPromoId = promo._id;
           let discounted = course.price;
@@ -203,25 +287,23 @@ const initiatePayment = async (req, res) => {
         amount: finalAmount,
         provider,
         status: 'pending',
+        promoCodeId: consumedPromoId,
       });
     } catch (e) {
       // Payment yaratilmadi — consume qilingan promo'ni qaytaramiz (limitli promo behuda kamaymasin)
       if (consumedPromoId) {
-        await PromoCode.findByIdAndUpdate(consumedPromoId, { $inc: { usedCount: -1 } })
+        await releasePromo(consumedPromoId, req.user._id)
           .catch((err) => console.error('[Payment] promo usedCount rollback failed:', err.message));
+      }
+      // Parallel initiate (uniq_pending_user_course): g'olib yaratgan pending to'lovni qaytaramiz (D26)
+      if (e && e.code === 11000) {
+        const winner = await Payment.findOne({ userId: req.user._id, courseId, status: 'pending' });
+        if (winner) return pendingPaymentResponse(res, winner);
       }
       throw e;
     }
 
-    let paymentUrl = null;
-    if (provider === 'payme') {
-      const merchantId = process.env.PAYME_MERCHANT_ID || 'YOUR_MERCHANT_ID';
-      const encoded = Buffer.from(`m=${merchantId};ac.order_id=${payment._id};a=${Math.round(finalAmount * 100)}`).toString('base64');
-      paymentUrl = `https://checkout.paycom.uz/${encoded}`;
-    } else if (provider === 'click') {
-      const serviceId = process.env.CLICK_SERVICE_ID || 'YOUR_SERVICE_ID';
-      paymentUrl = `https://my.click.uz/services/pay?service_id=${serviceId}&merchant_id=${serviceId}&amount=${finalAmount}&transaction_param=${payment._id}`;
-    }
+    const paymentUrl = buildPaymentUrl(payment);
 
     res.status(201).json({
       success: true,
@@ -270,19 +352,11 @@ const getPaymentStatus = async (req, res) => {
       .populate('courseId', 'title price');
     if (!payment) return res.status(404).json({ success: false, message: 'To\'lov topilmadi' });
 
-    // 30 daqiqadan oshgan pending to'lovni expired qilish — atomic (status:'pending' guard)
-    if (payment.status === 'pending') {
-      const ageMinutes = (Date.now() - payment.createdAt.getTime()) / (1000 * 60);
-      if (ageMinutes > 30) {
-        const updated = await Payment.findOneAndUpdate(
-          { _id: payment._id, status: 'pending' },
-          { $set: { status: 'expired', expiredAt: new Date() } },
-          { new: true }
-        );
-        // updated null bo'lsa — boshqa jarayon (webhook) statusni o'zgartirdi, uni saqlaymiz
-        if (updated) { payment.status = updated.status; payment.expiredAt = updated.expiredAt; }
-      }
-    }
+    // 30 daqiqadan oshgan pending to'lovni expired qilish — atomic (status:'pending' guard),
+    // faqat provayder tranzaksiyasi boshlanmagan bo'lsa; promo rezervatsiyasi qaytariladi.
+    // null bo'lsa — yosh / jonli tranzaksiya / boshqa jarayon statusni o'zgartirgan.
+    const updated = await expireIfStale(payment);
+    if (updated) { payment.status = updated.status; payment.expiredAt = updated.expiredAt; }
 
     res.json({ success: true, data: { payment } });
   } catch (err) {
@@ -316,26 +390,62 @@ const createPaymeTransaction = async (params, id) => {
 
   // Idempotency: bir xil Payme txId bilan qayta kelgan
   if (payment.providerTransactionId === providerTxId) {
-    if (payment.status === 'cancelled') return { error: { code: -31008, message: 'Tranzaksiya bekor qilingan' }, id };
+    // state != 1 (bajarilgan/bekor qilingan) -> -31008 (Merchant API)
+    if (payment.status !== 'pending') return { error: { code: -31008, message: 'Tranzaksiyani bajarib bo\'lmaydi' }, id };
+    if (isPaymeTxExpired(payment.paymeCreateTime)) {
+      await cancelPaymeTimedOut(payment);
+      return { error: { code: -31008, message: 'Tranzaksiya muddati tugagan' }, id };
+    }
     return { result: { create_time: payment.paymeCreateTime, transaction: payment._id.toString(), state: 1 }, id };
   }
 
-  // Boshqa Payme txId allaqachon tayinlangan
-  if (payment.providerTransactionId && payment.providerTransactionId !== providerTxId) {
+  // Boshqa Payme txId allaqachon tayinlangan — buyurtma band
+  if (payment.providerTransactionId) {
     return { error: { code: -31099, message: 'Boshqa tranzaksiya mavjud' }, id };
   }
 
-  payment.providerTransactionId = providerTxId;
-  payment.paymeCreateTime = time;
-  payment.status = 'pending';
-  await payment.save();
+  // Faqat pending buyurtma uchun tranzaksiya ochiladi (expired/failed/cancelled qayta tiriltirilmaydi — D07)
+  if (payment.status !== 'pending') return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
 
-  return { result: { create_time: time, transaction: payment._id.toString(), state: 1 }, id };
+  // Atomik: faqat hali tranzaksiyasi yo'q pending buyurtmaga biriktiramiz (parallel Create race — D12)
+  const updated = await Payment.findOneAndUpdate(
+    { _id: payment._id, status: 'pending', providerTransactionId: null },
+    { $set: { providerTransactionId: providerTxId, paymeCreateTime: time } },
+    { new: true }
+  );
+  if (!updated) {
+    const again = await Payment.findById(payment._id).lean();
+    if (again && again.providerTransactionId === providerTxId && again.status === 'pending') {
+      return { result: { create_time: again.paymeCreateTime, transaction: again._id.toString(), state: 1 }, id };
+    }
+    if (again && again.providerTransactionId) return { error: { code: -31099, message: 'Boshqa tranzaksiya mavjud' }, id };
+    return { error: { code: -31050, message: 'To\'lov topilmadi' }, id };
+  }
+
+  return { result: { create_time: time, transaction: updated._id.toString(), state: 1 }, id };
+};
+
+/** Payme 12h timeout: state=1 tranzaksiyani reason 4 bilan bekor qiladi (atomik, promo qaytariladi). */
+const cancelPaymeTimedOut = async (payment) => {
+  const cancelled = await Payment.findOneAndUpdate(
+    { _id: payment._id, status: 'pending' },
+    { $set: { status: 'cancelled', paymeCancelTime: Date.now(), paymeCancelReason: 4, cancelledAt: new Date() } },
+    { new: true }
+  );
+  if (cancelled) await releasePaymentPromo(cancelled._id);
+  return cancelled;
 };
 
 const performTransaction = async (params, id) => {
   const { id: providerTxId } = params;
   const performTime = Date.now();
+
+  // 12h timeout: muddati o'tgan state=1 tranzaksiya bajarilmaydi — reason 4 bilan bekor (D06)
+  const current = await Payment.findOne({ providerTransactionId: providerTxId, status: 'pending' }).select('_id paymeCreateTime').lean();
+  if (current && isPaymeTxExpired(current.paymeCreateTime)) {
+    await cancelPaymeTimedOut(current);
+    return { error: { code: -31008, message: 'Tranzaksiya muddati tugagan' }, id };
+  }
 
   // Atomic: faqat pending bo'lsa completed ga o'tkaz (race condition oldini olish)
   const payment = await Payment.findOneAndUpdate(
@@ -378,26 +488,33 @@ const performTransaction = async (params, id) => {
 
 const cancelTransaction = async (params, id) => {
   const { id: providerTxId, reason } = params;
-  const existing = await Payment.findOne({ providerTransactionId: providerTxId }).select('status').lean();
+  const cancelledResult = (p) => ({ result: { transaction: p._id.toString(), cancel_time: p.paymeCancelTime ?? 0, state: paymeStateOf(p) }, id });
+
+  const existing = await Payment.findOne({ providerTransactionId: providerTxId }).lean();
   if (!existing) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
 
   // Completed to'lovni bekor qilib bo'lmaydi
   if (existing.status === 'completed') {
     return { error: { code: -31007, message: 'Tranzaksiyani bekor qilib bo\'lmaydi' }, id };
   }
+  // Idempotent: allaqachon bekor qilingan — saqlangan cancel_time qaytariladi, qayta yozilmaydi (D10)
+  if (existing.status === 'cancelled') return cancelledResult(existing);
 
   const cancelTime = Date.now();
-  // Atomic: faqat completed bo'lmagan holatda bekor qilamiz (concurrent cancel race-safe)
+  // Atomic: faqat completed/cancelled bo'lmagan holatda bekor qilamiz (concurrent cancel race-safe)
   const payment = await Payment.findOneAndUpdate(
-    { providerTransactionId: providerTxId, status: { $ne: 'completed' } },
+    { providerTransactionId: providerTxId, status: { $nin: ['completed', 'cancelled'] } },
     { $set: { status: 'cancelled', paymeCancelTime: cancelTime, paymeCancelReason: reason, cancelledAt: new Date() } },
     { new: true }
   );
   if (!payment) {
+    const again = await Payment.findOne({ providerTransactionId: providerTxId }).lean();
+    if (again && again.status === 'cancelled') return cancelledResult(again);
     return { error: { code: -31007, message: 'Tranzaksiyani bekor qilib bo\'lmaydi' }, id };
   }
+  await releasePaymentPromo(payment._id);
 
-  return { result: { transaction: payment._id.toString(), cancel_time: payment.paymeCancelTime, state: -1 }, id };
+  return cancelledResult(payment);
 };
 
 // Payme CheckTransaction (Payme reconciliation uchun majburiy)
@@ -406,8 +523,7 @@ const checkTransaction = async (params, id) => {
   const payment = await Payment.findOne({ providerTransactionId: providerTxId }).lean();
   if (!payment) return { error: { code: -31003, message: 'Tranzaksiya topilmadi' }, id };
 
-  const stateMap = { pending: 1, completed: 2, cancelled: -1 };
-  const state = stateMap[payment.status] ?? -1;
+  const state = paymeStateOf(payment);
 
   return {
     result: {
@@ -444,7 +560,7 @@ const getStatement = async (params, id) => {
     perform_time: p.paymePerformTime ?? 0,
     cancel_time:  p.paymeCancelTime  ?? 0,
     transaction:  p._id.toString(),
-    state:        ({ pending: 1, completed: 2, cancelled: -1 })[p.status] ?? -1,
+    state:        paymeStateOf(p),
     reason:       p.paymeCancelReason ?? null,
   }));
 
@@ -454,7 +570,8 @@ const getStatement = async (params, id) => {
 /** @desc  Payme JSON-RPC webhook | @route POST /api/payments/payme | @access Public */
 const handlePayme = async (req, res) => {
   if (!verifyPaymeAuth(req)) {
-    return res.status(401).json({ error: { code: -32504, message: 'Unauthorized' }, id: req.body?.id || null });
+    // Payme JSON-RPC: barcha javoblar HTTP 200, xato faqat error.code orqali (D11)
+    return res.status(200).json({ error: { code: -32504, message: 'Unauthorized' }, id: req.body?.id || null });
   }
 
   const { method, params, id } = req.body;
@@ -492,8 +609,25 @@ const clickPrepare = async (req, res) => {
     // Summani tiyn (×100) butun sonda solishtiramiz — float yumaloq xatosini oldini olish (Payme bilan mos)
     if (Math.round(payment.amount * 100) !== Math.round(Number(amount) * 100)) return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
     if (payment.status === 'completed') return res.json({ error: -4, error_note: 'To\'lov allaqachon yakunlangan' });
+    // Bekor qilingan / muddati o'tgan / muvaffaqiyatsiz buyurtma to'lanmaydi (D02)
+    if (payment.status !== 'pending') return res.json({ error: -9, error_note: 'Tranzaksiya bekor qilingan' });
 
-    res.json({ click_trans_id: req.body.click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+    // merchant_prepare_id: Click Complete'da qaytarib yuboradi va imzoga kiradi. Click retry'da bir xil qiymat.
+    let prepareId = payment.clickPrepareId;
+    if (!prepareId) {
+      const updated = await Payment.findOneAndUpdate(
+        { _id: payment._id, status: 'pending', clickPrepareId: null },
+        { $set: { clickPrepareId: crypto.randomInt(1, 2147483647) } },
+        { new: true }
+      );
+      const fresh = updated || await Payment.findById(payment._id).select('status clickPrepareId').lean();
+      if (!fresh || fresh.status !== 'pending' || !fresh.clickPrepareId) {
+        return res.json({ error: -9, error_note: 'Tranzaksiya bekor qilingan' });
+      }
+      prepareId = fresh.clickPrepareId;
+    }
+
+    res.json({ click_trans_id: req.body.click_trans_id, merchant_trans_id, merchant_prepare_id: prepareId, error: 0, error_note: 'Success' });
   } catch (err) {
     res.json({ error: -8, error_note: 'Server xatosi' });
   }
@@ -506,31 +640,43 @@ const clickComplete = async (req, res) => {
       return res.json({ error: -1, error_note: 'SIGN CHECK FAILED' });
     }
 
-    const { merchant_trans_id, click_trans_id, click_paydoc_id, error: clickError } = req.body;
+    const { merchant_trans_id, merchant_prepare_id, click_trans_id, click_paydoc_id, action, error: clickError } = req.body;
+    // Complete faqat action=1 (prepare payload'ini replay qilib bo'lmaydi — D13)
+    if (Number(action) !== 1) return res.json({ error: -3, error_note: 'Noto\'g\'ri action' });
+    // `error` majburiy: yo'q/son bo'lmasa so'rov yaroqsiz (NaN amount tekshiruvini chetlab o'tmasin)
+    const clickErr = Number(clickError);
+    if (clickError === undefined || clickError === null || String(clickError).trim() === '' || !Number.isFinite(clickErr)) {
+      return res.json({ error: -8, error_note: 'Yaroqsiz so\'rov' });
+    }
     if (!/^[0-9a-fA-F]{24}$/.test(String(merchant_trans_id || ''))) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
 
-    // Defense-in-depth: complete bosqichida ham summani qayta tekshiramiz (prepare/complete
-    // orasida narx o'zgargan holatlar). Signature allaqachon tekshirilgan — bu qo'shimcha qatlam.
-    if (Number(clickError) >= 0) {
-      const expected = await Payment.findById(merchant_trans_id).select('amount').lean();
-      if (expected && Math.round(expected.amount * 100) !== Math.round(Number(req.body.amount) * 100)) {
-        return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
-      }
+    const current = await Payment.findById(merchant_trans_id).lean();
+    if (!current) return res.json({ error: -5, error_note: 'To\'lov topilmadi' });
+    // Complete faqat muvaffaqiyatli Prepare'dan keyin va o'sha merchant_prepare_id bilan
+    if (!current.clickPrepareId || String(current.clickPrepareId) !== String(merchant_prepare_id)) {
+      return res.json({ error: -6, error_note: 'Tranzaksiya topilmadi' });
     }
+    // Summani har doim qayta tekshiramiz (signature bilan birga qo'shimcha qatlam)
+    if (Math.round(current.amount * 100) !== Math.round(Number(req.body.amount) * 100)) {
+      return res.json({ error: -2, error_note: 'Noto\'g\'ri summa' });
+    }
+    const confirm = { click_trans_id, merchant_trans_id, merchant_confirm_id: current.clickPrepareId };
 
-    if (Number(clickError) < 0) {
-      // Guard: allaqachon completed bo'lgan to'lovni 'failed' ga overwrite qilmaymiz
-      await Payment.findOneAndUpdate(
-        { _id: merchant_trans_id, status: { $ne: 'completed' } },
-        { $set: { status: 'failed' } }
+    if (clickErr < 0) {
+      // Click to'lovni bekor qildi — pending buyurtmani bekor qilamiz (completed'ga tegilmaydi), promo qaytariladi
+      const cancelled = await Payment.findOneAndUpdate(
+        { _id: merchant_trans_id, status: 'pending' },
+        { $set: { status: 'cancelled', cancelledAt: new Date() } },
+        { new: true }
       );
-      return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Cancelled' });
+      if (cancelled) await releasePaymentPromo(cancelled._id);
+      return res.json({ ...confirm, error: -9, error_note: 'Tranzaksiya bekor qilingan' });
     }
 
     // Atomic: faqat pending bo'lsa completed ga o'tkaz (idempotency)
     const payment = await Payment.findOneAndUpdate(
-      { _id: merchant_trans_id, status: 'pending' },
-      { $set: { status: 'completed', paidAt: new Date(), clickTransId: click_trans_id, clickPaydocId: click_paydoc_id, providerTransactionId: click_trans_id } },
+      { _id: merchant_trans_id, status: 'pending', clickPrepareId: current.clickPrepareId },
+      { $set: { status: 'completed', paidAt: new Date(), clickTransId: String(click_trans_id), clickPaydocId: click_paydoc_id, providerTransactionId: String(click_trans_id) } },
       { new: true }
     );
 
@@ -541,9 +687,9 @@ const clickComplete = async (req, res) => {
       if (existing.status === 'completed') {
         const eCourse = await Course.findById(existing.courseId);
         await ensurePaidSideEffects(existing, eCourse);
-        return res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+        return res.json({ ...confirm, error: 0, error_note: 'Success' });
       }
-      return res.json({ error: -9, error_note: 'To\'lovni qayta ishlash mumkin emas' });
+      return res.json({ error: -9, error_note: 'Tranzaksiya bekor qilingan' });
     }
 
     const course = await Course.findById(payment.courseId);
@@ -560,10 +706,14 @@ const clickComplete = async (req, res) => {
       }
     } catch (_) {}
 
-    res.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
+    res.json({ ...confirm, error: 0, error_note: 'Success' });
   } catch (err) {
     res.json({ error: -8, error_note: 'Server xatosi' });
   }
 };
 
-module.exports = { initiatePayment, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete, ensurePaidSideEffects };
+module.exports = {
+  initiatePayment, getMyPayments, getPaymentStatus, handlePayme, clickPrepare, clickComplete, ensurePaidSideEffects,
+  // sof helper'lar — unit testlar uchun
+  buildClickSignString, isPaymeTxExpired, PAYME_TX_TIMEOUT_MS,
+};

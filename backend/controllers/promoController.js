@@ -1,5 +1,14 @@
 const PromoCode = require('../models/PromoCode');
 
+// maxUses: undefined/null/'' = cheksiz (null); aks holda butun son >= 1. 0 "cheksiz"ga aylanmaydi (D31).
+// @returns { value } yoki { error }
+const normalizeMaxUses = (raw) => {
+  if (raw === undefined || raw === null || raw === '') return { value: null };
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) return { error: 'maxUses 1 yoki undan katta butun son bo\'lishi kerak (cheksiz uchun bo\'sh qoldiring)' };
+  return { value: n };
+};
+
 /** @route GET /api/admin/promos | @access Admin */
 const listPromoCodes = async (req, res) => {
   try {
@@ -42,6 +51,8 @@ const createPromoCode = async (req, res) => {
     if (!(Number(value) > 0)) {
       return res.status(400).json({ success: false, message: 'Chegirma qiymati musbat son bo\'lishi kerak' });
     }
+    const maxUsesNorm = normalizeMaxUses(maxUses);
+    if (maxUsesNorm.error) return res.status(400).json({ success: false, message: maxUsesNorm.error });
 
     const existing = await PromoCode.findOne({ code: code.toUpperCase().trim() });
     if (existing) return res.status(409).json({ success: false, message: 'Bu kod allaqachon mavjud' });
@@ -51,7 +62,7 @@ const createPromoCode = async (req, res) => {
       description: description || '',
       type,
       value,
-      maxUses:   maxUses   || null,
+      maxUses:   maxUsesNorm.value,
       courseIds: courseIds || [],
       expiresAt: expiresAt || null,
       createdBy: req.user._id,
@@ -72,12 +83,20 @@ const updatePromoCode = async (req, res) => {
     const allowed = ['description', 'isActive', 'maxUses', 'expiresAt', 'courseIds'];
     const update  = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
+    if ('maxUses' in update) {
+      const maxUsesNorm = normalizeMaxUses(update.maxUses);
+      if (maxUsesNorm.error) return res.status(400).json({ success: false, message: maxUsesNorm.error });
+      update.maxUses = maxUsesNorm.value;
+    }
 
-    const promo = await PromoCode.findByIdAndUpdate(req.params.id, update, { new: true });
+    const promo = await PromoCode.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!promo) return res.status(404).json({ success: false, message: 'Promo kod topilmadi' });
 
     res.json({ success: true, data: { promo } });
   } catch (err) {
+    if (err && (err.name === 'ValidationError' || err.name === 'CastError')) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -115,6 +134,10 @@ const validatePromoCode = async (req, res) => {
       !promo.courseIds.some(cid => String(cid) === courseId)
     ) {
       return res.status(409).json({ success: false, message: 'Promo kod bu kursga taalluqli emas' });
+    }
+    // Bir user bitta promo'ni faqat bir marta ishlatadi (initiatePayment'dagi atomik guard bilan mos)
+    if (req.user?._id && await PromoCode.exists({ _id: promo._id, redeemedBy: req.user._id })) {
+      return res.status(409).json({ success: false, message: 'Siz bu promo koddan allaqachon foydalangansiz' });
     }
 
     res.json({

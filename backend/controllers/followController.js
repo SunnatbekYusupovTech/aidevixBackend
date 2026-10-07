@@ -1,6 +1,10 @@
 const Follow    = require('../models/Follow');
 const UserStats = require('../models/UserStats');
 
+// COM-02: boshqa foydalanuvchilarning email'i qaytarilmaydi. P-B14: lean + limit.
+const PEER_USER_FIELDS = 'username firstName lastName avatar jobTitle';
+const listLimit = (q) => Math.min(Math.max(parseInt(q.limit) || 100, 1), 200);
+
 /** @desc  Foydalanuvchiga obuna bo'lish | @route POST /api/follow/:userId | @access Private */
 const followUser = async (req, res) => {
   try {
@@ -53,8 +57,10 @@ const getFollowStats = async (req, res) => {
 const getMyFollowers = async (req, res) => {
   try {
     const follows = await Follow.find({ followingId: req.user._id })
-      .populate('followerId', 'username email jobTitle')
-      .sort({ createdAt: -1 });
+      .populate('followerId', PEER_USER_FIELDS)
+      .sort({ createdAt: -1 })
+      .limit(listLimit(req.query))
+      .lean();
 
     res.json({ success: true, data: { followers: follows.map(f => f.followerId) } });
   } catch (err) {
@@ -66,8 +72,10 @@ const getMyFollowers = async (req, res) => {
 const getMyFollowing = async (req, res) => {
   try {
     const follows = await Follow.find({ followerId: req.user._id })
-      .populate('followingId', 'username email jobTitle')
-      .sort({ createdAt: -1 });
+      .populate('followingId', PEER_USER_FIELDS)
+      .sort({ createdAt: -1 })
+      .limit(listLimit(req.query))
+      .lean();
 
     res.json({ success: true, data: { following: follows.map(f => f.followingId) } });
   } catch (err) {

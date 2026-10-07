@@ -1,6 +1,7 @@
 const Course = require('../models/Course');
 const UserStats = require('../models/UserStats');
 const User = require('../models/User');
+const { nextWeeklyReset } = require('../utils/tashkentDate');
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -40,7 +41,7 @@ const getTopCourses = async (req, res) => {
     if (category) filter.category = category;
 
     const courses = await Course.find(filter)
-      .populate('instructor', 'username email')
+      .populate('instructor', 'username jobTitle avatar') // COM-02/ADM-06: public — email yo'q
       .sort({ viewCount: -1, rating: -1 })
       .limit(limit)
       .select('title description thumbnail price category viewCount rating ratingCount instructor videos createdAt')
@@ -66,13 +67,13 @@ const getTopCourses = async (req, res) => {
 const getTopUsers = async (req, res) => {
   try {
     const limit    = Math.min(parseInt(req.query.limit) || 20, 100);
-    const page     = Math.max(1, parseInt(req.query.page) || 1);
-    const category = req.query.category || null; // e.g. javascript, react, python
+    const page     = Math.min(Math.max(1, parseInt(req.query.page) || 1), 100); // P-B10: chuqur skip cheklangan
+    const category = req.query.category ? String(req.query.category).slice(0, 50) : null; // e.g. javascript, react, python
     const skip     = (page - 1) * limit;
 
-    // Category filter: UserStats.skills array ichida qidiruv
+    // Category filter: UserStats.skills ichida aniq (case-insensitive) moslik — escape + anchor (P-B10)
     const filter = category
-      ? { skills: { $regex: new RegExp(escapeRegex(category), 'i') } }
+      ? { skills: { $regex: new RegExp(`^${escapeRegex(category)}$`, 'i') } }
       : {};
 
     const [total, topUsers] = await Promise.all([
@@ -81,7 +82,7 @@ const getTopUsers = async (req, res) => {
         .sort({ xp: -1, level: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('userId', 'username email createdAt avatar aiStack firstName lastName jobTitle')
+        .populate('userId', 'username createdAt avatar aiStack firstName lastName jobTitle') // COM-02: public — email yo'q
         .select('userId xp level streak badges videosWatched quizzesCompleted avatar bio skills')
         .lean(),
     ]);
@@ -129,7 +130,7 @@ const getUserPosition = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const userStats = await UserStats.findOne({ userId }).lean();
+    const userStats = await UserStats.findOne({ userId }).select('xp level').lean();
     if (!userStats) {
       return res.status(404).json({ success: false, message: 'User stats not found' });
     }
@@ -137,7 +138,7 @@ const getUserPosition = async (req, res) => {
     // Bu userdan yuqori XP'ga ega foydalanuvchilar soni = rank - 1
     const [higherCount, total] = await Promise.all([
       UserStats.countDocuments({ xp: { $gt: userStats.xp } }),
-      UserStats.countDocuments(),
+      UserStats.estimatedDocumentCount(), // P-B10: to'liq scan o'rniga metadata
     ]);
     const rank = higherCount + 1;
 
@@ -223,11 +224,8 @@ const getWeeklyLeaderboard = async (req, res) => {
 const getWeeklyPrizes = async (req, res) => {
   try {
     // Time-sensitive fields recomputed on every call (countdown accuracy)
-    const now = new Date();
-    const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
-    const nextReset = new Date(now);
-    nextReset.setDate(now.getDate() + daysUntilSunday);
-    nextReset.setHours(19, 0, 0, 0); // Yakshanba 00:00 Toshkent = 19:00 UTC
+    // D23: scheduler weeklyReset bilan bir xil qoida — Dushanba 00:00 Toshkent (Yakshanba 19:00 UTC)
+    const nextReset = nextWeeklyReset(new Date());
 
     // PB-012: cache hit — prizes and leaderboard are stable within TTL
     if (_weeklyPrizesCache && Date.now() - _weeklyPrizesCacheAt < RANKING_TTL) {

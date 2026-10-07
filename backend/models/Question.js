@@ -10,12 +10,17 @@ const questionSchema = new mongoose.Schema({
   body: {
     type: String,
     required: true,
+    maxlength: 20000, // COM-12: storage bloat cheklovi
   },
-  tags: [{
-    type: String,
-    trim: true,
-    lowercase: true,
-  }],
+  tags: {
+    type: [{
+      type: String,
+      trim: true,
+      lowercase: true,
+      maxlength: 50,
+    }],
+    validate: [(v) => !v || v.length <= 10, "Ko'pi bilan 10 ta teg"],
+  },
   author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -58,5 +63,10 @@ questionSchema.virtual('answersCount', {
 questionSchema.virtual('score').get(function() {
   return (this.upvotes?.length || 0) - (this.downvotes?.length || 0);
 });
+
+// P-B07: forum ro'yxati — sort createdAt/views, tags filter
+questionSchema.index({ createdAt: -1 });
+questionSchema.index({ views: -1 });
+questionSchema.index({ tags: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Question', questionSchema);

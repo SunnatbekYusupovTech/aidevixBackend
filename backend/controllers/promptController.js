@@ -2,6 +2,18 @@ const mongoose = require('mongoose');
 const Prompt = require('../models/Prompt');
 const SavedPrompt = require('../models/SavedPrompt');
 const UserStats = require('../models/UserStats');
+const User = require('../models/User');
+const { addXp } = require('../utils/awardXp');
+const { startOfDay } = require('../utils/tashkentDate');
+
+const PROMPT_XP = 30;
+const PROMPT_XP_DAILY_LIMIT = 3;
+
+// COM-16: yashirilgan (isPublic:false) prompt faqat muallif yoki admin uchun
+const visibleFilter = (req, id) =>
+  req.user && req.user.role === 'admin'
+    ? { _id: id }
+    : { _id: id, $or: [{ isPublic: true }, ...(req.user ? [{ author: req.user._id }] : [])] };
 
 /** @route GET /api/prompts | @access Public */
 const getPrompts = async (req, res) => {
@@ -175,7 +187,7 @@ const unsavePrompt = async (req, res) => {
 const getPrompt = async (req, res) => {
   try {
     // GET idempotent/xavfsiz — view inkrement faqat POST /:id/view (viewPrompt) da.
-    const prompt = await Prompt.findById(req.params.id)
+    const prompt = await Prompt.findOne(visibleFilter(req, req.params.id))
       .populate('author', 'username firstName avatar aiStack rankTitle')
       .lean();
 
@@ -190,8 +202,8 @@ const getPrompt = async (req, res) => {
 /** @route POST /api/prompts/:id/view | @access Public */
 const viewPrompt = async (req, res) => {
   try {
-    const prompt = await Prompt.findByIdAndUpdate(
-      req.params.id,
+    const prompt = await Prompt.findOneAndUpdate(
+      visibleFilter(req, req.params.id),
       { $inc: { viewsCount: 1 } },
       { new: true }
     );
@@ -215,15 +227,19 @@ const createPrompt = async (req, res) => {
       author: req.user._id,
     });
 
-    // Prompt yaratgani uchun XP +30
-    await UserStats.findOneAndUpdate(
-      { userId: req.user._id },
-      { $inc: { xp: 30, weeklyXp: 30 } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    // COM-06: XP (+30) har prompt uchun bir marta va kuniga faqat birinchi 3 ta prompt uchun
+    // (bugungi Toshkent kuni bo'yicha mavjud promptlar soni; yangi prompt ham sanaladi)
+    const todayCount = await Prompt.countDocuments({ author: req.user._id, createdAt: { $gte: startOfDay() } });
+    const xpEarned = todayCount <= PROMPT_XP_DAILY_LIMIT ? PROMPT_XP : 0;
+    if (xpEarned) await addXp(req.user._id, xpEarned);
 
     await prompt.populate('author', 'username firstName avatar');
-    res.status(201).json({ success: true, message: 'Prompt yaratildi! +30 XP', data: prompt });
+    res.status(201).json({
+      success: true,
+      message: xpEarned ? `Prompt yaratildi! +${xpEarned} XP` : 'Prompt yaratildi',
+      data: prompt,
+      xpEarned,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
@@ -238,7 +254,7 @@ const likePrompt = async (req, res) => {
     // Atomik toggle (TOCTOU fix): exists()-then-update o'rniga shartli updateOne.
     // Avval LIKE urinishi — faqat user hali like qilmagan bo'lsa qo'shadi.
     const likeRes = await Prompt.updateOne(
-      { _id: id, likes: { $ne: userId } },
+      { _id: id, isPublic: true, likes: { $ne: userId } }, // COM-16: yashirin promptga like yo'q
       { $addToSet: { likes: userId }, $inc: { likesCount: 1 } }
     );
 
@@ -276,8 +292,24 @@ const deletePrompt = async (req, res) => {
     if (!isOwner && req.user.role !== 'admin')
       return res.status(403).json({ success: false, message: 'Ruxsat yo\'q' });
 
+    // COM-06: bugun yaratilib XP olgan promptni egasi o'chirsa XP qaytariladi
+    // (aks holda "yarat -> o'chir -> yarat" kunlik limitni chetlab o'tadi)
+    let xpRevoked = false;
+    if (isOwner && prompt.createdAt >= startOfDay()) {
+      const rankToday = await Prompt.countDocuments({
+        author: prompt.author, createdAt: { $gte: startOfDay(), $lt: prompt.createdAt },
+      });
+      xpRevoked = rankToday < PROMPT_XP_DAILY_LIMIT;
+    }
+
     await SavedPrompt.deleteMany({ prompt: req.params.id });
     await prompt.deleteOne();
+
+    if (xpRevoked) {
+      const minus = (f) => ({ $max: [0, { $subtract: [{ $ifNull: [`$${f}`, 0] }, PROMPT_XP] }] });
+      await UserStats.updateOne({ userId: prompt.author }, [{ $set: { xp: minus('xp'), weeklyXp: minus('weeklyXp') } }]);
+      await User.updateOne({ _id: prompt.author }, [{ $set: { xp: minus('xp') } }]);
+    }
     res.json({ success: true, message: 'Prompt o\'chirildi' });
   } catch (err) {
     console.error(err);

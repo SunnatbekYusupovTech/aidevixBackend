@@ -1,8 +1,9 @@
 const SpacedRepetitionCard = require('../models/SpacedRepetitionCard');
 const Quiz = require('../models/Quiz');
-const UserStats = require('../models/UserStats');
+const { addXp } = require('../utils/awardXp');
 
 const XP_PER_REVIEW = 5; // to'g'ri takrorlash uchun kichik mukofot (good/easy)
+const MAX_INTERVAL_DAYS = 365; // D09: interval cheksiz o'smasin
 
 /**
  * @desc  Bugun takrorlash kerak bo'lgan kartalar (savol matni bilan)
@@ -69,38 +70,50 @@ const gradeCard = async (req, res) => {
   try {
     const { cardId } = req.params;
     const { result } = req.body;
-    const card = await SpacedRepetitionCard.findOne({ _id: cardId, userId: req.user._id });
+    const card = await SpacedRepetitionCard.findOne({ _id: cardId, userId: req.user._id }).lean();
     if (!card) return res.status(404).json({ success: false, message: 'Card topilmadi' });
+
+    // D09: muddati kelmagan karta — takrorlashga ruxsat, lekin jadval o'zgarmaydi va XP yo'q
+    const now = new Date();
+    if (card.dueAt && new Date(card.dueAt) > now) {
+      return res.json({
+        success: true,
+        data: { card: { _id: card._id, dueAt: card.dueAt, intervalDays: card.intervalDays }, xpEarned: 0, notDue: true },
+      });
+    }
 
     const qualityMap = { again: 1, hard: 3, good: 4, easy: 5 };
     const q = qualityMap[result] || 1;
+    let { repetitions = 0, intervalDays = 1, easeFactor = 2.5 } = card;
     if (q < 3) {
-      card.repetitions = 0;
-      card.intervalDays = 1;
+      repetitions = 0;
+      intervalDays = 1;
     } else {
-      card.repetitions += 1;
-      if (card.repetitions === 1) card.intervalDays = 1;
-      else if (card.repetitions === 2) card.intervalDays = 3;
-      else card.intervalDays = Math.round(card.intervalDays * card.easeFactor);
-      card.easeFactor = Math.max(1.3, card.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
+      repetitions += 1;
+      if (repetitions === 1) intervalDays = 1;
+      else if (repetitions === 2) intervalDays = 3;
+      else intervalDays = Math.min(MAX_INTERVAL_DAYS, Math.round(intervalDays * easeFactor));
+      easeFactor = Math.max(1.3, easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
     }
-    card.lastResult = result;
-    card.dueAt = new Date(Date.now() + card.intervalDays * 24 * 60 * 60 * 1000);
-    await card.save();
+    const dueAt = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
 
-    // XP mukofoti: faqat to'g'ri eslaganlarda (good/easy), streak/faollik uchun.
+    // Atomik: faqat hali muddati o'tgan holatda yangilanadi — parallel takror baholash ikki marta XP olmaydi
+    const upd = await SpacedRepetitionCard.updateOne(
+      { _id: card._id, userId: req.user._id, dueAt: { $lte: now } },
+      { $set: { repetitions, intervalDays, easeFactor, lastResult: result, dueAt } },
+    );
+    const applied = upd && upd.modifiedCount === 1;
+
+    // XP mukofoti: faqat to'g'ri eslaganlarda (good/easy); level/streak/User mirror umumiy helper orqali (D32/D20).
     let xpEarned = 0;
-    if (q >= 4) {
+    if (applied && q >= 4) {
       xpEarned = XP_PER_REVIEW;
-      UserStats.updateOne(
-        { userId: req.user._id },
-        { $inc: { xp: XP_PER_REVIEW, weeklyXp: XP_PER_REVIEW }, $set: { lastActivityDate: new Date() } },
-      ).catch(() => {});
+      await addXp(req.user._id, XP_PER_REVIEW, { streak: true });
     }
 
     return res.json({
       success: true,
-      data: { card: { _id: card._id, dueAt: card.dueAt, intervalDays: card.intervalDays }, xpEarned },
+      data: { card: { _id: card._id, dueAt: applied ? dueAt : card.dueAt, intervalDays: applied ? intervalDays : card.intervalDays }, xpEarned },
     });
   } catch (err) {
     return res.status(500).json({

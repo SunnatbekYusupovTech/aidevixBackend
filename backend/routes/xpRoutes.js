@@ -13,7 +13,7 @@ const {
   getStreakStatus,
   dailyCheckIn,
 } = require('../controllers/xpController');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 
 
@@ -31,7 +31,8 @@ router.get('/weekly-leaderboard', getWeeklyLeaderboard);
 
 router.post('/streak-freeze', authenticate, useStreakFreeze);
 
-router.post('/streak-freeze/add', authenticate, addStreakFreeze);
+// D21/COM-14: freeze qo'shish faqat admin (oddiy foydalanuvchi o'ziga bepul qo'sha olmaydi)
+router.post('/streak-freeze/add', authenticate, requireAdmin, addStreakFreeze);
 
 router.get('/history', authenticate, getXPHistory);
 

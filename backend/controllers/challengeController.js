@@ -1,16 +1,18 @@
 const { DailyChallenge, UserChallengeProgress } = require('../models/DailyChallenge');
-const UserStats = require('../models/UserStats');
+const { addXp } = require('../utils/awardXp');
+const { dayKey } = require('../utils/tashkentDate');
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+// D19: kunlik vazifa sanasi Asia/Tashkent kalendari bo'yicha (scheduler ham shu kalitni ishlatishi kerak)
+const todayStr = () => dayKey();
 
 /** @desc  Bugungi challenge | @route GET /api/challenges/today | @access Private */
 const getTodayChallenge = async (req, res) => {
   try {
-    const challenge = await DailyChallenge.findOne({ date: todayStr(), isActive: true });
+    const challenge = await DailyChallenge.findOne({ date: todayStr(), isActive: true }).lean();
     if (!challenge)
       return res.json({ success: true, data: { challenge: null, message: 'Bugun uchun vazifa yo\'q' } });
 
-    const progress = await UserChallengeProgress.findOne({ userId: req.user._id, challengeId: challenge._id });
+    const progress = await UserChallengeProgress.findOne({ userId: req.user._id, challengeId: challenge._id }).lean();
 
     res.json({
       success: true,
@@ -28,32 +30,43 @@ const getTodayChallenge = async (req, res) => {
 /** @desc  Challenge progressini yangilash | @route POST /api/challenges/progress | @access Private */
 const updateChallengeProgress = async (req, res) => {
   try {
-    const challenge = await DailyChallenge.findOne({ date: todayStr(), isActive: true });
+    const challenge = await DailyChallenge.findOne({ date: todayStr(), isActive: true }).lean();
     if (!challenge)
       return res.status(404).json({ success: false, message: 'Bugun uchun vazifa yo\'q' });
 
-    let progress = await UserChallengeProgress.findOne({ userId: req.user._id, challengeId: challenge._id });
-    if (!progress)
-      progress = new UserChallengeProgress({ userId: req.user._id, challengeId: challenge._id });
+    // D14/COM-11: har so'rov faqat +1 qadam, atomik (faqat tugallanmagan progressga); XP bitta so'rovda
+    const key = { userId: req.user._id, challengeId: challenge._id };
+    const target = Math.max(1, challenge.targetCount || 1);
+    const alreadyDone = (progress) =>
+      res.json({ success: true, message: 'Siz bu vazifani allaqachon bajardingiz', data: { progress } });
+    const incOnce = () => UserChallengeProgress.findOneAndUpdate(
+      { ...key, isCompleted: false },
+      { $inc: { currentCount: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
-    if (progress.isCompleted)
-      return res.json({ success: true, message: 'Siz bu vazifani allaqachon bajardingiz', data: { progress } });
-
-    progress.currentCount += 1;
-
-    if (progress.currentCount >= challenge.targetCount) {
-      progress.isCompleted  = true;
-      progress.completedAt  = new Date();
-      progress.xpEarned     = challenge.xpReward;
-
-      // XP qo'shish
-      await UserStats.findOneAndUpdate(
-        { userId: req.user._id },
-        { $inc: { xp: challenge.xpReward, weeklyXp: challenge.xpReward } },
-      );
+    let progress;
+    try {
+      progress = await incOnce();
+    } catch (e) {
+      if (!e || e.code !== 11000) throw e;
+      // Upsert to'qnashdi: hujjat allaqachon tugallangan yoki parallel birinchi insert
+      const existing = await UserChallengeProgress.findOne(key).lean();
+      if (existing && existing.isCompleted) return alreadyDone(existing);
+      progress = await incOnce();
     }
 
-    await progress.save();
+    if (progress.currentCount >= target) {
+      // Shartli o'tish isCompleted:false -> true; faqat g'olib so'rov XP beradi
+      const completed = await UserChallengeProgress.findOneAndUpdate(
+        { _id: progress._id, isCompleted: false },
+        { $set: { isCompleted: true, completedAt: new Date(), xpEarned: challenge.xpReward, currentCount: target } },
+        { new: true }
+      );
+      if (!completed) return alreadyDone(await UserChallengeProgress.findOne(key).lean());
+      await addXp(req.user._id, challenge.xpReward); // D32: level/rankTitle/User mirror bilan
+      progress = completed;
+    }
 
     res.json({
       success: true,

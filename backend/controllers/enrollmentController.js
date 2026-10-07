@@ -67,9 +67,18 @@ const markVideoWatched = async (req, res) => {
     if (!enrollment)
       return res.status(404).json({ success: false, message: 'Siz bu kursga yozilmagansiz' });
 
+    // D08/ADM-03: faqat shu kursga tegishli video belgilanadi
+    const courseVideoIds = new Set(((course && course.videos) || []).map(String));
+    if (!courseVideoIds.has(String(videoId)))
+      return res.status(400).json({ success: false, message: 'Video bu kursga tegishli emas' });
+
+    // D29: watchedSeconds — chekli, manfiy bo'lmagan son (1 sutkadan oshmaydi)
+    const secs = Number(watchedSeconds);
+    const safeSeconds = Number.isFinite(secs) && secs > 0 ? Math.min(secs, 86400) : 0;
+
     const alreadyWatched = enrollment.watchedVideos.find(w => w.videoId.toString() === videoId);
     if (!alreadyWatched) {
-      enrollment.watchedVideos.push({ videoId, watchedSeconds });
+      enrollment.watchedVideos.push({ videoId, watchedSeconds: safeSeconds });
       // ActivityLog: birinchi ko'rishni denormalized log'ga yoz (fire-and-forget)
       // getHomeStats aggregation'ini tezlashtirish uchun (PB-001)
       ActivityLog.create({
@@ -78,18 +87,23 @@ const markVideoWatched = async (req, res) => {
         courseId,
       }).catch(err => console.error('[ActivityLog] yozishda xato:', err.message));
     } else {
-      alreadyWatched.watchedSeconds = Math.max(alreadyWatched.watchedSeconds, watchedSeconds);
+      alreadyWatched.watchedSeconds = Math.max(alreadyWatched.watchedSeconds, safeSeconds);
     }
 
-    // Progress hisoblash
-    const totalVideos = course ? course.videos.length : 0;
+    // Progress hisoblash — faqat kursdagi videolar sanaladi (eski begona yozuvlar hisobga kirmaydi)
+    const totalVideos = courseVideoIds.size;
+    const watchedInCourse = new Set(
+      enrollment.watchedVideos.map(w => String(w.videoId)).filter(id => courseVideoIds.has(id))
+    ).size;
+    // D28: Math.floor — N-1 video ko'rilganda 100% bo'lmaydi; tugallanish = hammasi ko'rilgan
     enrollment.progressPercent = totalVideos > 0
-      ? Math.round((enrollment.watchedVideos.length / totalVideos) * 100)
+      ? Math.min(100, Math.floor((watchedInCourse / totalVideos) * 100))
       : 0;
-    enrollment.totalWatchedSeconds += watchedSeconds;
+    enrollment.totalWatchedSeconds = (Number(enrollment.totalWatchedSeconds) || 0) + safeSeconds;
+    const allWatched = totalVideos > 0 && watchedInCourse >= totalVideos;
 
     // Kurs tugallandi
-    if (enrollment.progressPercent >= 100 && !enrollment.isCompleted) {
+    if (allWatched && !enrollment.isCompleted) {
       enrollment.isCompleted = true;
       enrollment.completedAt = new Date();
       await _issueCertificate(req.user, courseId, enrollment._id);

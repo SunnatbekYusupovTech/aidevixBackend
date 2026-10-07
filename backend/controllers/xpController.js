@@ -4,10 +4,69 @@ const VideoXpAward = require('../models/VideoXpAward');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const SpacedRepetitionCard = require('../models/SpacedRepetitionCard');
+const Video = require('../models/Video');
+const Enrollment = require('../models/Enrollment');
 const { awardBadges } = require('../utils/badgeService');
+const { addXp, applyStreak } = require('../utils/awardXp');
 
 // Rank hisoblash (shared utility — single source of truth)
 const calculateRank = require('../utils/calculateRank');
+
+/**
+ * D04: video uchun XP faqat mavjud, faol video va unga ruxsati bor foydalanuvchiga.
+ * Ruxsat qoidasi videoController.getVideo bilan bir xil: AI kategoriyasi — faol Pro;
+ * boshqa kurslar — bepul kurs yoki to'langan/bepul enrollment.
+ */
+const canEarnVideoXp = async (userId, videoId) => {
+  const video = await Video.findOne({ _id: videoId, isActive: true })
+    .select('course')
+    .populate('course', 'isActive isFree price category')
+    .lean();
+  const course = video && video.course;
+  if (!course || course.isActive === false) return { ok: false, status: 404, message: 'Video topilmadi' };
+
+  if (course.category === 'ai') {
+    const user = await User.findById(userId).select('proSubscription').lean();
+    const pro = user && user.proSubscription;
+    const hasPro = Boolean(pro && pro.active) &&
+      (!pro.expiresAt || new Date(pro.expiresAt).getTime() > Date.now());
+    return hasPro ? { ok: true } : { ok: false, status: 403, message: 'Bu video uchun Pro obuna kerak' };
+  }
+
+  if (course.isFree || !(course.price > 0)) return { ok: true };
+  const enrolled = await Enrollment.exists({ userId, courseId: course._id, paymentStatus: { $in: ['free', 'paid'] } });
+  return enrolled ? { ok: true } : { ok: false, status: 403, message: 'Siz bu kursga yozilmagansiz' };
+};
+
+/**
+ * D05: quiz javoblarini baholash — har savol uchun faqat BIRINCHI javob hisoblanadi,
+ * indeks 0..N-1 butun son bo'lishi shart; score 0..100.
+ */
+const gradeQuizAnswers = (questions, answers) => {
+  const total = questions.length;
+  const firstAnswer = new Map();
+  for (const a of answers) {
+    const qi = a ? Number(a.questionIndex) : NaN;
+    if (!Number.isInteger(qi) || qi < 0 || qi >= total || firstAnswer.has(qi)) continue;
+    firstAnswer.set(qi, a.selectedOption);
+  }
+
+  let correctCount = 0;
+  let totalXP = 0;
+  const resultAnswers = [];
+  for (const [qi, selectedOption] of firstAnswer) {
+    const question = questions[qi];
+    const isCorrect = question.correctAnswer === selectedOption;
+    if (isCorrect) {
+      correctCount++;
+      totalXP += question.xpReward || 10;
+    }
+    resultAnswers.push({ questionIndex: qi, selectedOption, isCorrect });
+  }
+
+  const score = total > 0 ? Math.min(100, Math.round((correctCount / total) * 100)) : 0;
+  return { correctCount, totalXP, resultAnswers, score };
+};
 
 /**
  * @desc  Foydalanuvchi statsini olish
@@ -108,13 +167,15 @@ const addVideoWatchXP = async (req, res) => {
       return res.json({ success: true, data: { xpEarned: 0, alreadyAwarded: true, ...data } });
     };
 
+    // D04: video mavjudligi va ruxsatni tekshirish (tasodifiy ObjectId'ga XP yo'q)
+    const access = await canEarnVideoXp(req.user.id, videoId);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+
     // Backward-compat: eski xpAwardedVideos massivida bo'lsa — qayta bermaymiz
-    // (o'tish davri; massiv endi o'stirilmaydi/yozilmaydi).
-    const legacy = await UserStats.findOne({ userId: req.user.id })
-      .select('+xpAwardedVideos xpAwardedVideos')
-      .lean();
-    if (legacy && Array.isArray(legacy.xpAwardedVideos) &&
-        legacy.xpAwardedVideos.some((v) => String(v) === String(videoId))) {
+    // (o'tish davri; massiv endi o'stirilmaydi/yozilmaydi). P-B15: massivni yuklamasdan exists().
+    if (await UserStats.exists({ userId: req.user.id, xpAwardedVideos: videoId })) {
       return respondAlreadyAwarded();
     }
 
@@ -129,49 +190,8 @@ const addVideoWatchXP = async (req, res) => {
       throw dupErr;
     }
 
-    // Award yozildi — XP beramiz. Massivga YOZMAYMIZ (o'sishni to'xtatdik).
-    let stats = await UserStats.findOneAndUpdate(
-      { userId: req.user.id },
-      { $inc: { xp: XP_FOR_VIDEO, weeklyXp: XP_FOR_VIDEO, videosWatched: 1 } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    // Streak yangilash (atomik $inc'dan keyin, joriy logika saqlangan)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (stats.lastActivityDate) {
-      const last = new Date(stats.lastActivityDate);
-      last.setHours(0, 0, 0, 0);
-      const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        stats.streak += 1; // Ketma-ket kun
-      } else if (diffDays > 1) {
-        // Streak freeze tekshiruvi
-        if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
-          stats.streakFreezes -= 1;
-          stats.streakFreezeUsedAt = new Date();
-          // streak saqlanadi
-        } else {
-          stats.streak = 1; // Streak uzildi
-        }
-      }
-      // diffDays === 0 bo'lsa — bugun allaqachon faol bo'lgan, streak o'zgarmaydi
-    } else {
-      stats.streak = 1;
-    }
-
-    // Level/streak/lastActivity yangilangan xp qiymatidan hisoblanadi
-    stats.level = stats.calculateLevel();
-    stats.lastActivityDate = new Date();
-    await stats.save();
-
-    // 2. User modelini sinxronlash (Navbar va Auth uchun) — XP mirror atomik $inc
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { xp: XP_FOR_VIDEO },
-      $set: { streak: stats.streak, rankTitle: calculateRank(stats.xp) },
-    });
+    // Award yozildi — XP beramiz (atomik $inc + level + Toshkent kuni bo'yicha streak + User mirror).
+    const { stats } = await addXp(req.user.id, XP_FOR_VIDEO, { extraInc: { videosWatched: 1 }, streak: true });
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
@@ -206,8 +226,11 @@ const submitQuiz = async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
+    if (!quiz || quiz.isActive === false) {
       return res.status(404).json({ success: false, message: 'Quiz topilmadi' });
+    }
+    if (answers.length > quiz.questions.length) {
+      return res.status(400).json({ success: false, message: 'Javoblar soni savollar sonidan ko\'p' });
     }
 
     // Oldindan yechildimi?
@@ -220,26 +243,10 @@ const submitQuiz = async (req, res) => {
       });
     }
 
-    // Javoblarni tekshirish
-    let correctCount = 0;
-    let totalXP = 0;
-    const resultAnswers = answers.map((a) => {
-      const question = quiz.questions[a.questionIndex];
-      const isCorrect = question && question.correctAnswer === a.selectedOption;
-      if (isCorrect) {
-        correctCount++;
-        totalXP += question.xpReward || 10;
-      }
-      return {
-        questionIndex: a.questionIndex,
-        selectedOption: a.selectedOption,
-        isCorrect: !!isCorrect,
-      };
-    });
-
-    const score = quiz.questions.length > 0
-      ? Math.round((correctCount / quiz.questions.length) * 100)
-      : 0;
+    // Javoblarni tekshirish (D05: questionIndex bo'yicha dedupe + diapazon tekshiruvi)
+    const graded = gradeQuizAnswers(quiz.questions, answers);
+    const { correctCount, resultAnswers, score } = graded;
+    let totalXP = graded.totalXP;
     const passed = score >= quiz.passingScore;
 
     // Bonus XP: o'tsa qo'shimcha 100 XP
@@ -264,27 +271,8 @@ const submitQuiz = async (req, res) => {
       throw e;
     }
 
-    // UserStats yangilash — atomic $inc (race condition oldini olish)
-    const stats = await UserStats.findOneAndUpdate(
-      { userId: req.user.id },
-      {
-        $inc: { xp: totalXP, weeklyXp: totalXP, quizzesCompleted: 1 },
-        $set: { lastActivityDate: new Date() },
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    // Level'ni yangi XP asosida qayta hisoblash (faqat o'zgargan bo'lsa yozamiz)
-    const newLevel = stats.calculateLevel();
-    if (newLevel !== stats.level) {
-      stats.level = newLevel;
-      await stats.save();
-    }
-
-    // User modelini atomic sinxronlash
-    await User.findByIdAndUpdate(req.user.id, {
-      $set: { xp: stats.xp, streak: stats.streak, rankTitle: calculateRank(stats.xp) },
-    });
+    // UserStats + User — atomik $inc, level, streak (D20: quiz ham streakni yangilaydi)
+    const { stats } = await addXp(req.user.id, totalXP, { extraInc: { quizzesCompleted: 1 }, streak: true });
 
     // Badge auto-award
     awardBadges(req.user.id).catch(() => {});
@@ -378,8 +366,14 @@ const updateProfile = async (req, res) => {
       stats = await UserStats.create({ userId });
     }
 
-    if (skills !== undefined && (!Array.isArray(skills) || skills.length > 50)) {
-      return res.status(400).json({ success: false, message: 'skills must be array of max 50' });
+    if (skills !== undefined && (!Array.isArray(skills) || skills.length > 50 ||
+        skills.some((s) => typeof s !== 'string' || s.length > 40))) {
+      return res.status(400).json({ success: false, message: 'skills must be array of max 50 strings (<= 40 chars)' });
+    }
+    // COM-15: avatar faqat https URL (yoki tozalash uchun bo'sh/null)
+    if (avatar !== undefined && avatar !== null && avatar !== '' &&
+        (typeof avatar !== 'string' || avatar.length > 500 || !/^https:\/\/[^\s]+$/i.test(avatar))) {
+      return res.status(400).json({ success: false, message: 'avatar must be an https URL' });
     }
 
     if (bio !== undefined) stats.bio = bio;
@@ -560,40 +554,15 @@ const dailyCheckIn = async (req, res) => {
       stats = await UserStats.create({ userId: req.user.id });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let increased = false;
-    let freezeUsed = false;
-
-    if (stats.lastActivityDate) {
-      const last = new Date(stats.lastActivityDate);
-      last.setHours(0, 0, 0, 0);
-      const diffDays = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) {
-        // Bugun allaqachon check-in bo'lgan — o'zgarish yo'q.
-        return res.json({
-          success: true,
-          data: { streak: stats.streak || 0, increased: false, freezeUsed: false },
-        });
-      } else if (diffDays === 1) {
-        stats.streak += 1;
-        increased = true;
-      } else if ((stats.streakFreezes || 0) > 0 && diffDays === 2) {
-        stats.streakFreezes -= 1;
-        stats.streakFreezeUsedAt = new Date();
-        freezeUsed = true; // streak saqlanadi
-      } else {
-        stats.streak = 1; // Streak uzildi — qaytadan boshlandi
-        increased = true;
-      }
-    } else {
-      stats.streak = 1;
-      increased = true;
+    // Yagona streak qoidasi (Toshkent kalendar kuni) — utils/awardXp.applyStreak
+    const { increased, freezeUsed, sameDay } = applyStreak(stats);
+    if (sameDay && !increased) {
+      // Bugun allaqachon faol bo'lgan — o'zgarish yo'q.
+      return res.json({
+        success: true,
+        data: { streak: stats.streak || 0, increased: false, freezeUsed: false },
+      });
     }
-
-    stats.lastActivityDate = new Date();
     await stats.save();
 
     // User modelini sinxronlash (Navbar/Auth streak ko'rsatishi uchun)
@@ -647,4 +616,5 @@ module.exports = {
   getXPHistory,
   getStreakStatus,
   dailyCheckIn,
+  gradeQuizAnswers,
 };

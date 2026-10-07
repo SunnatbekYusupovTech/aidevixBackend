@@ -1,4 +1,6 @@
 const UserStats = require('../models/UserStats');
+const Enrollment = require('../models/Enrollment');
+const QuizResult = require('../models/QuizResult');
 
 /**
  * Badge shartlari va avtomatik berish tizimi
@@ -20,21 +22,39 @@ const BADGE_RULES = [
   { name: 'Level 10',          icon: '🎯', condition: (s) => s.level >= 10           },
   { name: 'Level 50',          icon: '🚀', condition: (s) => s.level >= 50           },
   { name: 'Level 99',          icon: '👑', condition: (s) => s.level >= 99           },
-  { name: 'Kurs tugallandi',   icon: '🎓', condition: (s) => (s.coursesCompleted || 0) >= 1 },
-  { name: 'Quiz ustasi',       icon: '🧠', condition: (s) => (s.highScoreQuizzes || 0) >= 10 },
-  { name: 'Mukammal natija',   icon: '💯', condition: (s) => (s.perfectScores || 0) >= 1   },
+  // D25: bu hisoblagichlar UserStats'da yo'q — awardBadges ularni Enrollment/QuizResult'dan hosil qiladi
+  { name: 'Kurs tugallandi',   icon: '🎓', derived: 'coursesCompleted', condition: (s) => (s.coursesCompleted || 0) >= 1 },
+  { name: 'Quiz ustasi',       icon: '🧠', derived: 'highScoreQuizzes', condition: (s) => (s.highScoreQuizzes || 0) >= 10 },
+  { name: 'Mukammal natija',   icon: '💯', derived: 'perfectScores',    condition: (s) => (s.perfectScores || 0) >= 1   },
 ];
+
+// Hosila hisoblagichlar (highScore = ball >= 90)
+const DERIVED_COUNTERS = {
+  coursesCompleted: (userId) => Enrollment.countDocuments({ userId, isCompleted: true }),
+  highScoreQuizzes: (userId) => QuizResult.countDocuments({ userId, score: { $gte: 90 } }),
+  perfectScores:    (userId) => QuizResult.countDocuments({ userId, score: 100 }),
+};
 
 /**
  * Foydalanuvchi statistikasiga qarab yangi badge'larni avtomatik berish
  * @returns {Array} - Yangi berilgan badge'lar
  */
 const awardBadges = async (userId) => {
-  const stats = await UserStats.findOne({ userId });
+  // P-B15: faqat kerakli maydonlar, lean; yozish atomik $push bilan
+  const stats = await UserStats.findOne({ userId })
+    .select('xp level streak videosWatched quizzesCompleted badges.name')
+    .lean();
   if (!stats) return [];
 
-  const existingBadgeNames = stats.badges.map((b) => b.name);
+  const existingBadgeNames = (stats.badges || []).map((b) => b.name);
   const newBadges = [];
+
+  // Hosila hisoblagichlarni faqat hali olinmagan badge'lar uchun so'raymiz
+  const needed = [...new Set(BADGE_RULES
+    .filter((r) => r.derived && !existingBadgeNames.includes(r.name))
+    .map((r) => r.derived))];
+  const counts = await Promise.all(needed.map((k) => DERIVED_COUNTERS[k](userId)));
+  needed.forEach((k, i) => { stats[k] = counts[i]; });
 
   for (const rule of BADGE_RULES) {
     if (!existingBadgeNames.includes(rule.name) && rule.condition(stats)) {
@@ -43,8 +63,12 @@ const awardBadges = async (userId) => {
   }
 
   if (newBadges.length > 0) {
-    stats.badges.push(...newBadges);
-    await stats.save();
+    // Parallel chaqiruvda dublikat badge yozilmasligi uchun shartli $push
+    const r = await UserStats.updateOne(
+      { userId, 'badges.name': { $nin: newBadges.map((b) => b.name) } },
+      { $push: { badges: { $each: newBadges } } }
+    );
+    if (!r || r.modifiedCount === 0) return [];
   }
 
   return newBadges;

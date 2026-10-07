@@ -11,6 +11,7 @@ import {
   clearPendingEmailVerification,
   selectIsLoggedIn,
 } from '@store/slices/authSlice';
+import { safeRedirectPath } from '@utils/safeRedirect';
 
 const RESEND_COOLDOWN = 60; // seconds
 
@@ -22,7 +23,7 @@ export default function VerifyEmailPage() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
   const email = pending?.email || search.get('email') || '';
-  const next = search.get('next') || '/login';
+  const next = safeRedirectPath(search.get('next'), '/login');
 
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);

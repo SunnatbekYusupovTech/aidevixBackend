@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider, CredentialResponse } from '@react-oauth/google';
 import { authApi } from '@/api/authApi';
 import { toast } from 'react-hot-toast';
 import { IoLockClosed, IoClose } from 'react-icons/io5';
@@ -145,14 +145,16 @@ export default function ReauthModal({
               </div>
             )}
             <div className="flex justify-center [&>div]:w-full">
-              <GoogleLogin
-                onSuccess={onGoogleSuccess}
-                onError={() => toast.error(t('reauth.googleError'))}
-                theme="filled_black"
-                size="large"
-                text="continue_with"
-                useOneTap={false}
-              />
+              <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+                <GoogleLogin
+                  onSuccess={onGoogleSuccess}
+                  onError={() => toast.error(t('reauth.googleError'))}
+                  theme="filled_black"
+                  size="large"
+                  text="continue_with"
+                  useOneTap={false}
+                />
+              </GoogleOAuthProvider>
             </div>
             {submitting && <p className="text-center text-xs text-slate-500">{t('reauth.verifying')}</p>}
             <button

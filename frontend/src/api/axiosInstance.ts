@@ -26,6 +26,24 @@ const readCsrfFromCookie = (): string | null => {
   return decodeURIComponent(match.slice(CSRF_COOKIE_NAME.length + 1))
 }
 
+/**
+ * P-F08: cheap client-side "is there probably a session?" check so anonymous
+ * visitors skip the /auth/me + /auth/csrf bootstrap round-trips. Login, refresh
+ * and logout set/clear the non-httpOnly `aidevix_csrf` cookie together with the
+ * session cookies; the cached user in localStorage is a second hint. When the API
+ * is on another origin the cookie is invisible, so we cannot tell -> assume yes.
+ */
+export const hasSessionHint = (): boolean => {
+  if (typeof window === 'undefined') return false
+  if (!API_BASE_URL.startsWith('/')) return true
+  if (readCsrfFromCookie()) return true
+  try {
+    return Boolean(tokenStorage.getUser())
+  } catch {
+    return false
+  }
+}
+
 const getCsrfToken = (): string | null => csrfTokenInMemory || readCsrfFromCookie()
 
 const fetchCsrfToken = async (): Promise<string | null> => {

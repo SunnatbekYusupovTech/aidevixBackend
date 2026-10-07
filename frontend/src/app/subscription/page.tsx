@@ -9,11 +9,12 @@ import { useSubscription } from '@hooks/useSubscription';
 import TelegramVerify from '@components/subscription/TelegramVerify';
 import InstagramVerify from '@components/subscription/InstagramVerify';
 import { useLang } from '@/context/LangContext';
+import { safeRedirectPath } from '@utils/safeRedirect';
 
 function SubscriptionContent() {
   const { allVerified, telegram, instagram, refetch } = useSubscription();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/courses';
+  const returnUrl = safeRedirectPath(searchParams.get('returnUrl'), '/courses');
   const { t } = useLang();
 
   // Sequential flow: Telegram first, then Instagram

@@ -131,6 +131,13 @@ const authSlice = createSlice({
     clearError: (state) => { state.error = null },
     clearPending2FA: (state) => { state.pending2FA = null },
     clearPendingEmailVerification: (state) => { state.pendingEmailVerification = null },
+    // Bootstrap found no session hint (no CSRF cookie / cached user): skip the
+    // /auth/me round-trip and resolve the auth state as anonymous (P-F08).
+    markAnonymous: (state) => {
+      state.loading = false
+      state.user = null
+      state.isLoggedIn = false
+    },
     updateUser: (state, action) => {
       state.user = { ...(state.user || {}), ...action.payload }
     },
@@ -196,7 +203,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, clearPending2FA, clearPendingEmailVerification, updateUser } = authSlice.actions
+export const { clearError, clearPending2FA, clearPendingEmailVerification, markAnonymous, updateUser } = authSlice.actions
 export default authSlice.reducer
 
 // ─── Selectors ────────────────────────────────────────────────

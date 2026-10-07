@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { IoSearch, IoClose, IoOptions } from 'react-icons/io5'
 import { useCourses } from '@hooks/useCourses'
 import CourseGrid from '@components/courses/CourseGrid'
@@ -18,6 +18,19 @@ interface CoursesClientProps {
   initialCategory: string
   initialSearch: string
 }
+
+type FetchParams = {
+  category?: string
+  search?: string
+  sort?: string
+  level?: string
+  minRating?: number
+  page: number
+  limit: number
+}
+
+const paramsKey = (p: FetchParams) =>
+  JSON.stringify([p.category ?? null, p.search ?? null, p.sort ?? null, p.level ?? null, p.minRating ?? null, p.page, p.limit])
 
 function useDebounce(value: any, delay: number) {
   const [d, setD] = useState(value)
@@ -40,20 +53,47 @@ export default function CoursesClient({
   const debouncedSearch             = useDebounce(search, 500)
 
   const { t } = useLang()
-  const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage } = useCourses()
+  const { courses, loading, filters, pages, total, fetchAll, setFilter, setPage, hydrate } = useCourses()
+
+  // P-F05: when the server already rendered page 1, seed the store with it and
+  // skip the identical client refetch. `seedKeyRef` holds the query the SSR data
+  // answers; the first fetch effect run (stale store filters) and the run caused
+  // by hydration (same query) are skipped, any other filter change fetches.
+  const seeded = initialCourses.length > 0
+  const seedKeyRef = useRef<string | null>(
+    seeded
+      ? paramsKey({
+          category: initialCategory !== 'all' ? initialCategory : undefined,
+          search: initialSearch || undefined,
+          sort: 'newest',
+          level: undefined,
+          minRating: undefined,
+          page: 1,
+          limit: 12,
+        })
+      : null,
+  )
+  const firstFetchRunRef = useRef(true)
 
   // Seed the category filter from the server-resolved query param (replaces the
   // old useSearchParams() read, which forced the whole page to render client-only
   // and left the SSR HTML empty).
   useEffect(() => {
-    if (initialCategory && initialCategory !== 'all') {
+    if (seeded) {
+      hydrate({
+        courses: initialCourses,
+        total: initialTotal,
+        pages: initialPages,
+        filters: { category: initialCategory || 'all', search: initialSearch, sort: 'newest' },
+      })
+    } else if (initialCategory && initialCategory !== 'all') {
       setFilter({ category: initialCategory })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    const params = {
+    const params: FetchParams = {
       category: filters.category !== 'all' ? filters.category : undefined,
       search:   debouncedSearch || undefined,
       sort:     filters.sort,
@@ -61,6 +101,14 @@ export default function CoursesClient({
       minRating: filters.minRating || undefined,
       page:     filters.page,
       limit:    12,
+    }
+    const isFirstRun = firstFetchRunRef.current
+    firstFetchRunRef.current = false
+    if (seedKeyRef.current) {
+      if (isFirstRun) return
+      const matchesSeed = paramsKey(params) === seedKeyRef.current
+      seedKeyRef.current = null
+      if (matchesSeed) return
     }
     fetchAll(params)
   }, [filters.category, filters.sort, filters.level, filters.minRating, filters.page, debouncedSearch])

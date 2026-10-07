@@ -50,6 +50,14 @@ const nextConfig = {
           { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           {
+            // Enforcing, risk-free subset (no plugin objects, no <base> hijack).
+            // Full script-src enforcement needs nonces + a violation-report review
+            // (Telegram SDK, Google GSI, Monaco/Pyodide CDN, Bunny iframe) — kept
+            // in Report-Only below until that is verified on a preview deploy.
+            key: 'Content-Security-Policy',
+            value: "object-src 'none'; base-uri 'self'",
+          },
+          {
             // 'unsafe-eval' olib tashlandi — `new Function()`/`eval` ga ruxsat berilmaydi.
             // 'unsafe-inline' Next.js hydration scriptlari uchun zarur (nonce/hash bilan
             // tugatish kelgusi PR'ga qoldi). Hozir Report-Only — buzilishi monitoring uchun.

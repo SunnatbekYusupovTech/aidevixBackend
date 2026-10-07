@@ -157,7 +157,7 @@ export default function CourseDetailClient({ id, initialCourse }: CourseDetailCl
     dateLocale: lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : 'uz-UZ',
   }
 
-  const { course: reduxCourse, loading }                = useCourse(id)
+  const { course: reduxCourse, loading }                = useCourse(id, initialCourse)
   const { courseVideos, loading: vLoad, fetchByCourse } = useVideos()
   const [recommended, setRecommended]                   = useState([])
   const [projects, setProjects]                         = useState([])

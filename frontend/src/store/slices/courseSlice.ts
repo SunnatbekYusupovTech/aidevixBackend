@@ -74,6 +74,20 @@ const courseSlice = createSlice({
     clearCurrent: (state) => {
       state.current = null
     },
+    // Seed the store with server-rendered data so the client does not refetch
+    // what SSR already delivered (P-F05 / P-F06).
+    hydrateCourses: (state, action) => {
+      const { courses, total, pages, filters } = action.payload
+      state.list = courses
+      state.total = total
+      state.pages = pages
+      state.loading = false
+      state.error = null
+      state.filters = { ...initialState.filters, ...filters, page: 1 }
+    },
+    setCurrent: (state, action) => {
+      state.current = action.payload
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -107,7 +121,7 @@ const courseSlice = createSlice({
   },
 })
 
-export const { setFilter, setPage, clearCurrent } = courseSlice.actions
+export const { setFilter, setPage, clearCurrent, hydrateCourses, setCurrent } = courseSlice.actions
 export default courseSlice.reducer
 
 // Selectors

@@ -2,19 +2,29 @@ import '../styles/globals.css';
 import '../styles/animations.css';
 import { Metadata } from 'next';
 import Script from 'next/script';
-import { Manrope, Space_Grotesk } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
 import { safeJsonLd } from '@/utils/jsonLd';
 
-const manrope = Manrope({
+// P-F03: the real UI fonts are served via next/font (self-hosted, preloaded,
+// size-adjusted fallback => less CLS). Plus Jakarta Sans comes as latin-subset
+// woff2; Host Grotesk is not in Next 14's Google catalogue, so the local
+// variable TTF is used (normal style only; italic stays a lazy @font-face).
+// Mono / serif / accent families remain lazy @font-face rules in globals.css —
+// browsers download them only on pages that actually render them.
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
+  style: ['normal', 'italic'],
   variable: '--app-font-sans',
   display: 'swap',
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
+const hostGrotesk = localFont({
+  src: '../../public/fonts/Host_Grotesk/HostGrotesk-VariableFont_wght.ttf',
+  weight: '300 800',
+  style: 'normal',
   variable: '--app-font-display',
   display: 'swap',
 });
@@ -220,8 +230,6 @@ export default function RootLayout({
   return (
     <html lang="uz" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://telegram.org" crossOrigin="" />
-        <link rel="dns-prefetch" href="https://telegram.org" />
         {/* Kurs thumbnail'lari Cloudinary'dan keladi — preconnect LCP'ni qisqartiradi. */}
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
@@ -234,10 +242,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
       </head>
-      <body className={`${manrope.variable} ${spaceGrotesk.variable} min-w-0 w-full max-w-full antialiased selection:bg-indigo-500/30`}>
+      <body className={`${plusJakartaSans.variable} ${hostGrotesk.variable} min-w-0 w-full max-w-full antialiased selection:bg-indigo-500/30`}>
         {/* Inline script o'rniga statik /public fayllar — CSP `'unsafe-inline'` siz ishlaydi. */}
         <Script src="/theme-bootstrap.js" strategy="beforeInteractive" />
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="lazyOnload" />
+        {/* Telegram WebApp SDK is loaded on demand by TelegramMiniAppBridge (only inside Telegram). */}
         <Script src="/register-sw.js" strategy="afterInteractive" />
         <Providers>
           <ClientLayoutWrapper>

@@ -1,9 +1,7 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { gsap } from 'gsap';
 import { IoTime, IoBookOutline, IoStar } from 'react-icons/io5';
 import { ROUTES } from '@/utils/constants';
 import { formatDurationText } from '@/utils/formatDuration';
@@ -25,19 +23,6 @@ const CAT = {
   general:    { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400',  label: 'Other',  glow: 'hover:shadow-violet-500/10', hex: '#a78bfa' },
 }
 
-const glowColors = {
-  html:       'rgba(249, 115, 22, 0.2)',
-  css:        'rgba(59, 130, 246, 0.2)',
-  javascript: 'rgba(234, 179, 8, 0.2)',
-  typescript: 'rgba(37, 99, 235, 0.2)',
-  react:      'rgba(6, 182, 212, 0.2)',
-  redux:      'rgba(168, 85, 247, 0.2)',
-  nodejs:     'rgba(34, 197, 94, 0.2)',
-  tailwind:   'rgba(20, 184, 166, 0.2)',
-  ai:         'rgba(245, 158, 11, 0.2)',
-  general:    'rgba(139, 92, 246, 0.2)',
-}
-
 interface CourseProps {
   course: any;
   index?: number;
@@ -45,43 +30,14 @@ interface CourseProps {
 }
 
 
-export default function CourseCard({ course, index = 0, className = '' }: CourseProps) {
-  const cardRef = useRef(null)
+// P-F02: no gsap here — entrance animation removed so SSR'd cards are visible
+// before/without hydration; hover lift is a pure CSS transition.
+export default function CourseCard({ course, className = '' }: CourseProps) {
   const { playSound } = useSound()
   const { t, lang } = useLang()
 
-  useEffect(() => {
-    if (!cardRef.current) return
-    gsap.fromTo(
-      cardRef.current,
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 0.6, delay: Math.min(index * 0.1, 1), ease: 'power3.out' },
-    )
-  }, [index])
-
   const onEnter = () => {
     playSound('/sounds/onlyclick.wav')
-    const glowColor = glowColors[course.category as keyof typeof glowColors] || glowColors.general
-    gsap.to(cardRef.current, {
-      y: -8,
-      scale: 1.02,
-      boxShadow: `0 20px 40px -10px ${glowColor}`,
-      duration: 0.3,
-      ease: 'power2.out',
-      overwrite: 'auto'
-    })
-  }
-
-  const onLeave = () => {
-    if (!cardRef.current) return
-    gsap.to(cardRef.current, {
-      y: 0,
-      scale: 1,
-      boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
-      duration: 0.3,
-      ease: 'power2.out',
-      overwrite: 'auto'
-    })
   }
 
   if (!course) return null
@@ -99,12 +55,10 @@ export default function CourseCard({ course, index = 0, className = '' }: Course
   return (
     <Link
       href={ROUTES.COURSE(course.slug || course._id)}
-      ref={cardRef}
       onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
       className={
         'group block overflow-hidden rounded-none bg-[#111726] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] ' +
-        'transition-all duration-500 ' +
+        'transition-[transform,box-shadow] duration-300 ease-out motion-safe:hover:-translate-y-2 motion-safe:hover:scale-[1.02] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] ' +
         cat.glow + ' ' + className
       }
     >

@@ -4,14 +4,6 @@
 
 @font-face {
   font-family: 'Host Grotesk';
-  src: url('/fonts/Host_Grotesk/HostGrotesk-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Host Grotesk';
   src: url('/fonts/Host_Grotesk/HostGrotesk-Italic-VariableFont_wght.ttf') format('truetype');
   font-weight: 100 900;
   font-style: italic;
@@ -29,22 +21,6 @@
 @font-face {
   font-family: 'Playfair Display';
   src: url('/fonts/Playfair_Display/PlayfairDisplay-Italic-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/fonts/Plus_Jakarta_Sans/PlusJakartaSans-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/fonts/Plus_Jakarta_Sans/PlusJakartaSans-Italic-VariableFont_wght.ttf') format('truetype');
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -86,9 +62,9 @@
   --color-primary: #5662f6;
   --color-accent: #f59e0b;
   --color-dark: #0a0e1a;
-  --font-sans: 'Plus Jakarta Sans', var(--app-font-sans), system-ui, sans-serif;
+  --font-sans: var(--app-font-sans), system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-display: 'Host Grotesk', var(--app-font-display), system-ui, sans-serif;
+  --font-display: var(--app-font-display), 'Host Grotesk', system-ui, sans-serif;
   --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --border-radius: 18px;
 
@@ -656,6 +632,12 @@ html.light-mode .border-dark-border,
 html[data-theme='light'] .border-dark-border { border-color: #e5e7eb !important; }
 html.light-mode .border-dark-base,
 html[data-theme='light'] .border-dark-base   { border-color: #e2e8f0 !important; }
+
+/* <img> stand-in shown before the inline SVG is fetched (SSR / no-JS / untrusted host):
+   approximates the faint monochrome default state of .svg-draw-container. */
+.svg-draw-placeholder { filter: brightness(0) invert(1); opacity: 0.15; }
+html.light-mode .svg-draw-placeholder,
+html[data-theme='light'] .svg-draw-placeholder { filter: brightness(0); opacity: 0.1; }
 
 /* === SVG Draw Animation on Hover === */
 .svg-draw-container svg {

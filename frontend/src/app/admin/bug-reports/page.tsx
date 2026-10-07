@@ -147,7 +147,7 @@ export default function AdminBugReportsPage() {
                         <p className="mt-1 whitespace-pre-wrap text-sm text-slate-300">{r.suggestion}</p>
                       </div>
                     )}
-                    {r.pageUrl && (
+                    {r.pageUrl && /^https?:\/\//i.test(r.pageUrl) && (
                       <a href={r.pageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:underline">
                         <FiExternalLink className="h-3.5 w-3.5" /> {r.pageUrl}
                       </a>

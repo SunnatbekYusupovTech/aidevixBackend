@@ -348,7 +348,7 @@ export default function IntegratedPlayground({ videoId, category = 'html', initi
                       src={previewUrl}
                       className="h-full w-full rounded-lg bg-white"
                       title={t('playground.previewTitle')}
-                      sandbox="allow-scripts allow-same-origin"
+                      sandbox="allow-scripts allow-modals allow-forms"
                     />
                   )}
                 </div>

@@ -12,6 +12,7 @@ import {
   selectUser,
   checkAuthStatus,
 } from '@store/slices/authSlice';
+import { safeRedirectPath } from '@utils/safeRedirect';
 
 type Step = 'loading' | 'qr' | 'backup';
 
@@ -30,7 +31,10 @@ export default function TwoFactorSetupPage() {
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const next = search.get('next') || (user?.role === 'admin' ? '/admin' : '/profile');
+  const next = safeRedirectPath(
+    search.get('next'),
+    user?.role === 'admin' ? '/admin' : '/profile',
+  );
 
   useEffect(() => {
     if (authLoading) return;

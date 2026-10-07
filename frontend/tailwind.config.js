@@ -81,12 +81,12 @@ module.exports = {
         },
       },
       fontFamily: {
-        title: ['"Host Grotesk"', 'sans-serif'],
+        title: ['var(--app-font-display)', '"Host Grotesk"', 'sans-serif'],
         accent: ['"Playfair Display"', 'serif'],
-        sans:  ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans:  ['var(--app-font-sans)', 'system-ui', 'sans-serif'],
         mono:  ['"JetBrains Mono"', 'Fira Code', 'monospace'],
         serif: ['"Vollkorn"', 'serif'],
-        display: ['"Host Grotesk"', 'sans-serif'],
+        display: ['var(--app-font-display)', '"Host Grotesk"', 'sans-serif'],
       },
       backgroundImage: {
         'hero-gradient':    'radial-gradient(ellipse at top left, #312e81 0%, #0A0E1A 50%, #1e1b4b 100%)',

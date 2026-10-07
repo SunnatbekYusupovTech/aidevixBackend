@@ -3,11 +3,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SiteLogoMark from '@components/common/SiteLogoMark';
+import { useDispatch } from 'react-redux';
 import { authApi } from '@api/authApi';
+import { checkAuthStatus } from '@store/slices/authSlice';
 
 function TelegramLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useDispatch();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Tizimga kirilmoqda...');
 
@@ -32,6 +35,9 @@ function TelegramLoginContent() {
           setTimeout(() => router.replace('/login'), 1000);
           return;
         }
+        // Session cookie endi bor — Redux auth holatini yangilaymiz (bootstrap anonim deb belgilagan bo'lishi mumkin).
+        await dispatch(checkAuthStatus() as any);
+        if (cancelled) return;
         setStatus('success');
         setMessage('Muvaffaqiyatli! Profilga yo\'naltirilmoqda...');
         setTimeout(() => router.replace('/profile'), 1000);
@@ -42,7 +48,7 @@ function TelegramLoginContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [searchParams, router]);
+  }, [searchParams, router, dispatch]);
 
   return (
     <div className="max-w-md w-full text-center space-y-8">

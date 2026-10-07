@@ -2,14 +2,13 @@
 
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import store from '@/store';
 import { Toaster } from 'react-hot-toast';
 import { LangProvider } from '@/context/LangContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { SoundProvider } from '@/context/SoundContext';
-import { checkAuthStatus } from '@/store/slices/authSlice';
-import { primeCsrfToken } from '@/api/axiosInstance';
+import { checkAuthStatus, markAnonymous } from '@/store/slices/authSlice';
+import { hasSessionHint, primeCsrfToken } from '@/api/axiosInstance';
 
 import { useDispatch } from 'react-redux';
 
@@ -23,6 +22,12 @@ function AuthBootstrap() {
   useEffect(() => {
     if (!authCheckDispatched) {
       authCheckDispatched = true;
+      // P-F08: anonymous visitors (no session hint) skip both round-trips; the
+      // CSRF token is then fetched lazily by the 403->retry path on first mutation.
+      if (!hasSessionHint()) {
+        dispatch(markAnonymous());
+        return;
+      }
       // Cross-site clients need an X-CSRF-Token header on the first mutating
       // request (e.g. /api/auth/daily-reward, profile edit). Prime the
       // in-memory store before any of those fire so we don't rely on the
@@ -35,33 +40,29 @@ function AuthBootstrap() {
   return null;
 }
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <Provider store={store}>
-        <AuthBootstrap />
-        <ThemeProvider>
-          <LangProvider>
-            <SoundProvider>
-                {children}
-              <Toaster
-                position="bottom-right"
-                reverseOrder={false}
-                toastOptions={{
-                  style: {
-                    background: '#12141f',
-                    color: '#e2e8f0',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                  },
-                }}
-              />
-            </SoundProvider>
-          </LangProvider>
-        </ThemeProvider>
-      </Provider>
-    </GoogleOAuthProvider>
+    <Provider store={store}>
+      <AuthBootstrap />
+      <ThemeProvider>
+        <LangProvider>
+          <SoundProvider>
+              {children}
+            <Toaster
+              position="bottom-right"
+              reverseOrder={false}
+              toastOptions={{
+                style: {
+                  background: '#12141f',
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                },
+              }}
+            />
+          </SoundProvider>
+        </LangProvider>
+      </ThemeProvider>
+    </Provider>
   );
 }

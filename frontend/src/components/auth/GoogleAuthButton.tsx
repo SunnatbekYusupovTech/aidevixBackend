@@ -1,6 +1,6 @@
 'use client';
 
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -17,7 +17,19 @@ interface Props {
   className?: string;
 }
 
-export default function GoogleAuthButton({ mode = 'login', className }: Props) {
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+// P-F08: the Google GSI script is loaded only where a Google button is rendered,
+// not app-wide from Providers.
+export default function GoogleAuthButton(props: Props) {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <GoogleAuthButtonInner {...props} />
+    </GoogleOAuthProvider>
+  );
+}
+
+function GoogleAuthButtonInner({ mode = 'login', className }: Props) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { isDark } = useTheme();

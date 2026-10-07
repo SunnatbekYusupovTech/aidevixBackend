@@ -12,9 +12,11 @@ const AUTH_LIMIT = 20;
 const COACH_LIMIT = 30;
 const API_LIMIT = 120;
 
+// The site runs on Vercel (not behind Cloudflare), so `cf-connecting-ip` is
+// client-controlled and must not be trusted. Vercel sets req.ip / x-real-ip /
+// x-forwarded-for itself and overwrites client-supplied values.
 function getClientIp(req: NextRequest): string {
-  const cfIp = req.headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp;
+  if (req.ip) return req.ip;
 
   const realIp = req.headers.get('x-real-ip');
   if (realIp) return realIp;

@@ -3,9 +3,11 @@ import CoursesClient from './CoursesClient'
 
 // Server-rendered so the courses list is real HTML for crawlers (the page used
 // to be fully client-rendered — `useSearchParams` pushed everything into a
-// client-only Suspense boundary, leaving the SSR HTML empty). Dynamic because it
-// reads the category/search query params; the data fetch itself is cached 30 min.
-export const dynamic = 'force-dynamic'
+// client-only Suspense boundary, leaving the SSR HTML empty). Reading
+// `searchParams` already makes the route render per request; we deliberately do
+// NOT use `dynamic = 'force-dynamic'` (P-F04) because that also forces every
+// fetch to no-store — this way the backend calls below (and the layout's
+// /courses/top) are served from the Data Cache and revalidated every 30 min.
 
 import { Metadata } from 'next'
 

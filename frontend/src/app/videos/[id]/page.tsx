@@ -42,6 +42,14 @@ export default function VideoPage() {
         : lang === 'ru'
           ? 'Чтобы смотреть это видео, подпишитесь на наши Telegram и Instagram каналы.'
           : "Ushbu videoni ko'rish uchun Telegram va Instagram kanallarimizga obuna bo'ling.",
+    needEnrollTitle: lang === 'en' ? 'Course purchase required' : lang === 'ru' ? 'Требуется покупка курса' : 'Kursni sotib olish kerak',
+    enrollDesc:
+      lang === 'en'
+        ? 'This lesson belongs to a paid course. Purchase the course to watch it.'
+        : lang === 'ru'
+          ? 'Этот урок входит в платный курс. Купите курс, чтобы смотреть.'
+          : "Bu dars pullik kursga tegishli. Ko'rish uchun kursni sotib oling.",
+    buyCourseBtn: lang === 'en' ? 'View course' : lang === 'ru' ? 'Открыть курс' : "Kursga o'tish",
     proDesc:
       lang === 'en'
         ? 'AI videos are available for Pro users only. Price: 99 000 UZS.'
@@ -221,10 +229,12 @@ export default function VideoPage() {
   }
 
   if (error || !video) {
-    const statusCode = (error as { statusCode?: number })?.statusCode
+    const errInfo = error as { statusCode?: number; code?: string; data?: { courseId?: string } } | null
+    const statusCode = errInfo?.statusCode
+    const isEnroll = statusCode === 402 && errInfo?.code === 'ENROLLMENT_REQUIRED'
     const isAuth = statusCode === 401
     const isSub  = statusCode === 403
-    const isPro  = statusCode === 402
+    const isPro  = statusCode === 402 && !isEnroll
     const isBusy = statusCode === 503
     const isNotFound = statusCode === 404
 
@@ -235,12 +245,13 @@ export default function VideoPage() {
           animate={{ y: 0, opacity: 1 }}
           className="text-5xl mb-6"
         >
-          {isAuth ? '🔐' : isSub ? '🔒' : isPro ? '💎' : isBusy ? '⏳' : '😕'}
+          {isAuth ? '🔐' : isSub ? '🔒' : isPro ? '💎' : isEnroll ? '🎓' : isBusy ? '⏳' : '😕'}
         </motion.div>
         <h2 className="text-2xl font-bold text-white mb-3">
           {isAuth ? localText.needLoginTitle
           : isSub  ? localText.needSubTitle
           : isPro  ? localText.needProTitle
+          : isEnroll ? localText.needEnrollTitle
           : isBusy ? localText.videoNotReady
           :          localText.videoNotFound}
         </h2>
@@ -248,6 +259,7 @@ export default function VideoPage() {
           {isAuth ? localText.loginDesc
           : isSub  ? localText.subDesc
           : isPro  ? localText.proDesc
+          : isEnroll ? localText.enrollDesc
           : isBusy ? localText.busyDesc
           :          localText.notFoundDesc}
         </p>
@@ -269,6 +281,14 @@ export default function VideoPage() {
               className="btn btn-primary rounded-full px-8"
             >
               {localText.buyProBtn}
+            </Link>
+          )}
+          {isEnroll && (
+            <Link
+              href={errInfo?.data?.courseId ? `/courses/${errInfo.data.courseId}` : '/courses'}
+              className="btn btn-primary rounded-full px-8"
+            >
+              {localText.buyCourseBtn}
             </Link>
           )}
           {isBusy && (

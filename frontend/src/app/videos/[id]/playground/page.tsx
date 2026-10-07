@@ -831,7 +831,7 @@ export default function VideoPlaygroundPage() {
                       className="h-full w-full border-none"
                       title={t('playground.previewTitle')}
                       scrolling="yes"
-                      sandbox="allow-scripts allow-same-origin"
+                      sandbox="allow-scripts allow-modals allow-forms"
                       style={{ minHeight: '100%', display: 'block' }}
                     />
                   </div>

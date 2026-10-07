@@ -13,6 +13,21 @@ const svgCache = new Map<string, string>();
 // Track active fetches to deduplicate parallel requests for the same SVG
 const pendingFetches = new Map<string, Promise<string>>();
 
+// FE-04: only inline SVGs from our own origin / storage. Anything else is shown
+// through <img>, where SVG scripts never execute.
+const TRUSTED_SVG_HOSTS = [/.public.blob.vercel-storage.com$/i, /^res.cloudinary.com$/i];
+
+function isTrustedSvgSrc(src: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const url = new URL(src, window.location.origin);
+    if (url.origin === window.location.origin) return true;
+    return url.protocol === 'https:' && TRUSTED_SVG_HOSTS.some((re) => re.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
 const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // SVG'ni dangerouslySetInnerHTML'dan oldin tozalash — stored XSS himoyasi.
@@ -24,11 +39,25 @@ function sanitizeSvg(raw: string): string {
   const svg = doc.querySelector('svg');
   if (!svg) return '';
 
+  // Comments / processing instructions survive XMLSerializer and are re-parsed
+  // differently by innerHTML (HTML mode) — classic mXSS vector. Drop them, and
+  // turn CDATA into plain text so it is serialised escaped.
+  const walker = doc.createTreeWalker(svg, NodeFilter.SHOW_COMMENT | NodeFilter.SHOW_PROCESSING_INSTRUCTION | NodeFilter.SHOW_CDATA_SECTION);
+  const odd: Node[] = [];
+  while (walker.nextNode()) odd.push(walker.currentNode);
+  for (const node of odd) {
+    if (node.nodeType === Node.CDATA_SECTION_NODE) {
+      node.parentNode?.replaceChild(doc.createTextNode(node.nodeValue || ''), node);
+    } else {
+      node.parentNode?.removeChild(node);
+    }
+  }
+
   const all: Element[] = [svg, ...Array.from(svg.querySelectorAll('*'))];
   for (const el of all) {
     const tag = el.tagName.toLowerCase();
     // Skript bajaradigan / tashqi kontent yuklaydigan elementlarni butunlay o'chiramiz
-    if (tag === 'script' || tag === 'foreignobject' || tag === 'iframe' || tag === 'animate' || tag === 'set' || tag === 'handler') {
+    if (tag === 'script' || tag === 'foreignobject' || tag === 'iframe' || tag === 'animate' || tag === 'animatetransform' || tag === 'animatemotion' || tag === 'set' || tag === 'handler' || tag === 'style' || (tag === 'use' && !(el.getAttribute('href') || el.getAttribute('xlink:href') || '#').startsWith('#'))) {
       el.remove();
       continue;
     }
@@ -36,7 +65,7 @@ function sanitizeSvg(raw: string): string {
       const name = attr.name.toLowerCase();
       const val = attr.value.replace(/\s+/g, '').toLowerCase();
       if (name.startsWith('on')) el.removeAttribute(attr.name); // event handlerlar
-      else if ((name === 'href' || name === 'xlink:href' || name === 'src') && val.startsWith('javascript:')) el.removeAttribute(attr.name);
+      else if ((name === 'href' || name === 'xlink:href' || name === 'src') && /^(javascript|data|vbscript):/.test(val)) el.removeAttribute(attr.name);
       else if (name === 'style' && (val.includes('javascript:') || val.includes('expression('))) el.removeAttribute(attr.name);
     }
   }
@@ -59,7 +88,7 @@ export default function DynamicSVG({ src, className = '', alt = '' }: DynamicSVG
   });
 
   useEffect(() => {
-    if (!src) return;
+    if (!src || !isTrustedSvgSrc(src)) return;
 
     // Use cached (already sanitized) content if it exists
     if (svgCache.has(src)) {
@@ -134,9 +163,18 @@ export default function DynamicSVG({ src, className = '', alt = '' }: DynamicSVG
   }, [svgContent]);
 
   if (!svgContent) {
+    // P-F07: SSR/no-JS/untrusted-host path renders a real image (visible without
+    // hydration, no script execution); the inline SVG (hover draw animation)
+    // replaces it once the same, HTTP-cached file has been fetched and sanitised.
+    if (!src) return null;
     return (
-      <div 
-        className={`animate-pulse bg-white/5 rounded-full ${className}`} 
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className={`svg-draw-placeholder ${className}`}
         style={{ width: '100%', height: '100%' }}
       />
     );

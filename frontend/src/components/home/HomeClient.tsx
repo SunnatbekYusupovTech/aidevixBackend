@@ -287,6 +287,9 @@ export default function HomeClient({
       if (cancelled || !pageRef.current) return;
       ctx = gsap.context(() => {
         gsap.utils.toArray<HTMLElement>('.reveal-section').forEach((section, index) => {
+          // P-F09: never hide SSR content that is already on screen — only
+          // sections below the fold get the scroll-in animation.
+          if (section.getBoundingClientRect().top < window.innerHeight) return;
           const direction = section.getAttribute('data-direction') || 'up';
           let x = 0, y = 0;
 
@@ -546,6 +549,8 @@ export default function HomeClient({
   useEffect(() => {
     if (!aiNews.length) return;
     const timer = setInterval(() => {
+      // P-F09: no carousel work while the tab is in the background.
+      if (document.visibilityState !== 'visible') return;
       setSlideDirection(1);
       setNewsIndex((prev) => (prev + 1) % aiNews.length);
     }, 10000);

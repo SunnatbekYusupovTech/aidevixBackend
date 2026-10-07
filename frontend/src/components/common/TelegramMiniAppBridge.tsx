@@ -40,9 +40,14 @@ function loadTelegramSdk(): Promise<void> {
     if (typeof window === 'undefined') return resolve();
     if (window.Telegram?.WebApp) return resolve();
     // Faqat Telegram useragent bo'lsa yuklaymiz (bekorga skript yuklamaslik)
+    // Telegram passes launch params in the URL hash (#tgWebAppData=...); native
+    // clients also expose TelegramWebviewProxy. The SDK is no longer loaded
+    // globally from layout.tsx (P-F09), so detection must cover all of these.
     const isTg =
       navigator.userAgent.includes('Telegram') ||
-      window.location.search.includes('tgWebAppData');
+      window.location.search.includes('tgWebApp') ||
+      window.location.hash.includes('tgWebApp') ||
+      'TelegramWebviewProxy' in window;
     if (!isTg) return resolve();
 
     const existing = document.querySelector(`script[src="${SDK_SRC}"]`);

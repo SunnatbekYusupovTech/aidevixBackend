@@ -11,6 +11,7 @@ import {
   selectIsLoggedIn,
   selectAuthLoading,
 } from '@store/slices/authSlice';
+import { safeRedirectPath } from '@utils/safeRedirect';
 
 export default function TwoFactorVerifyPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function TwoFactorVerifyPage() {
   const [useBackup, setUseBackup] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const next = search.get('next') || '/';
+  const next = safeRedirectPath(search.get('next'), '/');
 
   useEffect(() => {
     if (authLoading) return;

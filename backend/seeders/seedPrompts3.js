@@ -913,7 +913,7 @@ Til: O'zbek tilida javob ber.
 MAYDON 2: "Qanday javob ber":
 \`\`\`
 - Doimo TypeScript ishlat (JavaScript emas)
-- Kod bloklarida til ko'rsat: ```typescript
+- Kod bloklarida til ko'rsat: \`\`\`typescript
 - Avval tushuntir, keyin kod ber
 - Qisqacha izohlar yoz (ko'p emas)
 - Best practice va modern syntax ishlat

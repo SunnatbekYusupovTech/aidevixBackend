@@ -75,3 +75,8 @@ scratch/
 
 # Raw font archives — extracted .ttf files are committed, not the zips
 frontend/public/*.zip
+
+# Audit artifacts
+.audit/
+# Local npm cache
+npm-cache/

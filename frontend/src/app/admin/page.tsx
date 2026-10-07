@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { io } from 'socket.io-client';
+import { createAuthedSocket } from '@/utils/socketClient';
 
 type DashboardData = {
   users: { total: number; newThisMonth: number };
@@ -144,9 +144,8 @@ export default function AdminDashboardPage() {
   useEffect(() => load(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Connect to WebSocket Server (Backend)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    const socket = io(backendUrl);
+    // dashboard_update faqat admin room'iga keladi — token bilan ulanish shart
+    const socket = createAuthedSocket();
 
     socket.on('dashboard_update', (data) => {
       if (data.onlineCount !== undefined) setOnlineCount(data.onlineCount);

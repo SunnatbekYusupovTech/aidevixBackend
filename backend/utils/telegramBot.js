@@ -1503,6 +1503,12 @@ const initTelegramBot = () => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
   botInstance = new AidevixBot(token);
+  // P-B04: long-polling faqat bitta instance'da bo'lishi kerak (aks holda getUpdates 409).
+  // Qo'shimcha replikalarda RUN_TELEGRAM_BOT=false — instance yuborish (getBot) uchun qoladi.
+  if (process.env.RUN_TELEGRAM_BOT === 'false') {
+    console.log('[Bot] RUN_TELEGRAM_BOT=false — long-polling bu instance\'da o\'chiq (faqat yuborish).');
+    return;
+  }
   botInstance.startPolling();
 };
 

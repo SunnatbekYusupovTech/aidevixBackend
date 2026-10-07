@@ -9,6 +9,7 @@
  */
 
 const axios = require('axios');
+const { runWithLock } = require('./schedulerLock');
 
 const DIGEST_ENABLED = () => process.env.DIGEST_ENABLED !== 'false';
 
@@ -117,38 +118,52 @@ async function runWeeklyDigest() {
   let skipped = 0;
 
   try {
-    // Faqat faol foydalanuvchilar — bu hafta yoki o'tgan hafta XP olganlar
-    const activeStatsIds = await UserStats.find({
+    // Rank hisoblash uchun — faqat xp>0 userlar (0-XP userlar digestda baribir yo'q,
+    // bu memory'ni katta userbase'da sezilarli kamaytiradi, rank to'g'ri qoladi).
+    // Cursor bilan o'qiladi — faqat userId->rank Map xotirada qoladi.
+    const rankMap = new Map();
+    let rankPos = 0;
+    for await (const s of UserStats.find({ xp: { $gt: 0 } }).select('userId').sort({ xp: -1 }).lean().cursor({ batchSize: 1000 })) {
+      rankMap.set(String(s.userId), ++rankPos);
+    }
+
+    // Faqat faol foydalanuvchilar — bu hafta yoki o'tgan hafta XP olganlar.
+    // P-B11: butun to'plam xotiraga yuklanmaydi (cursor), har partiya uchun bitta
+    // User.find va bitta Enrollment.aggregate ($in) — per-user N+1 yo'q.
+    const activeCursor = UserStats.find({
       $or: [{ weeklyXp: { $gt: 0 } }, { xp: { $gt: 0 } }],
     })
       .select('userId xp weeklyXp streak newBadges')
-      .lean();
+      .lean()
+      .cursor({ batchSize: 500 });
 
-    if (activeStatsIds.length === 0) {
-      console.log('[Digest] Faol user yo\'q — broadcast tugadi');
-      return;
-    }
-
-    // Rank hisoblash uchun — faqat xp>0 userlar (0-XP userlar digestda baribir yo'q,
-    // bu memory'ni katta userbase'da sezilarli kamaytiradi, rank to'g'ri qoladi)
-    const allRanked = await UserStats.find({ xp: { $gt: 0 } })
-      .select('userId xp')
-      .sort({ xp: -1 })
-      .lean();
-    const rankMap = new Map();
-    allRanked.forEach((s, i) => rankMap.set(String(s.userId), i + 1));
-
-    // Userlarni partiyalab olib boramiz (memory cheklash)
     const BATCH = 100;
-    for (let i = 0; i < activeStatsIds.length; i += BATCH) {
-      const slice = activeStatsIds.slice(i, i + BATCH);
+    const processSlice = async (slice) => {
       const userIds = slice.map((s) => s.userId);
 
-      const users = await User.find({ _id: { $in: userIds }, isActive: true })
-        .select('username email telegramUserId telegramChatId socialSubscriptions')
-        .lean();
+      const [users, lastEnrollments] = await Promise.all([
+        User.find({ _id: { $in: userIds }, isActive: true })
+          .select('username email telegramUserId telegramChatId socialSubscriptions')
+          .lean(),
+        // Davom etayotgan eng oxirgi kurs — har user uchun bitta (batch)
+        Enrollment.aggregate([
+          { $match: { userId: { $in: userIds }, isCompleted: false } },
+          { $sort: { updatedAt: -1 } },
+          { $group: { _id: '$userId', courseId: { $first: '$courseId' } } },
+        ]).catch(() => []),
+      ]);
 
       const userMap = new Map(users.map((u) => [String(u._id), u]));
+      const courseIds = lastEnrollments.map((e) => e.courseId).filter(Boolean);
+      const courses = courseIds.length
+        ? await Course.find({ _id: { $in: courseIds } }).select('title').lean().catch(() => [])
+        : [];
+      const courseMap = new Map(courses.map((c) => [String(c._id), c]));
+      const nextCourseByUser = new Map();
+      for (const e of lastEnrollments) {
+        const c = courseMap.get(String(e.courseId));
+        if (c) nextCourseByUser.set(String(e._id), { _id: c._id, title: c.title });
+      }
 
       for (const stat of slice) {
         const user = userMap.get(String(stat.userId));
@@ -157,23 +172,7 @@ async function runWeeklyDigest() {
           continue;
         }
 
-        // Davom etayotgan eng oxirgi kursni topish
-        let nextCourse = null;
-        try {
-          const enrollment = await Enrollment.findOne({
-            userId: stat.userId,
-            isCompleted: false,
-          })
-            .sort({ updatedAt: -1 })
-            .populate({ path: 'courseId', select: 'title' })
-            .lean();
-          if (enrollment?.courseId) {
-            nextCourse = {
-              _id: enrollment.courseId._id,
-              title: enrollment.courseId.title,
-            };
-          }
-        } catch (_) {}
+        const nextCourse = nextCourseByUser.get(String(stat.userId)) || null;
 
         await sendDigestToUser(user, {
           xp: stat.xp,
@@ -185,6 +184,23 @@ async function runWeeklyDigest() {
         sent++;
         if (sent % 25 === 0) await new Promise((r) => setTimeout(r, TG_THROTTLE_MS * 25));
       }
+    };
+
+    let slice = [];
+    let total = 0;
+    for await (const stat of activeCursor) {
+      total++;
+      slice.push(stat);
+      if (slice.length >= BATCH) {
+        await processSlice(slice);
+        slice = [];
+      }
+    }
+    if (slice.length > 0) await processSlice(slice);
+
+    if (total === 0) {
+      console.log('[Digest] Faol user yo\'q — broadcast tugadi');
+      return;
     }
   } catch (err) {
     console.error('[Digest] broadcast xato:', err.message);
@@ -215,7 +231,9 @@ function startDigestScheduler() {
 
     if (dayInTashkent === 0 && hour === 9 && lastDigestDate !== todayStr) {
       lastDigestDate = todayStr;
-      runWeeklyDigest().catch((err) => console.error('[Digest] unhandled error:', err.message));
+      // P-B04: distributed lock — bir nechta instance bo'lsa digest bir marta yuboriladi
+      runWithLock(`weeklyDigest:${todayStr}`, 36 * 60 * 60 * 1000, runWeeklyDigest)
+        .catch((err) => console.error('[Digest] unhandled error:', err.message));
     }
   }, 15 * 60 * 1000);
 

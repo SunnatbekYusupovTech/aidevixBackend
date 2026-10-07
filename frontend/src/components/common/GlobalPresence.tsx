@@ -3,33 +3,39 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { RootState } from '@/store';
+import { createAuthedSocket } from '@/utils/socketClient';
 
+// P-F01 / SOCK-01: presence socket faqat login qilgan userlar uchun ochiladi.
+// Identity server tomonda token'dan olinadi — client faqat `path` yuboradi (email yo'q).
 export default function GlobalPresence() {
   const pathname = usePathname();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const userId = useSelector((state: RootState) => state.auth.user?._id);
   const socketRef = useRef<Socket | null>(null);
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
 
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    socketRef.current = io(backendUrl);
+    if (!userId) return;
+    const socket = createAuthedSocket();
+    socketRef.current = socket;
+    // Har (qayta) ulanishda joriy sahifani yuborish
+    socket.on('connect', () => {
+      socket.emit('presence:update', { path: pathRef.current });
+    });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      socket.disconnect();
+      socketRef.current = null;
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.emit('presence:update', {
-        path: pathname,
-        user: user ? { id: user._id, username: user.username, email: user.email, name: user.name || user.username } : null
-      });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('presence:update', { path: pathname });
     }
-  }, [pathname, user]);
-  
+  }, [pathname]);
+
   return null;
 }

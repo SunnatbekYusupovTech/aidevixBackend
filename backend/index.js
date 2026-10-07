@@ -55,30 +55,48 @@ connectDB().then(async () => {
     console.error('⚠️ Telegram Bot initialization failed:', botError.message);
   }
 
+  // P-B04: RUN_SCHEDULERS=false — bu instance'da cron ishlari umuman ishga tushmaydi
+  // (masalan, qo'shimcha API replikalarida). Har bir run ichida Redis lock ham bor.
+  const runSchedulers = process.env.RUN_SCHEDULERS !== 'false';
+  if (!runSchedulers) console.log('⏭️  RUN_SCHEDULERS=false — schedulerlar bu instance\'da o\'chiq');
+
   // Claude Tips Scheduler — kuniga 1 marta 13:00 da Claude haqida educational post
   // (Eski RSS-based News scheduler o'rniga — curated Claude topics: skills, MCP,
   // Obsidian, .md, plugins, hooks, slash commands va h.k.)
-  try {
-    const { startClaudeTipsScheduler } = require('./utils/claudeTipsScheduler');
-    startClaudeTipsScheduler();
-  } catch (tipsError) {
-    console.error('⚠️ Claude Tips Scheduler initialization failed:', tipsError.message);
+  // Ichki run eksport qilinmagan — instance darajasidagi leader lock (Redis) bilan.
+  if (runSchedulers) {
+    try {
+      const { acquireLeadership } = require('./utils/schedulerLock');
+      const isLeader = await acquireLeadership('claudeTips', 5 * 60 * 1000);
+      if (isLeader) {
+        const { startClaudeTipsScheduler } = require('./utils/claudeTipsScheduler');
+        startClaudeTipsScheduler();
+      } else {
+        console.log('⏭️  Claude Tips Scheduler boshqa instance\'da ishlayapti — skip');
+      }
+    } catch (tipsError) {
+      console.error('⚠️ Claude Tips Scheduler initialization failed:', tipsError.message);
+    }
   }
 
   // Daily Challenge Scheduler
-  try {
-    const { startChallengeScheduler } = require('./utils/challengeScheduler');
-    startChallengeScheduler();
-  } catch (challengeError) {
-    console.error('⚠️ Challenge Scheduler initialization failed:', challengeError.message);
+  if (runSchedulers) {
+    try {
+      const { startChallengeScheduler } = require('./utils/challengeScheduler');
+      startChallengeScheduler();
+    } catch (challengeError) {
+      console.error('⚠️ Challenge Scheduler initialization failed:', challengeError.message);
+    }
   }
 
   // Weekly Digest Scheduler — yakshanba 09:00 Toshkent
-  try {
-    const { startDigestScheduler } = require('./utils/digestScheduler');
-    startDigestScheduler();
-  } catch (digestError) {
-    console.error('⚠️ Digest Scheduler initialization failed:', digestError.message);
+  if (runSchedulers) {
+    try {
+      const { startDigestScheduler } = require('./utils/digestScheduler');
+      startDigestScheduler();
+    } catch (digestError) {
+      console.error('⚠️ Digest Scheduler initialization failed:', digestError.message);
+    }
   }
 
   // SMTP credential + connectivity check (logs to Railway at boot)
@@ -89,12 +107,14 @@ connectDB().then(async () => {
     console.error('⚠️ Email transport verify failed to start:', emailError.message);
   }
 
-  // Database Backup Scheduler
-  try {
-    const { startBackupScheduler } = require('./utils/backupScheduler');
-    startBackupScheduler();
-  } catch (backupError) {
-    console.error('⚠️ Backup Scheduler initialization failed:', backupError.message);
+  // Database Backup Scheduler (BACKUP_SCHEDULER_ENABLED=true bo'lsagina)
+  if (runSchedulers) {
+    try {
+      const { startBackupScheduler } = require('./utils/backupScheduler');
+      startBackupScheduler();
+    } catch (backupError) {
+      console.error('⚠️ Backup Scheduler initialization failed:', backupError.message);
+    }
   }
 }).catch(err => {
   console.error('❌ CRITICAL: Failed to connect to database or initialize core services');
@@ -232,10 +252,10 @@ app.use(express.urlencoded({
   parameterLimit: 200,                // prototype pollution / param flood himoyasi
 }));
 
-// MongoDB injection sanitize — faqat body va params (Express 5 da req.query read-only getter)
+// MongoDB injection sanitize — faqat body. App darajasida req.params hali {} (Express uni har
+// route'da to'ldiradi) va path param'lar doim string; id'lar validateObjectId() bilan tekshiriladi.
 app.use((req, res, next) => {
   if (req.body) mongoSanitizeValue(req.body);
-  if (req.params) mongoSanitizeValue(req.params);
   next();
 });
 
@@ -338,6 +358,19 @@ app.use('/api/spaced-repetition', require('./routes/spacedRepetitionRoutes'));
 app.use('/api/playground',   require('./routes/playgroundRoutes'));
 app.use('/api/push',         require('./routes/pushRoutes'));
 app.use('/api/forum',        require('./routes/forumRoutes'));
+
+// Socket.io handshake uchun qisqa muddatli (2 daqiqa) token. WS backend domeniga
+// to'g'ridan-to'g'ri ulanadi va first-party httpOnly cookie u yerga bormaydi —
+// shuning uchun client bu endpoint'ni (Vercel proxy orqali, cookie bilan) chaqirib,
+// tokenni `io(url, { auth: { token } })` ga beradi. Identity faqat shu tokendan.
+{
+  const { authenticate } = require('./middleware/auth');
+  const { issueSocketToken } = require('./sockets/socketAuth');
+  app.get('/api/socket-token', authenticate, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, token: issueSocketToken(req.user) });
+  });
+}
 
 // Health check route
 /**
@@ -473,13 +506,21 @@ const server = app.listen(PORT, HOST, () => {
 // Socket.io for Real-time Admin Dashboard
 const { Server } = require('socket.io');
 const UserStats = require('./models/UserStats');
+const { socketAuth } = require('./sockets/socketAuth');
 
 const io = new Server(server, {
+  // SOCK-01: Express bilan bir xil origin allowlist (avval '*' edi)
   cors: {
-    origin: '*', // Allow all for demo purposes, restrict in prod
-    methods: ['GET', 'POST']
-  }
+    origin: corsOptions.origin,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  // P-B13: default 1MB o'rniga 100KB (battle code ≤ 20k belgi, presence ~1KB)
+  maxHttpBufferSize: 100 * 1024,
 });
+
+// Default namespace: anonim ulanish mumkin (onlineCount uchun), lekin identity faqat token'dan
+io.use(socketAuth({ required: false }));
 
 // Battle Sockets
 const setupBattleSockets = require('./sockets/battleSocket');
@@ -488,7 +529,7 @@ setupBattleSockets(io);
 const getFormattedTime = (dateStr) => {
   if (!dateStr) return 'Noma\'lum';
   const d = new Date(dateStr);
-  
+
   // O'zbekiston (Tashkent) vaqti bilan formatlash
   const formatter = new Intl.DateTimeFormat('uz-UZ', {
     timeZone: 'Asia/Tashkent',
@@ -496,63 +537,75 @@ const getFormattedTime = (dateStr) => {
     minute: '2-digit',
     hour12: false
   });
-  
+
   const timeString = formatter.format(d);
   return `Bugun, ${timeString}`;
 };
 
+// P-B02: client path'ini route template'ga keltirish — cheksiz Map kalitlari yo'q.
+// Faqat ma'lum top-level bo'limlar; qolgan segmentlar ':param' bo'ladi.
+const PRESENCE_SECTIONS = new Set([
+  'admin', 'auth', 'battle', 'blog', 'challenges', 'courses', 'forum', 'leaderboard',
+  'level-up', 'login', 'offline', 'playground', 'profile', 'projects', 'prompts',
+  'register', 'settings', 'subscription', 'team', 'u', 'videos',
+]);
+const normalizePresencePath = (raw) => {
+  if (typeof raw !== 'string' || raw.length > 512) return '/';
+  const pathname = raw.split(/[?#]/)[0];
+  const segs = pathname.split('/').filter(Boolean);
+  if (segs.length === 0) return '/';
+  const top = segs[0].toLowerCase();
+  if (!PRESENCE_SECTIONS.has(top)) return '/other';
+  return segs.length > 1 ? `/${top}/:param` : `/${top}`;
+};
+
 // State for active presence
-const activeSockets = new Map(); // socket.id -> { user: {id, name, email}, path: string, connectedAt: Date }
-const lastSeenHistory = new Map(); // email -> { name, email, time: Date }
+const activeSockets = new Map(); // socket.id -> { user: {id, name, email} | null, path: string }
+// SOCK-01: userId -> { name, email, time } — hajm (LRU) va TTL bilan cheklangan
+const lastSeenHistory = new Map();
+const LAST_SEEN_MAX = 1000;
+const LAST_SEEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const rememberLastSeen = (user) => {
+  if (!user) return;
+  lastSeenHistory.delete(user.id); // LRU: oxiriga ko'chirish
+  lastSeenHistory.set(user.id, { name: user.name, email: user.email, time: new Date() });
+  if (lastSeenHistory.size > LAST_SEEN_MAX) {
+    lastSeenHistory.delete(lastSeenHistory.keys().next().value);
+  }
+};
+
+const ADMIN_ROOM = 'admins';
 
 const computeDashboardState = () => {
-  let onlineCount = activeSockets.size;
-  let pages = {};
-  
-  const onlineUsersByEmail = new Set();
-  
+  const onlineCount = activeSockets.size;
+  const pages = {};
+  const online = new Map(); // userId -> user (O(N), dedupe)
+
   activeSockets.forEach((data) => {
-    if (data.path) {
-      pages[data.path] = (pages[data.path] || 0) + 1;
-    }
-    if (data.user?.email) {
-      onlineUsersByEmail.add(data.user.email);
-    }
+    if (data.path) pages[data.path] = (pages[data.path] || 0) + 1;
+    if (data.user && !online.has(data.user.id)) online.set(data.user.id, data.user);
   });
 
-  // Combine online users with last seen history
+  const nowLabel = getFormattedTime(new Date());
   let lastSeenUsers = [];
-  
-  // Add currently online
-  activeSockets.forEach((data) => {
-    if (data.user?.email && !lastSeenUsers.find(u => u.email === data.user.email)) {
-      lastSeenUsers.push({
-        name: data.user.name || data.user.username,
-        email: data.user.email,
-        online: true,
-        time: getFormattedTime(new Date())
-      });
-    }
+  online.forEach((u) => {
+    lastSeenUsers.push({ name: u.name, email: u.email, online: true, time: nowLabel });
   });
 
-  // Add offline users from history
-  lastSeenHistory.forEach((data, email) => {
-    if (!onlineUsersByEmail.has(email)) {
-      lastSeenUsers.push({
-        name: data.name,
-        email: data.email,
-        online: false,
-        time: getFormattedTime(data.time)
-      });
+  // Offline userlar — eng so'nggisi birinchi (Map insertion order = LRU), TTL tashqarisi tozalanadi
+  const cutoff = Date.now() - LAST_SEEN_TTL_MS;
+  const offline = [];
+  for (const [id, data] of lastSeenHistory) {
+    if (data.time.getTime() < cutoff) {
+      lastSeenHistory.delete(id);
+      continue;
     }
-  });
-
-  // Sort lastSeen by most recent (online first, then descending time)
-  lastSeenUsers.sort((a, b) => {
-    if (a.online && !b.online) return -1;
-    if (!a.online && b.online) return 1;
-    return 0; // Keeping simple, we just want to ensure online users are at top
-  });
+    if (!online.has(id)) offline.push(data);
+  }
+  for (let i = offline.length - 1; i >= 0 && lastSeenUsers.length < 15; i--) {
+    const data = offline[i];
+    lastSeenUsers.push({ name: data.name, email: data.email, online: false, time: getFormattedTime(data.time) });
+  }
 
   // Limit to top 15
   lastSeenUsers = lastSeenUsers.slice(0, 15);
@@ -560,62 +613,82 @@ const computeDashboardState = () => {
   return { onlineCount, popularPages: pages, lastSeenUsers };
 };
 
+// SOCK-01 / P-B01: dashboard faqat admin room'ga, ko'pi bilan 5 soniyada bir marta
+const BROADCAST_INTERVAL_MS = 5000;
+let broadcastTimer = null;
+let lastBroadcastAt = 0;
 const broadcastUpdate = () => {
-  io.emit('dashboard_update', computeDashboardState());
+  if (broadcastTimer) return;
+  const wait = Math.max(0, lastBroadcastAt + BROADCAST_INTERVAL_MS - Date.now());
+  broadcastTimer = setTimeout(() => {
+    broadcastTimer = null;
+    lastBroadcastAt = Date.now();
+    try {
+      const admins = io.sockets.adapter.rooms.get(ADMIN_ROOM);
+      if (!admins || admins.size === 0) return;
+      io.to(ADMIN_ROOM).emit('dashboard_update', computeDashboardState());
+    } catch (e) {
+      console.error('[presence] broadcast error:', e.message);
+    }
+  }, wait);
+  if (broadcastTimer.unref) broadcastTimer.unref();
 };
 
+const PRESENCE_DB_MIN_INTERVAL_MS = 2000;
+
 io.on('connection', (socket) => {
-  activeSockets.set(socket.id, { path: '/', connectedAt: new Date(), user: null });
+  const u = socket.data.user; // token'dan; anonim bo'lsa null
+  const user = u ? { id: u.id, name: u.name || u.username, email: u.email } : null;
+  activeSockets.set(socket.id, { path: '/', user });
+
+  if (u && u.role === 'admin') {
+    socket.join(ADMIN_ROOM);
+    socket.emit('dashboard_update', computeDashboardState());
+  }
   broadcastUpdate();
 
+  let lastDbWriteAt = 0;
+
   socket.on('presence:update', async (data) => {
-    const prevData = activeSockets.get(socket.id) || {};
-    
-    // Normalize path to prevent huge maps in MongoDB (replace object IDs with ':id' if needed, but we keep it simple for now)
-    let safePath = data.path || '/';
-    safePath = safePath.replace(/\./g, '_'); // MongoDB maps don't like dots in keys
-    
-    activeSockets.set(socket.id, { ...prevData, ...data, path: safePath, lastUpdate: new Date() });
-    
-    // Track history for offline display
-    if (data.user?.email) {
-      lastSeenHistory.set(data.user.email, {
-        name: data.user.name || data.user.username,
-        email: data.user.email,
-        time: new Date()
-      });
-      
-      // Update DB persistently
-      if (data.user.id) {
-        try {
-          const updateObj = { 
-            $set: { lastActivityDate: new Date() }
-          };
-          if (safePath) {
-            updateObj.$inc = { [`visitedPages.${safePath}`]: 1 };
-          }
+    try {
+      // Client'dan faqat `path` olinadi; user/email/id e'tiborga olinmaydi
+      const rawPath = data !== null && typeof data === 'object' ? data.path : undefined;
+      const safePath = normalizePresencePath(rawPath);
+      const prev = activeSockets.get(socket.id);
+      if (!prev) return;
+      activeSockets.set(socket.id, { ...prev, path: safePath });
+
+      if (user) {
+        rememberLastSeen(user);
+
+        // Update DB persistently (verified user id, normalized key, per-socket throttle)
+        const now = Date.now();
+        if (now - lastDbWriteAt >= PRESENCE_DB_MIN_INTERVAL_MS) {
+          lastDbWriteAt = now;
           await UserStats.updateOne(
-            { userId: data.user.id },
-            updateObj
+            { userId: user.id },
+            {
+              $set: { lastActivityDate: new Date() },
+              $inc: { [`visitedPages.${safePath}`]: 1 },
+            }
           ).catch(() => {}); // ignore errors (like user not having a stats doc yet)
-        } catch (e) {}
+        }
       }
+
+      broadcastUpdate();
+    } catch (e) {
+      console.error('[presence] update error:', e.message);
     }
-    
-    broadcastUpdate();
   });
 
   socket.on('disconnect', () => {
-    const data = activeSockets.get(socket.id);
-    if (data?.user?.email) {
-      lastSeenHistory.set(data.user.email, {
-        name: data.user.name || data.user.username,
-        email: data.user.email,
-        time: new Date() // Time they disconnected
-      });
+    try {
+      if (user) rememberLastSeen(user); // Time they disconnected
+      activeSockets.delete(socket.id);
+      broadcastUpdate();
+    } catch (e) {
+      console.error('[presence] disconnect error:', e.message);
     }
-    activeSockets.delete(socket.id);
-    broadcastUpdate();
   });
 });
 

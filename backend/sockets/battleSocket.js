@@ -1,6 +1,6 @@
-const { Server } = require('socket.io');
 const UserStats = require('../models/UserStats');
 const User = require('../models/User');
+const { socketAuth } = require('./socketAuth');
 
 const challenges = [
   { id: 1, title: 'Ikkita son yig\'indisi', description: 'Berilgan a va b sonlarning yig\'indisini qaytaruvchi add(a, b) funksiyasini yozing.', language: 'javascript', initialCode: 'function add(a, b) {\n  \n}' },
@@ -9,20 +9,80 @@ const challenges = [
   { id: 4, title: 'Palindrom tekshiruvi', description: 'Berilgan so\'z palindrom ekanligini (oldidan va orqasidan bir xil o\'qilishini) tekshiruvchi isPalindrome(str) funksiyasini yozing.', language: 'javascript', initialCode: 'function isPalindrome(str) {\n  \n}' },
 ];
 
+// Payload chegaralari (COM-01 / P-B13)
+const MAX_CODE_LENGTH = 20_000;
+const MAX_ROOM_ID_LENGTH = 128;
+const CODE_UPDATE_MIN_INTERVAL_MS = 150; // per-socket throttle
+// XP farming himoyasi (COM-17): juda tez tugagan jang XP bermaydi, kunlik cap.
+const MIN_PLAY_MS_FOR_XP = 15_000;
+const MAX_BATTLE_XP_PER_DAY = 300;
+
 let waitingQueue = [];
-let activeBattles = new Map();
+const activeBattles = new Map();
+const socketRoom = new Map(); // socket.id -> roomId (linear scan o'rniga)
+const dailyBattleXp = new Map(); // `${userId}:${YYYY-MM-DD}` -> xp
+
+const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const readRoomId = (payload) =>
+  isObj(payload) && typeof payload.roomId === 'string' && payload.roomId.length <= MAX_ROOM_ID_LENGTH
+    ? payload.roomId
+    : null;
+const readCode = (payload) =>
+  isObj(payload) && typeof payload.code === 'string' && payload.code.length <= MAX_CODE_LENGTH
+    ? payload.code
+    : null;
+
+// Handler ichidagi har qanday xato uncaughtException'ga yetib bormasligi uchun.
+const safe = (name, fn) => (...args) => {
+  try {
+    const result = fn(...args);
+    if (result && typeof result.catch === 'function') {
+      result.catch((e) => console.error(`[battle] ${name} error:`, e?.message || e));
+    }
+  } catch (e) {
+    console.error(`[battle] ${name} error:`, e?.message || e);
+  }
+};
+
+// Kunlik XP cap bilan mukofot (identity faqat token'dan kelgan user.id)
+const awardBattleXp = async (userId, amount) => {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `${userId}:${day}`;
+  const used = dailyBattleXp.get(key) || 0;
+  const grant = Math.min(amount, MAX_BATTLE_XP_PER_DAY - used);
+  if (grant <= 0) return;
+  dailyBattleXp.set(key, used + grant);
+  if (dailyBattleXp.size > 10_000) {
+    for (const k of dailyBattleXp.keys()) if (!k.endsWith(day)) dailyBattleXp.delete(k);
+  }
+  await UserStats.findOneAndUpdate(
+    { userId },
+    { $inc: { xp: grant, weeklyXp: grant } },
+    { upsert: true }
+  );
+  await User.findByIdAndUpdate(userId, { $inc: { xp: grant } });
+};
+
+const playedLongEnough = (battle) =>
+  battle.startedAt && Date.now() - battle.startedAt.getTime() >= MIN_PLAY_MS_FOR_XP;
 
 function setupBattleSockets(io) {
   const battleIo = io.of('/battle');
 
-  battleIo.on('connection', (socket) => {
-    
-    socket.on('join_queue', (user) => {
-      // Prevent joining multiple times
-      if (waitingQueue.find(u => u.socketId === socket.id)) return;
-      if (Array.from(activeBattles.values()).find(b => b.p1.socketId === socket.id || b.p2.socketId === socket.id)) return;
+  // COM-17: namespace faqat autentifikatsiyadan o'tgan userlar uchun
+  battleIo.use(socketAuth({ required: true }));
 
-      const player = { socketId: socket.id, user, status: 'waiting' };
+  battleIo.on('connection', (socket) => {
+    const me = socket.data.user; // { id, username, avatar, ... } — token'dan
+    const publicUser = { id: me.id, username: me.username, avatar: me.avatar };
+    let lastCodeUpdateAt = 0;
+
+    socket.on('join_queue', safe('join_queue', () => {
+      // Prevent joining multiple times (shu socket yoki shu user boshqa tabdan)
+      if (waitingQueue.find(u => u.socketId === socket.id || u.user.id === me.id)) return;
+      if (socketRoom.has(socket.id)) return;
+
+      const player = { socketId: socket.id, user: publicUser, status: 'waiting' };
       waitingQueue.push(player);
 
       socket.emit('queue_joined', { message: 'Raqib qidirilmoqda...' });
@@ -32,7 +92,7 @@ function setupBattleSockets(io) {
         const p1 = waitingQueue.shift();
         const p2 = waitingQueue.shift();
 
-        const roomId = `room_${p1.user.id}_${p2.user.id}`;
+        const roomId = `room_${p1.user.id}_${p2.user.id}_${Date.now()}`;
         const challenge = challenges[Math.floor(Math.random() * challenges.length)];
 
         const battle = {
@@ -45,120 +105,135 @@ function setupBattleSockets(io) {
         };
 
         activeBattles.set(roomId, battle);
+        socketRoom.set(p1.socketId, roomId);
+        socketRoom.set(p2.socketId, roomId);
 
         // Join sockets to room
         const socket1 = battleIo.sockets.get(p1.socketId);
         const socket2 = battleIo.sockets.get(p2.socketId);
-        
+
         if (socket1) socket1.join(roomId);
         if (socket2) socket2.join(roomId);
 
         battleIo.to(roomId).emit('battle_matched', {
           roomId,
           challenge,
-          opponent: (id) => (id === p1.socketId ? p2.user : p1.user),
           p1: p1.user,
           p2: p2.user
         });
 
         // Start countdown
         setTimeout(() => {
-          if (activeBattles.has(roomId)) {
-            activeBattles.get(roomId).status = 'playing';
-            activeBattles.get(roomId).startedAt = new Date();
-            battleIo.to(roomId).emit('battle_started', { startTime: new Date() });
+          const b = activeBattles.get(roomId);
+          if (b && b.status === 'countdown') {
+            b.status = 'playing';
+            b.startedAt = new Date();
+            battleIo.to(roomId).emit('battle_started', { startTime: b.startedAt });
           }
         }, 5000);
       }
-    });
+    }));
 
-    socket.on('code_update', ({ roomId, code }) => {
+    socket.on('code_update', safe('code_update', (payload) => {
+      const roomId = readRoomId(payload);
+      const code = readCode(payload);
+      if (!roomId || code === null) return;
+      if (socketRoom.get(socket.id) !== roomId) return; // faqat ishtirokchi
+
+      const now = Date.now();
+      if (now - lastCodeUpdateAt < CODE_UPDATE_MIN_INTERVAL_MS) return;
+      lastCodeUpdateAt = now;
+
       const battle = activeBattles.get(roomId);
       if (!battle || battle.status !== 'playing') return;
 
       if (battle.p1.socketId === socket.id) battle.p1.code = code;
       if (battle.p2.socketId === socket.id) battle.p2.code = code;
 
-      // Broadcast to opponent
+      // Broadcast to opponent (battle tirik qoladi — o'chirilmaydi)
       socket.to(roomId).emit('opponent_code_update', { code });
-    });
+    }));
 
-    socket.on('submit_code', async ({ roomId, code }) => {
+    socket.on('submit_code', safe('submit_code', async (payload) => {
+      const roomId = readRoomId(payload);
+      if (!roomId || socketRoom.get(socket.id) !== roomId) return;
       const battle = activeBattles.get(roomId);
       if (!battle || battle.status !== 'playing') return;
 
       const isP1 = battle.p1.socketId === socket.id;
       const player = isP1 ? battle.p1 : battle.p2;
-      const opponent = isP1 ? battle.p2 : battle.p1;
+      const code = readCode(payload);
+      if (code !== null) player.code = code;
 
       // Simplistic check for demo (Normally use isolated VM or AI)
-      // Since it's algorithms, checking for some keywords or structure
-      // Wait, we can just say the first one to click submit wins for this iteration
+      // Hozircha birinchi submit qilgan yutadi
       battle.status = 'finished';
-      
       const winner = player.user;
-      const loser = opponent.user;
+      const eligible = playedLongEnough(battle);
+      endBattle(roomId);
 
-      battleIo.to(roomId).emit('battle_ended', { 
-        winnerId: winner.id, 
-        message: `${winner.username} masalani birinchi bo'lib yechdi!` 
+      battleIo.to(roomId).emit('battle_ended', {
+        winnerId: winner.id,
+        message: `${winner.username} masalani birinchi bo'lib yechdi!`
       });
 
       // Award XP to winner
-      try {
-        const XP_REWARD = 30;
-        await UserStats.findOneAndUpdate(
-          { userId: winner.id },
-          { $inc: { xp: XP_REWARD, weeklyXp: XP_REWARD } },
-          { upsert: true }
-        );
-        await User.findByIdAndUpdate(winner.id, { $inc: { xp: XP_REWARD } });
-      } catch (e) {
-        console.error('Battle XP award error:', e);
+      if (eligible) {
+        try {
+          await awardBattleXp(winner.id, 30);
+        } catch (e) {
+          console.error('Battle XP award error:', e?.message || e);
+        }
       }
+    }));
 
-      activeBattles.delete(roomId);
-    });
+    socket.on('leave_battle', safe('leave_battle', (payload) => {
+      handleDisconnectOrLeave(socket, readRoomId(payload));
+    }));
 
-    socket.on('leave_battle', ({ roomId }) => {
-      handleDisconnectOrLeave(socket, roomId);
-    });
-
-    socket.on('disconnect', () => {
+    socket.on('disconnect', safe('disconnect', () => {
       handleDisconnectOrLeave(socket);
-    });
+    }));
   });
+
+  function endBattle(roomId) {
+    const battle = activeBattles.get(roomId);
+    if (!battle) return;
+    socketRoom.delete(battle.p1.socketId);
+    socketRoom.delete(battle.p2.socketId);
+    activeBattles.delete(roomId);
+  }
 
   function handleDisconnectOrLeave(socket, specificRoomId = null) {
     waitingQueue = waitingQueue.filter(u => u.socketId !== socket.id);
 
-    for (const [roomId, battle] of activeBattles.entries()) {
-      if (specificRoomId && roomId !== specificRoomId) continue;
+    const roomId = socketRoom.get(socket.id);
+    if (!roomId) return;
+    if (specificRoomId && roomId !== specificRoomId) return;
 
-      if (battle.p1.socketId === socket.id || battle.p2.socketId === socket.id) {
-        battle.status = 'finished';
-        const winner = battle.p1.socketId === socket.id ? battle.p2 : battle.p1;
-        
-        battleIo.to(roomId).emit('battle_ended', { 
-          winnerId: winner.user.id, 
-          message: 'Raqib jangni tark etdi. Siz yutdingiz!' 
-        });
+    const battle = activeBattles.get(roomId);
+    if (!battle) {
+      socketRoom.delete(socket.id);
+      return;
+    }
 
-        // XP for winner by forfeit
-        try {
-          const XP_REWARD = 15;
-          UserStats.findOneAndUpdate(
-            { userId: winner.user.id },
-            { $inc: { xp: XP_REWARD, weeklyXp: XP_REWARD } },
-            { upsert: true }
-          ).exec();
-          User.findByIdAndUpdate(winner.user.id, { $inc: { xp: XP_REWARD } }).exec();
-        } catch (e) {}
+    const wasPlaying = battle.status === 'playing';
+    battle.status = 'finished';
+    const winner = battle.p1.socketId === socket.id ? battle.p2 : battle.p1;
+    const eligible = wasPlaying && playedLongEnough(battle);
+    endBattle(roomId);
 
-        activeBattles.delete(roomId);
-      }
+    battleIo.to(roomId).emit('battle_ended', {
+      winnerId: winner.user.id,
+      message: 'Raqib jangni tark etdi. Siz yutdingiz!'
+    });
+
+    // XP for winner by forfeit
+    if (eligible) {
+      awardBattleXp(winner.user.id, 15).catch((e) => console.error('Battle XP award error:', e?.message || e));
     }
   }
 }
 
 module.exports = setupBattleSockets;
+module.exports._internals = { readRoomId, readCode, safe, MAX_CODE_LENGTH };

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
-import { API_BASE_URL } from '@/utils/constants'; // Standard backend URL without /api if we append socket
+import { createAuthedSocket } from '@/utils/socketClient';
 
-const SOCKET_URL = API_BASE_URL.replace('/api/', ''); // assuming socket runs on root
+// Server code_update'ni per-socket throttle qiladi — client ham trailing throttle bilan yuboradi
+const CODE_UPDATE_THROTTLE_MS = 300;
 
 export default function BattleClient() {
   const { user } = useAuth();
@@ -19,10 +20,14 @@ export default function BattleClient() {
   const [opponentCode, setOpponentCode] = useState('');
   const [winnerId, setWinnerId] = useState<string | null>(null);
 
-  // Reconnect when user loads
+  const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCodeRef = useRef<string | null>(null);
+  const myId = user ? String(user._id || user.id) : '';
+
+  // Reconnect when user loads (identity server tomonda token'dan olinadi)
   useEffect(() => {
-    if (!user) return;
-    const newSocket = io(`${SOCKET_URL}/battle`, { transports: ['websocket', 'polling'] });
+    if (!myId) return;
+    const newSocket = createAuthedSocket('/battle');
     setSocket(newSocket);
 
     newSocket.on('queue_joined', (data) => {
@@ -36,7 +41,7 @@ export default function BattleClient() {
       setChallenge(data.challenge);
       setCode(data.challenge.initialCode);
       setOpponentCode(data.challenge.initialCode);
-      setOpponent(data.p1.id === user.id ? data.p2 : data.p1);
+      setOpponent(String(data.p1.id) === myId ? data.p2 : data.p1);
       setMessage('Raqib topildi! O\'yin tez orada boshlanadi...');
     });
 
@@ -56,20 +61,32 @@ export default function BattleClient() {
     });
 
     return () => {
+      if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
+      codeTimerRef.current = null;
       newSocket.disconnect();
     };
-  }, [user]);
+  }, [myId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const findMatch = () => {
     if (!socket || !user) return;
-    socket.emit('join_queue', { id: user._id || user.id, username: user.username, avatar: user.avatar });
+    socket.emit('join_queue');
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newCode = e.target.value;
     setCode(newCode);
     if (socket && roomId && status === 'playing') {
-      socket.emit('code_update', { roomId, code: newCode });
+      // Trailing throttle: har tugma bosilishida emas, ko'pi bilan 300ms da bir marta
+      pendingCodeRef.current = newCode;
+      if (!codeTimerRef.current) {
+        codeTimerRef.current = setTimeout(() => {
+          codeTimerRef.current = null;
+          if (pendingCodeRef.current !== null) {
+            socket.emit('code_update', { roomId, code: pendingCodeRef.current });
+            pendingCodeRef.current = null;
+          }
+        }, CODE_UPDATE_THROTTLE_MS);
+      }
     }
   };
 
@@ -173,6 +190,7 @@ export default function BattleClient() {
                 <textarea
                   value={code}
                   onChange={handleCodeChange}
+                  maxLength={20000}
                   disabled={status !== 'playing'}
                   spellCheck={false}
                   className="w-full h-full bg-[#0A0E1A] text-emerald-400 p-4 font-mono text-sm resize-none focus:outline-none focus:ring-inset focus:ring-1 focus:ring-indigo-500/50"

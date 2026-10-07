@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ScrollToTop from '@/components/layout/ScrollToTop';
-import GlobalPresence from '@/components/common/GlobalPresence';
 
 const DailyRewardModal = dynamic(() => import('@components/common/DailyRewardModal'), { ssr: false });
 const LiveActivityTicker = dynamic(() => import('@components/common/LiveActivityTicker'), { ssr: false });
@@ -18,6 +19,8 @@ const InstallAppFab = dynamic(() => import('@components/common/InstallAppFab'), 
 const CookieConsent = dynamic(() => import('@components/common/CookieConsent'), { ssr: false });
 const TelegramMiniAppBridge = dynamic(() => import('@components/common/TelegramMiniAppBridge'), { ssr: false });
 const SecurityHardening = dynamic(() => import('@components/security/SecurityHardening'), { ssr: false });
+// P-F01: socket.io-client shared bundle'ga tushmasin — faqat login qilgan userda yuklanadi
+const GlobalPresence = dynamic(() => import('@components/common/GlobalPresence'), { ssr: false });
 
 export default function ClientLayoutWrapper({
   children,
@@ -28,6 +31,7 @@ export default function ClientLayoutWrapper({
   const [showEnhancements, setShowEnhancements] = useState(false);
   const [showDeferredPrompts, setShowDeferredPrompts] = useState(false);
   const pathname = usePathname();
+  const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
   
   useEffect(() => {
     setIsMounted(true);
@@ -110,7 +114,7 @@ export default function ClientLayoutWrapper({
           HTML'da Google'ga ko'rinishi kerak. Theme/Lang/Sound contextlar
           deterministik boshlanadi (dark/uz/true), hydration mismatch yo'q. */}
       {!hideLayout && <Navbar />}
-      {isMounted && <GlobalPresence />}
+      {isMounted && isLoggedIn && <GlobalPresence />}
       {showEnhancements && <DailyRewardModal />}
       
       <main className="relative w-full min-w-0 max-w-full overflow-x-clip">

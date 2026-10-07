@@ -104,7 +104,10 @@ const userStatsSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
-  // Koproq qaysi page dan foydalanilganini saqlash uchun
+  // Koproq qaysi page dan foydalanilganini saqlash uchun.
+  // P-B02: kalitlar faqat route template (`/courses/:param`, `/other`) — index.js
+  // normalizePresencePath allowlist orqali; kalitlar soni ~40 bilan chegaralangan.
+  // Hot read'larda (leaderboard, stats) bu maydonni .select('-visitedPages') bilan chiqarib tashlang.
   visitedPages: {
     type: Map,
     of: Number,

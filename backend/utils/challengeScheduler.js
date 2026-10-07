@@ -14,6 +14,8 @@
 
 const axios = require('axios');
 const schedulerState = require('./schedulerState');
+const { runWithLock, tashkentDateKey } = require('./schedulerLock');
+const tashkentDate = require('./tashkentDate');
 
 // Kunlik challenge variantlari (navbat bilan)
 const CHALLENGE_POOL = [
@@ -68,8 +70,14 @@ const CHALLENGE_POOL = [
   },
 ];
 
+// Toshkent sanasi — challengeController ham shu kalit bilan qidiradi
 function getTodayStr() {
-  return new Date().toISOString().split('T')[0];
+  return tashkentDate.dayKey();
+}
+
+// Toshkent hafta kuni (0 = Yakshanba)
+function getTashkentWeekday() {
+  return new Date(Date.now() + tashkentDate.OFFSET_MS).getUTCDay();
 }
 
 function getTashkentHour() {
@@ -82,7 +90,7 @@ async function createDailyChallenge() {
     const todayStr = getTodayStr();
 
     // Pool dan ketma-ket tanlash (hafta kuni bo'yicha)
-    const dayOfWeek = new Date().getDay(); // 0=Sunday
+    const dayOfWeek = getTashkentWeekday(); // 0=Sunday
     const challenge = CHALLENGE_POOL[dayOfWeek % CHALLENGE_POOL.length];
 
     // Atomic upsert — bir nechta instance ishga tushsa ham faqat bittasi insertni "yutadi".
@@ -272,58 +280,74 @@ async function sendStreakReminders() {
     const UserStats = require('../models/UserStats');
     const User      = require('../models/User');
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const startOfToday = tashkentDate.startOfDay();
 
-    // Streak > 0, bugun faol bo'lmagan foydalanuvchilar
-    const atRisk = await UserStats.find({
+    // Streak > 0, bugun faol bo'lmagan foydalanuvchilar.
+    // P-B11: to'liq hujjat o'rniga projection + cursor, User'lar batch ($in) bilan — N+1 yo'q.
+    const cursor = UserStats.find({
       streak: { $gt: 0 },
       $or: [
         { lastActivityDate: { $lt: startOfToday } },
         { lastActivityDate: null },
       ],
-    }).lean();
+    }).select('userId streak streakFreezes').lean().cursor({ batchSize: 500 });
 
-    for (const stats of atRisk) {
-      const user = await User.findById(stats.userId)
+    let atRiskCount = 0;
+    const processBatch = async (batch) => {
+      const users = await User.find({ _id: { $in: batch.map(s => s.userId) } })
         .select('telegramChatId telegramUserId username')
         .lean();
+      const userById = new Map(users.map(u => [String(u._id), u]));
 
-      const chatId = user?.telegramChatId || user?.telegramUserId;
-      if (!chatId) continue;
+      for (const stats of batch) {
+        const user = userById.get(String(stats.userId));
+        const chatId = user?.telegramChatId || user?.telegramUserId;
+        if (!chatId) continue;
 
-      const hasFreeze = (stats.streakFreezes || 0) > 0;
-      const msg = hasFreeze
-        ? `🛡️ <b>${user.username}</b>, bugun hali faol bo'lmadingiz!\n\n` +
-          `Sizda <b>${stats.streakFreezes} ta Streak Shield</b> mavjud — agar bugun kirmasangiz, shield avtomatik ishlatiladi.\n` +
-          `Streak: 🔥 <b>${stats.streak} kun</b>\n\n` +
-          `<a href="https://aidevix.uz">aidevix.uz</a> ga kiring!`
-        : `⚠️ <b>${user.username}</b>, streakingiz xavf ostida!\n\n` +
-          `Bugun faol bo'lmasangiz, <b>${stats.streak} kunlik streak</b> yo'qoladi!\n\n` +
-          `Hoziroq bir video ko'ring yoki quiz ishlang 👇\n` +
-          `<a href="https://aidevix.uz">aidevix.uz</a>`;
+        const hasFreeze = (stats.streakFreezes || 0) > 0;
+        const msg = hasFreeze
+          ? `🛡️ <b>${user.username}</b>, bugun hali faol bo'lmadingiz!\n\n` +
+            `Sizda <b>${stats.streakFreezes} ta Streak Shield</b> mavjud — agar bugun kirmasangiz, shield avtomatik ishlatiladi.\n` +
+            `Streak: 🔥 <b>${stats.streak} kun</b>\n\n` +
+            `<a href="https://aidevix.uz">aidevix.uz</a> ga kiring!`
+          : `⚠️ <b>${user.username}</b>, streakingiz xavf ostida!\n\n` +
+            `Bugun faol bo'lmasangiz, <b>${stats.streak} kunlik streak</b> yo'qoladi!\n\n` +
+            `Hoziroq bir video ko'ring yoki quiz ishlang 👇\n` +
+            `<a href="https://aidevix.uz">aidevix.uz</a>`;
 
-      try {
-        await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          chat_id: chatId,
-          text: msg,
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
-          },
-        });
-      } catch (e) {
-        // 403 (bot blocked) va 400 (invalid chat) — kutilgan holat, log qilmaylik
-        if (e.response?.status !== 403 && e.response?.status !== 400) {
-          console.warn('[ChallengeScheduler] streak reminder failed:', e.response?.data?.description || e.message);
+        try {
+          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            chat_id: chatId,
+            text: msg,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
+            },
+          });
+        } catch (e) {
+          // 403 (bot blocked) va 400 (invalid chat) — kutilgan holat, log qilmaylik
+          if (e.response?.status !== 403 && e.response?.status !== 400) {
+            console.warn('[ChallengeScheduler] streak reminder failed:', e.response?.data?.description || e.message);
+          }
         }
+        // Telegram rate limit himoyasi (digestScheduler paterni)
+        await new Promise(r => setTimeout(r, 50));
       }
-      // Telegram rate limit himoyasi (digestScheduler paterni)
-      await new Promise(r => setTimeout(r, 50));
-    }
+    };
 
-    if (atRisk.length > 0) {
-      console.log(`[ChallengeScheduler] Streak reminder yuborildi: ${atRisk.length} ta foydalanuvchi`);
+    let batch = [];
+    for await (const stats of cursor) {
+      atRiskCount++;
+      batch.push(stats);
+      if (batch.length >= 200) {
+        await processBatch(batch);
+        batch = [];
+      }
+    }
+    if (batch.length > 0) await processBatch(batch);
+
+    if (atRiskCount > 0) {
+      console.log(`[ChallengeScheduler] Streak reminder yuborildi: ${atRiskCount} ta foydalanuvchi`);
     }
   } catch (err) {
     console.error('[ChallengeScheduler] Streak reminder xatosi:', err.message);
@@ -352,24 +376,26 @@ function startChallengeScheduler() {
       if (!schedulerState.isChallengeEnabled()) return;
       const hour = getTashkentHour();
       const todayStr = getTodayStr();
-      const dayOfWeek = new Date().getDay(); // 0 = Yakshanba
+      const dayOfWeek = getTashkentWeekday(); // 0 = Yakshanba
 
       // Kunlik challenge — 00:00 Toshkent
+      // (DailyChallenge.date unique index — insert o'zi atomic, kanalga faqat yutgan instance yuboradi)
       if (hour === 0 && lastCreatedDate !== todayStr) {
         lastCreatedDate = todayStr;
         await createDailyChallenge();
       }
 
-      // Haftalik reset — Yakshanba 00:00 Toshkent
-      if (hour === 0 && dayOfWeek === 0 && lastWeeklyReset !== todayStr) {
+      // Haftalik reset — Dushanba 00:00 Toshkent (avvalgi xulq: UTC yakshanba 19:00)
+      // P-B04: distributed lock — boshqa instance/restart ikki marta mukofot bermasin
+      if (hour === 0 && dayOfWeek === 1 && lastWeeklyReset !== todayStr) {
         lastWeeklyReset = todayStr;
-        await weeklyReset();
+        await runWithLock(`weeklyReset:${tashkentDateKey()}`, 36 * 60 * 60 * 1000, weeklyReset);
       }
 
       // Streak reminder — 23:00 Toshkent
       if (hour === 23 && lastReminderDate !== todayStr) {
         lastReminderDate = todayStr;
-        await sendStreakReminders();
+        await runWithLock(`streakReminder:${tashkentDateKey()}`, 6 * 60 * 60 * 1000, sendStreakReminders);
       }
     } catch (err) {
       console.error('[ChallengeScheduler] tick error:', err.message);

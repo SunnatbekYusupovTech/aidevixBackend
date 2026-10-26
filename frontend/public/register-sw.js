@@ -31,9 +31,15 @@
       })
       .catch(function () {});
 
-    // Yangi SW activate bo'lganda sahifani yangilash
+    // First installation only claims the current page; reloading at that point
+    // discards in-progress editor/form state. Refresh only controller updates.
     var refreshed = false;
+    var hadController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
       if (refreshed) return;
       refreshed = true;
       window.location.reload();

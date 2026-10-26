@@ -1,5 +1,5 @@
 /**
- * Aidevix Service Worker v3
+ * Aidevix Service Worker v4
  *
  * Strategiya:
  *   - HTML navigation → network-first, offline fallback /offline
@@ -10,7 +10,8 @@
  * Versiya bumpi yangi versiya deploy bo'lganda barcha eski cache'ni o'chiradi.
  */
 
-const VERSION = 'v3-2026-05-13-push';
+// Drop earlier caches: they could contain account responses from /api-proxy.
+const VERSION = 'v4-security-2026-10-26';
 const STATIC_CACHE = `aidevix-static-${VERSION}`;
 const PAGES_CACHE = `aidevix-pages-${VERSION}`;
 const RUNTIME_CACHE = `aidevix-runtime-${VERSION}`;
@@ -52,7 +53,7 @@ self.addEventListener('message', (event) => {
 
 const isBypass = (url) => {
   return (
-    url.pathname.startsWith('/api/') ||
+    /^\/(?:api|api-proxy)(?:\/|$)/i.test(url.pathname) ||
     url.hostname.includes('iframe.mediadelivery.net') ||
     url.hostname.includes('vz-') ||
     url.hostname.endsWith('b-cdn.net') ||
@@ -65,6 +66,12 @@ const isStaticAsset = (url) =>
   url.pathname.startsWith('/fonts/') ||
   /\.(woff2?|ttf|otf|css|js|svg|png|jpg|jpeg|webp|avif|ico)$/i.test(url.pathname);
 
+// CacheStorage.put ignores HTTP cache directives. Enforce them explicitly so
+// logout/account switching or an offline fallback cannot expose another account.
+const canCacheResponse = (response) =>
+  response instanceof Response && response.ok && response.status !== 206 &&
+  !/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get('cache-control') || '');
+
 /** Har doim Response — bo'sh qiymat Service Worker da TypeError beradi */
 function offlineFallbackResponse() {
   return new Response(
@@ -76,11 +83,12 @@ function offlineFallbackResponse() {
 // stale-while-revalidate — eski cache darhol qaytariladi, fonda yangilanadi
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(req);
+  const stored = await cache.match(req);
+  const cached = canCacheResponse(stored) ? stored : null;
   let networkRes = null;
   try {
     networkRes = await fetch(req);
-    if (networkRes && networkRes.ok && networkRes.status !== 206) {
+    if (canCacheResponse(networkRes)) {
       try {
         await cache.put(req, networkRes.clone());
       } catch (_) {}
@@ -102,14 +110,16 @@ async function networkFirstNavigate(event) {
   try {
     const preload = await event.preloadResponse;
     if (preload instanceof Response) {
-      const cache = await caches.open(PAGES_CACHE);
-      try {
-        await cache.put(event.request, preload.clone());
-      } catch (_) {}
+      if (canCacheResponse(preload)) {
+        const cache = await caches.open(PAGES_CACHE);
+        try {
+          await cache.put(event.request, preload.clone());
+        } catch (_) {}
+      }
       return preload;
     }
     const network = await fetch(event.request);
-    if (network && network.ok) {
+    if (canCacheResponse(network)) {
       const cache = await caches.open(PAGES_CACHE);
       try {
         await cache.put(event.request, network.clone());
@@ -119,7 +129,7 @@ async function networkFirstNavigate(event) {
   } catch (_) {
     const cache = await caches.open(PAGES_CACHE);
     const cached = await cache.match(event.request);
-    if (cached) return cached;
+    if (canCacheResponse(cached)) return cached;
     const offline = await caches.match(OFFLINE_URL);
     if (offline) return offline;
   }

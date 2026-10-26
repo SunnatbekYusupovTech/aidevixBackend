@@ -23,6 +23,7 @@ yoki User-Agent matniga qarab "AI" deb topish xavfsizlik chegarasi sifatida ishl
 | Telegram bot va kanallar | Guruhdagi login havolasi guruhga berilgan; istalgan actor bot qo'shilgan kanalni broadcast ro'yxatiga kiritgan; hardcoded admin fallback va sender limitsiz dispatch bo'lgan. | Hisob buyruqlari faqat caller'ning private chatida. Kanal enrollment faqat sozlangan administrator uchun. Sender 20/min, login 3/min, obuna tekshiruvi 6/min. Yangi bot/scheduler xabarlarida `protect_content`. 26 test o'tadi. |
 | Telegram auth va sessiyalar | Magic/link kod muddati faqat kechikishi mumkin bo'lgan DB TTL cleanup'ga tayangan; link proof replay va overwrite mumkin bo'lgan. HTTP/socket session hard cap to'liq tekshirilmagan. | Magic kod 15 min, link proof 5 min, atomik bir martalik claim; tasdiqlangan boshqa Telegram ID ustidan yozilmaydi. Session-bound HTTP va yangi socket ulanishlari muddati/revocation tekshiradi. |
 | Token va HTTP javoblar | Faqat `X-Client-Type: mobile` headeri secret yo'qligida raw tokenlarni JSON'da chiqargan; API javoblarida umumiy no-store siyosati bo'lmagan. | Raw JSON token faqat sozlangan mobile proof bilan. API javoblari `private, no-store`; Redis'ning ochiq katalog uchun alohida server keshi saqlanadi. Backend va frontend `X-Powered-By`ni bermaydi. |
+| Service worker | `/api-proxy/*` API bypass'dan tashqarida qolgan, CacheStorage `private/no-store` javoblarni ham saqlagan va offline holatda qaytargan. Birinchi worker faollashishi sahifani qayta yuklab, editor holatini yo'qotgan. | Barcha API aliaslari cache'dan chiqarildi; private/no-store/no-cache javoblar saqlanmaydi va offline qaytarilmaydi. Cache versiyasi eski ma'lumotni tozalaydi. Birinchi controller claim reload qilmaydi, keyingi yangilanishlar ishlaydi. 9 yangi regressiya testi. |
 
 Payme/Click'ning aynan uchta POST webhook'i umumiy brauzer kvotasidan ajratilgan:
 `/api/payments/payme`, `/api/payments/click/prepare`, `/api/payments/click/complete`.
@@ -78,8 +79,8 @@ Yakuniy tekshiruvlar:
 
 - Backend: dastlabki patch **16 suite, 230/230 test**; dependency tuzatishdan keyin
   **17 suite, 233/233 test**, 0 yiqilish.
-- Frontend middleware xulqi: **4/4** test; build manifest va browser sanitizer
-  regressiyalari: **2/2** test.
+- Frontend middleware va service worker xulqi: **13/13** test; build manifest
+  va browser sanitizer regressiyalari: **2/2** test.
 - `npm.cmd run typecheck`: o'tdi.
 - `npm.cmd run build`: o'tdi. Birinchi Next 14 build 81 sahifa va `Middleware 34 kB`
   chiqargan; yakuniy Next 16 build 80 sahifa yaratdi va middleware/sanitizer
@@ -91,6 +92,12 @@ Yakuniy tekshiruvlar:
   muharriri render/tahrirlashdan o'tdi; 3 ta lokal worker so'rovi, eski Monaco
   CDN so'rovi 0, browser page error 0. Dev server Webpack bilan ishga tushdi.
 - Frontend lint: 0 error, 76 warning (React Compiler migratsiya diagnostikalari).
+
+Jonli birinchi editor smoke testi timeout bo'ldi. Alohida timeline dastlabki
+service worker claim editor ochilgach sahifani qayta yuklaganini tasdiqladi;
+2 ta registration testi va 5 ta cache testi tuzatishdan oldin yiqildi, keyin
+barcha 9 yangi worker testi o'tdi. Public JS o'zgarishlarining syntax/diff va
+umumiy frontend testlari tekshirildi; shu tuzatish uchun backend qayta o'zgarmadi.
 
 Dastlabki build sandbox Google Fonts ulanishini bloklagani uchun yiqildi;
 tarmoq ruxsati bilan qayta tekshiruv o'tdi. Middleware'ni ko'chirishdan oldingi

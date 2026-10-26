@@ -5,6 +5,7 @@ const VideoQuestion = require('../models/VideoQuestion');
 const { performSubscriptionCheck } = require('../utils/checkSubscriptions');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 const {
   createBunnyVideo,
   deleteBunnyVideo,
@@ -474,8 +475,8 @@ const askQuestion = async (req, res) => {
 const getVideoQuestions = async (req, res) => {
   try {
     const { id: videoId } = req.params;
-    const page  = parseInt(req.query.page)  || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page  = boundedPage(req.query.page);
+    const limit = boundedLimit(req.query.limit, 20, 100);
     const skip  = (page - 1) * limit;
 
     const [questions, total] = await Promise.all([
@@ -498,13 +499,11 @@ const getVideoQuestions = async (req, res) => {
         repliesMap[key].push(q);
       }
     });
+    // Vote counts are public; the list of voters is private engagement data.
+    const publicQuestion = ({ upvotes, ...q }) => ({ ...q, upvotesCount: upvotes?.length || 0 });
     const threaded = roots.map((q) => ({
-      ...q,
-      upvotesCount: q.upvotes?.length || 0,
-      replies: (repliesMap[q._id.toString()] || []).map((r) => ({
-        ...r,
-        upvotesCount: r.upvotes?.length || 0,
-      })),
+      ...publicQuestion(q),
+      replies: (repliesMap[q._id.toString()] || []).map(publicQuestion),
     }));
 
     res.json({
@@ -741,8 +740,8 @@ const linkToBunny = async (req, res) => {
 const searchVideos = async (req, res) => {
   try {
     const { q = '', courseId, page = 1, limit = 20 } = req.query;
-    const lim = Math.min(Math.max(1, parseInt(limit) || 20), 100);
-    const pg = Math.max(1, parseInt(page) || 1);
+    const lim = boundedLimit(limit, 20, 100);
+    const pg = boundedPage(page);
     const skip = (pg - 1) * lim;
 
     const filter = { isActive: true };
@@ -788,7 +787,7 @@ const searchVideos = async (req, res) => {
  */
 const getTopVideos = async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const limit = boundedLimit(req.query.limit, 10, 50);
 
     // ADM-02: explicit projection — bunnyVideoId/materials/questions public chiqmaydi
     const videos = await Video.find({ isActive: true })

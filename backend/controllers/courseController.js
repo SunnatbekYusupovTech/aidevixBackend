@@ -2,6 +2,7 @@ const Course = require('../models/Course');
 const Video  = require('../models/Video');
 const CourseRating = require('../models/CourseRating');
 const Enrollment = require('../models/Enrollment');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 
 // SEO-007: 24-belgili hex → ObjectId; boshqasi → slug
 const isObjectId = (s) => /^[0-9a-f]{24}$/.test(s);
@@ -50,8 +51,8 @@ const getAllCourses = async (req, res) => {
     };
     const sortOption = sortMap[sort] || sortMap.newest;
 
-    const lim  = Math.min(Math.max(1, parseInt(limit) || 12), 50);
-    const pg   = Math.max(1, parseInt(page) || 1);
+    const lim  = boundedLimit(limit, 12, 50);
+    const pg   = boundedPage(page);
     const skip = (pg - 1) * lim;
     const [total, rawCourses] = await Promise.all([
       Course.countDocuments(filter),
@@ -94,7 +95,7 @@ const getAllCourses = async (req, res) => {
  */
 const getTopCourses = async (req, res) => {
   try {
-    const limit    = Math.min(parseInt(req.query.limit) || 6, 20);
+    const limit    = boundedLimit(req.query.limit, 6, 20);
     const category = req.query.category || null;
 
     const filter = { isActive: true };
@@ -205,7 +206,7 @@ const getRecommendedCourses = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Kurs topilmadi' });
     }
 
-    const limit = Math.min(parseInt(req.query.limit) || 4, 20);
+    const limit = boundedLimit(req.query.limit, 4, 20);
 
     const courses = await Course.find({
       isActive: true,
@@ -381,7 +382,7 @@ const rateCourse = async (req, res) => {
 const getUserRecommendedCourses = async (req, res) => {
   try {
     const User = require('../models/User');
-    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
+    const limit = boundedLimit(req.query.limit, 6, 20);
 
     // PB-011: parallelize independent reads
     const [user, myEnrollments] = await Promise.all([

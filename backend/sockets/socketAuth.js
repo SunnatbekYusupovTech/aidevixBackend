@@ -11,14 +11,15 @@ const { ACCESS_TOKEN_SECRET } = require('../config/jwt');
 const { verifyAccessToken } = require('../utils/jwt');
 const { ACCESS_COOKIE_NAME, parseCookies } = require('../utils/authSecurity');
 const User = require('../models/User');
+const Session = require('../models/Session');
 
 const SOCKET_TOKEN_OPTS = { algorithm: 'HS256', issuer: 'aidevix', audience: 'aidevix-socket' };
 const SOCKET_VERIFY_OPTS = { algorithms: ['HS256'], issuer: 'aidevix', audience: 'aidevix-socket' };
 const SOCKET_TOKEN_TTL = '2m'; // faqat handshake uchun; reconnect'da client yangisini oladi
 
-const issueSocketToken = (user) =>
+const issueSocketToken = (user, sessionId = null) =>
   jwt.sign(
-    { userId: String(user._id), tv: user.tokenVersion || 0 },
+    { userId: String(user._id), tv: user.tokenVersion || 0, ...(sessionId ? { sid: String(sessionId) } : {}) },
     ACCESS_TOKEN_SECRET,
     { ...SOCKET_TOKEN_OPTS, expiresIn: SOCKET_TOKEN_TTL }
   );
@@ -43,6 +44,13 @@ const resolveSocketUser = async (socket) => {
     if (cookieToken) decoded = verifyAccessToken(cookieToken);
   }
   if (!decoded || typeof decoded.userId !== 'string') return null;
+
+  // Revoked sessions and delayed Mongo TTL cleanup must not permit a new handshake.
+  if (decoded.sid && !await Session.exists({
+    _id: decoded.sid,
+    userId: decoded.userId,
+    absoluteExpiresAt: { $gt: new Date() },
+  })) return null;
 
   const user = await User.findById(decoded.userId)
     .select('username firstName lastName email role isActive avatar tokenVersion deletedAt')

@@ -8,6 +8,7 @@ const Video = require('../models/Video');
 const Enrollment = require('../models/Enrollment');
 const { awardBadges } = require('../utils/badgeService');
 const { addXp, applyStreak } = require('../utils/awardXp');
+const { boundedLimit } = require('../utils/queryBounds');
 
 // Rank hisoblash (shared utility — single source of truth)
 const calculateRank = require('../utils/calculateRank');
@@ -501,7 +502,7 @@ const addStreakFreeze = async (req, res) => {
  */
 const getWeeklyLeaderboard = async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+    const limit = boundedLimit(req.query.limit, 10, 100);
 
     const leaders = await UserStats.find({ weeklyXp: { $gt: 0 } })
       .sort({ weeklyXp: -1 })

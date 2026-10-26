@@ -9,6 +9,7 @@
  */
 
 const axios = require('axios');
+const { protectedTelegramPayload } = require('./telegramSecurity');
 const { runWithLock } = require('./schedulerLock');
 
 const DIGEST_ENABLED = () => process.env.DIGEST_ENABLED !== 'false';
@@ -75,12 +76,12 @@ async function sendDigestToUser(user, stats, nextCourse) {
     try {
       await axios.post(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
-        {
+        protectedTelegramPayload({
           chat_id: tgId,
           text: msg,
           parse_mode: 'HTML',
           reply_markup: { inline_keyboard: buttons },
-        },
+        }),
         { timeout: 10000 }
       );
     } catch (err) {

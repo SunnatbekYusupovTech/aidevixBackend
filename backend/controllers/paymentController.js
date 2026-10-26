@@ -4,6 +4,7 @@ const Course     = require('../models/Course');
 const User = require('../models/User');
 const PromoCode = require('../models/PromoCode');
 const crypto = require('crypto');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 
 /**
  * To'lov tizimi — Payme va Click
@@ -319,8 +320,8 @@ const initiatePayment = async (req, res) => {
 /** @desc  To'lov tarixi | @route GET /api/payments/my | @access Private */
 const getMyPayments = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page  = boundedPage(req.query.page);
+    const limit = boundedLimit(req.query.limit, 20, 100);
 
     const [payments, total] = await Promise.all([
       Payment.find({ userId: req.user._id })

@@ -5,6 +5,7 @@ const request = require('supertest');
 
 // Mock User model before importing middleware
 jest.mock('../../models/User');
+jest.mock('../../models/Session');
 jest.mock('../../utils/securityLogger', () => ({
   suspicious: jest.fn(),
   loginSuccess: jest.fn(),
@@ -15,6 +16,7 @@ jest.mock('../../utils/securityLogger', () => ({
 }));
 
 const User = require('../../models/User');
+const Session = require('../../models/Session');
 const { authenticate, requireAdmin } = require('../../middleware/auth');
 const { generateAccessToken } = require('../../utils/jwt');
 
@@ -176,6 +178,18 @@ describe('authenticate middleware', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.userId).toBe(user._id);
+  });
+
+  test.each([-60000, 0, 60000])('enforces the session absolute expiry even before TTL deletion (offset %i)', async (offset) => {
+    const user = baseUser();
+    const now = Date.now();
+    const expiresAt = new Date(now + offset);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(user) });
+    Session.exists.mockImplementation(async (filter) =>
+      !filter.absoluteExpiresAt?.$gt || expiresAt > filter.absoluteExpiresAt.$gt ? { _id: 'session-id' } : null);
+    const token = generateAccessToken({ userId: user._id, tv: 0, sid: 'session-id' });
+    const res = await request(app).get('/protected').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(offset > 0 ? 200 : 401);
   });
 });
 

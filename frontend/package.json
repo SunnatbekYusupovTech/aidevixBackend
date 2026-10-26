@@ -12,6 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:security": "node --test tests/*.security.test.cjs",
+    "test:security:build": "node --test tests/middleware.build.test.cjs",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:headed": "npx playwright test --headed",

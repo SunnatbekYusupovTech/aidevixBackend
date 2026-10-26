@@ -225,23 +225,9 @@ const issueTokens = async (user, req, existingSession = null) => {
  * header'ni har so'rovda yuboradi (AidevixApp/src/api/axiosInstance.ts).
  */
 const mobileTokenBody = (req, accessToken, refreshToken) => {
-  const isMobile = req.headers['x-client-type'] === 'mobile';
-  if (!isMobile) return {};
-  const secret = process.env.MOBILE_API_SECRET;
-  // SEC-D01: If a secret is configured, require it (X-Mobile-Secret header) so a
-  // plain X-Client-Type header set via XSS can't exfiltrate raw tokens. Otherwise
-  // fall back to header-only (legacy) so the live mobile app keeps working until
-  // its env is set — but warn once so the gap is visible in logs.
-  if (secret) {
-    // Timing-safe solishtirish (utils/authSecurity.isTrustedMobileClient)
-    if (!isTrustedMobileClient(req)) return {};
-    return { accessToken, refreshToken };
-  }
-  if (!mobileTokenBody._legacyWarned) {
-    mobileTokenBody._legacyWarned = true;
-    // eslint-disable-next-line no-console
-    console.warn('[SEC-D01] MOBILE_API_SECRET not set — mobileTokenBody falling back to header-only (legacy) token issuance. Set MOBILE_API_SECRET to enforce.');
-  }
+  // A caller-controlled header cannot downgrade HttpOnly cookie protection.
+  // An unconfigured or mismatched mobile proof always keeps tokens cookie-only.
+  if (!isTrustedMobileClient(req)) return {};
   return { accessToken, refreshToken };
 };
 
@@ -1741,7 +1727,12 @@ const telegramMagicLogin = asyncHandler(async (req, res, next) => {
   const MagicLoginToken = require('../models/MagicLoginToken');
   // Atomic single-use: faqat ishlatilmagan kodni "used" qilamiz (replay/parallel oldini olish)
   const tokenDoc = await MagicLoginToken.findOneAndUpdate(
-    { token: code, used: false },
+    {
+      token: code,
+      used: false,
+      // TTL cleanup is asynchronous; expiry must be part of the atomic claim.
+      createdAt: { $gt: new Date(Date.now() - MagicLoginToken.MAGIC_LOGIN_TTL_SECONDS * 1000) },
+    },
     { $set: { used: true } },
     { new: true }
   );

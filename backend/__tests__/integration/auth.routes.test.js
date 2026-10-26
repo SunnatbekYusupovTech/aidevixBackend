@@ -10,6 +10,7 @@ const mongoose   = require('mongoose');
 jest.mock('../../models/User');
 jest.mock('../../models/Session');
 jest.mock('../../models/UserStats');
+jest.mock('../../models/MagicLoginToken');
 jest.mock('../../utils/emailService', () => ({
   sendWelcomeEmail:          jest.fn().mockResolvedValue(undefined),
   sendEmailVerificationCode: jest.fn().mockResolvedValue(undefined),
@@ -500,5 +501,84 @@ describe('GET /api/auth/me', () => {
     // getMe returns { data: sanitizeUser(user) } — no nested .user key
     expect(res.body.data?.email).toBe(user.email);
     expect(res.body.data?.password).toBeUndefined();
+  });
+});
+
+describe('Telegram magic login expiry', () => {
+  const MagicLoginToken = require('../../models/MagicLoginToken');
+  const now = new Date('2026-10-26T12:00:00Z');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    User.findById.mockReturnValue(q(makeUser({ totpEnabled: true })));
+    MagicLoginToken.deleteOne.mockResolvedValue({ deletedCount: 1 });
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  const storedCode = (ageMs) => {
+    const doc = { _id: 'magic-token', userId: mockUserId, token: 'single-use-code', used: false,
+      createdAt: new Date(now.getTime() - ageMs) };
+    // Model a row still present while Mongo's asynchronous TTL monitor catches up.
+    MagicLoginToken.findOneAndUpdate.mockImplementation(async (filter) => {
+      if (filter.createdAt?.$gt && doc.createdAt <= filter.createdAt.$gt) return null;
+      return doc;
+    });
+  };
+
+  test.each([900000, 901000, 3600000])('rejects a stored code aged %i ms before user lookup', async (age) => {
+    storedCode(age);
+    const res = await request(createApp()).post('/api/auth/telegram-login').send({ code: 'single-use-code' });
+    expect(res.status).toBe(401);
+    expect(User.findById).not.toHaveBeenCalled();
+  });
+
+  test('accepts a fresh code and still requires enrolled 2FA', async () => {
+    storedCode(899000);
+    const res = await request(createApp()).post('/api/auth/telegram-login').send({ code: 'single-use-code' });
+    expect(res.status).toBe(200);
+    expect(res.body.requires2FA).toBe(true);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+});
+
+describe('raw token response requires verified mobile client', () => {
+  const originalSecret = process.env.MOBILE_API_SECRET;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const user = makeUser();
+    User.findOne.mockReturnValue(q(user));
+    User.findById.mockReturnValue(q(user));
+    Session.create.mockResolvedValue(makeSession());
+    User.updateOne.mockResolvedValue({ modifiedCount: 1 });
+  });
+  afterEach(() => {
+    if (originalSecret === undefined) delete process.env.MOBILE_API_SECRET;
+    else process.env.MOBILE_API_SECRET = originalSecret;
+  });
+
+  test('spoofed mobile header cannot expose HttpOnly tokens when secret is unconfigured', async () => {
+    delete process.env.MOBILE_API_SECRET;
+    const res = await request(createApp()).post('/api/auth/login').set('X-Client-Type', 'mobile')
+      .send({ email: 'test@example.com', password: 'Valid@Pass1!' });
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken).toBeUndefined();
+    expect(res.body.refreshToken).toBeUndefined();
+    expect(res.headers['set-cookie'].some(c => c.startsWith('aidevix_access=') && /HttpOnly/.test(c))).toBe(true);
+  });
+
+  test.each(['wrong', 'test-mobile-auth-secret'])('only matching mobile proof exposes tokens (%s)', async (provided) => {
+    process.env.MOBILE_API_SECRET = 'test-mobile-auth-secret';
+    const res = await request(createApp()).post('/api/auth/login').set('X-Client-Type', 'mobile')
+      .set('X-Mobile-Secret', provided).send({ email: 'test@example.com', password: 'Valid@Pass1!' });
+    expect(res.status).toBe(200);
+    if (provided === process.env.MOBILE_API_SECRET) {
+      expect(typeof res.body.accessToken).toBe('string');
+      expect(typeof res.body.refreshToken).toBe('string');
+    } else {
+      expect(res.body.accessToken).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
+    }
   });
 });

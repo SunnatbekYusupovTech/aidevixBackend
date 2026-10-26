@@ -2,6 +2,13 @@ const Question = require('../models/Question');
 const Answer = require('../models/Answer');
 const { addXp } = require('../utils/awardXp');
 const { startOfDay } = require('../utils/tashkentDate');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
+
+// Readers need the score; individual voter identities are not public content.
+const withPublicScore = ({ upvotes, downvotes, ...item }) => ({
+  ...item,
+  score: (upvotes?.length || 0) - (downvotes?.length || 0),
+});
 
 // COM-03: kunlik forum XP limiti. Bugungi (Toshkent) savol/javob/qabul qilingan javoblar
 // sonidan hisoblanadi (alohida hisoblagich shart emas); har entity uchun XP bir marta beriladi.
@@ -34,8 +41,8 @@ const getQuestions = async (req, res) => {
   try {
     const { sort = 'newest', tag } = req.query;
     // COM-12: chegaralangan sahifalash
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 15, 1), 50);
+    const page = boundedPage(req.query.page);
+    const limit = boundedLimit(req.query.limit, 15, 50);
     const query = {};
     if (tag) query.tags = tag;
 
@@ -54,10 +61,7 @@ const getQuestions = async (req, res) => {
     const total = await Question.countDocuments(query);
 
     // Compute scores
-    const questionsWithScore = questions.map(q => ({
-      ...q,
-      score: (q.upvotes?.length || 0) - (q.downvotes?.length || 0)
-    }));
+    const questionsWithScore = questions.map(withPublicScore);
 
     return res.json({ success: true, data: { questions: questionsWithScore, total, page: Number(page) } });
   } catch (err) {
@@ -83,15 +87,9 @@ const getQuestionById = async (req, res) => {
       .limit(200)
       .lean();
 
-    const qWithScore = {
-      ...question,
-      score: (question.upvotes?.length || 0) - (question.downvotes?.length || 0)
-    };
+    const qWithScore = withPublicScore(question);
     
-    const ansWithScore = answers.map(a => ({
-      ...a,
-      score: (a.upvotes?.length || 0) - (a.downvotes?.length || 0)
-    })).sort((a, b) => b.score - a.score);
+    const ansWithScore = answers.map(withPublicScore).sort((a, b) => b.score - a.score);
 
     return res.json({ success: true, data: { question: qWithScore, answers: ansWithScore } });
   } catch (err) {

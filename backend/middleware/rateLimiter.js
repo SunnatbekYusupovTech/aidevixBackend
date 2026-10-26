@@ -1,6 +1,8 @@
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { makeStore, getRedisClient } = require('../config/redis');
+const { verifyAccessToken } = require('../utils/jwt');
+const { ACCESS_COOKIE_NAME, parseCookies } = require('../utils/authSecurity');
 
 // Distributed rate limiting:
 //  - REDIS_URL set  → counters live in Redis (Upstash); shared across all instances.
@@ -13,11 +15,33 @@ if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
 const jsonMessage = (msg) => ({ success: false, message: msg });
 
 // IPv6-safe IP key (express-rate-limit 8.x requirement)
-const ipKey = (req, res) => ipKeyGenerator(req, res);
+// The library helper takes an IP STRING, not Express's request/response objects.
+// Passing req creates a fresh MemoryStore key on every request (no throttling).
+const ipKey = (req) => ipKeyGenerator(req.ip);
+
+// Payment providers have a separate webhookLimiter on each of these exact routes.
+// Do not let their shared IPs exhaust the browser/API quota and lose confirmations.
+const isProviderWebhook = (req) => req.method === 'POST' &&
+  /^\/api\/payments\/(?:payme|click\/(?:prepare|complete))\/?$/i.test((req.originalUrl || '').split('?')[0]);
+
+// This verifies identity only to count requests, never to grant access. Every
+// protected route still runs authenticate (DB session, tokenVersion, active user).
+const accountRateKey = (req) => {
+  const cookieToken = parseCookies(req.headers.cookie)[ACCESS_COOKIE_NAME];
+  const bearerAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_BEARER_AUTH === 'true';
+  const auth = req.headers.authorization;
+  const token = cookieToken || (bearerAllowed && typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7) : null);
+  if (!token) return null;
+  const decoded = verifyAccessToken(token);
+  return typeof decoded?.userId === 'string' && /^[a-f\d]{24}$/i.test(decoded.userId)
+    ? decoded.userId.toLowerCase()
+    : null;
+};
 
 const baseOpts = (prefix) => ({
   standardHeaders: true,
   legacyHeaders: false,
+  passOnStoreError: false,
   store: makeStore(prefix),
 });
 
@@ -28,6 +52,26 @@ const apiLimiter = rateLimit({
   max: 500,
   message: jsonMessage('Juda ko\'p so\'rov. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
   keyGenerator: ipKey,
+  skip: isProviderWebhook,
+});
+
+// Short bursts and sustained authenticated scraping are counted separately.
+const apiBurstLimiter = rateLimit({
+  ...baseOpts('api_burst'),
+  windowMs: 60 * 1000,
+  max: 120,
+  message: jsonMessage('Juda tez so\'rov yuborilyapti. Bir daqiqadan so\'ng urinib ko\'ring.'),
+  keyGenerator: ipKey,
+  skip: isProviderWebhook,
+});
+
+const accountApiLimiter = rateLimit({
+  ...baseOpts('api_account'),
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: jsonMessage('Akkaunt so\'rov limiti tugadi. Bir oz kuting.'),
+  keyGenerator: (req) => accountRateKey(req) || 'anonymous',
+  skip: (req) => isProviderWebhook(req) || !accountRateKey(req),
 });
 
 // Umumiy auth namespace limit — pragmatik
@@ -210,6 +254,10 @@ const bugReportLimiter = rateLimit({
 
 module.exports = {
   apiLimiter,
+  apiBurstLimiter,
+  accountApiLimiter,
+  accountRateKey,
+  isProviderWebhook,
   authLimiter,
   loginLimiter,
   registerLimiter,

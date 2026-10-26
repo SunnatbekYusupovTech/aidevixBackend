@@ -20,7 +20,7 @@ const requireTelegramForPromptsRead = require('../middleware/requireTelegramForP
 
 router.get('/', authenticate, requireTelegramForPromptsRead, getPrompts);
 router.get('/featured', authenticate, requireTelegramForPromptsRead, getFeaturedPrompts);
-router.get('/saved/me', authenticate, getSavedPrompts);
+router.get('/saved/me', authenticate, requireTelegramForPromptsRead, getSavedPrompts);
 router.get('/saved/ids', authenticate, getSavedPromptIds);
 router.post('/:id/save', authenticate, validateObjectId('id'), savePrompt);
 router.delete('/:id/save', authenticate, validateObjectId('id'), unsavePrompt);

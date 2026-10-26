@@ -331,11 +331,24 @@ const generateVerifyToken = async (req, res) => {
 // Bot tomonidan chaqiriladigan — tokenni Telegram ID bilan bog'lash
 const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
   try {
-    const entry = await VerifyToken.findOne({ token });
+    // Atomically consume the proof once, including its expiry. Mongo TTL deletion
+    // can lag and is not an authentication boundary. Old rows without `used` work once.
+    const entry = await VerifyToken.findOneAndUpdate(
+      {
+        token,
+        linked: false,
+        used: { $ne: true },
+        createdAt: { $gt: new Date(Date.now() - VerifyToken.VERIFY_TOKEN_TTL_SECONDS * 1000) },
+      },
+      { $set: { used: true } },
+      { new: true }
+    );
     if (!entry) return false;
 
     const user = await User.findById(entry.userId);
-    if (!user) return false;
+    if (!user || !user.isActive) return false;
+    const tgId = String(telegramUserId);
+    if (user.telegramUserId && String(user.telegramUserId) !== tgId) return false;
 
     // Bu Telegram ID allaqachon boshqa accountga (isbot bilan, top-level) bog'liq bo'lmasligi kerak.
     // Bot update'idagi `from.id` Telegram tomonidan tasdiqlangan — bu egalik isboti.
@@ -350,14 +363,22 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
     // Isbotsiz eski da'volar (faqat socialSubscriptions'da) haqiqiy egani bloklamasligi kerak.
     await releaseUnprovenTelegramClaims(String(telegramUserId), user._id);
 
-    // Telegram ID ni saqlash
-    user.telegramUserId = String(telegramUserId);
-    user.telegramChatId = String(telegramUserId);
-    user.socialSubscriptions.telegram.telegramUserId = String(telegramUserId);
-    user.socialSubscriptions.telegram.username = telegramUsername || 'telegram_user';
-
     // Kanalga obuna bormi darhol tekshirish
     const subResult = await checkTelegramSubscription(String(telegramUserId));
+    // Guard the write too: a concurrent proof for a different Telegram account
+    // must not overwrite an identity that was linked after the read above.
+    const updated = await User.updateOne(
+      { _id: user._id, isActive: true, $or: [{ telegramUserId: null }, { telegramUserId: tgId }] },
+      { $set: {
+        telegramUserId: tgId,
+        telegramChatId: tgId,
+        'socialSubscriptions.telegram.telegramUserId': tgId,
+        'socialSubscriptions.telegram.username': telegramUsername || 'telegram_user',
+        'socialSubscriptions.telegram.subscribed': Boolean(subResult.subscribed),
+        'socialSubscriptions.telegram.verifiedAt': subResult.subscribed ? new Date() : null,
+      } }
+    );
+    if (!updated || updated.matchedCount === 0) return false;
     if (subResult.subscribed) {
       user.socialSubscriptions.telegram.subscribed = true;
       user.socialSubscriptions.telegram.verifiedAt = new Date();
@@ -370,7 +391,6 @@ const linkTelegramByToken = async (token, telegramUserId, telegramUsername) => {
       } catch (_) {}
     }
 
-    await user.save();
     invalidateCache(user._id);
 
     // Tokenni "linked" qilib belgilash (polling uchun)

@@ -19,6 +19,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const schedulerState = require('./schedulerState');
+const { protectedTelegramPayload } = require('./telegramSecurity');
 
 const STATE_FILE = path.join(__dirname, '..', '.sent_tips.json');
 
@@ -235,24 +236,24 @@ async function sendTipToChat(botToken, chatId, topic, aiData) {
   };
 
   try {
-    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
       chat_id: chatId,
       text: message,
       parse_mode: 'HTML',
       disable_web_page_preview: true,
       reply_markup: keyboard,
-    });
+    }));
   } catch (err) {
     // HTML parse xatosi bo'lsa — oddiy matn sifatida qayta urinish (post yo'qolmasin)
     const desc = String(err.response?.data?.description || '');
     if (err.response?.status !== 400 || !/parse entities/i.test(desc)) throw err;
     const plain = message.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
       chat_id: chatId,
       text: plain,
       disable_web_page_preview: true,
       reply_markup: keyboard,
-    });
+    }));
   }
 }
 

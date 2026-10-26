@@ -1,4 +1,5 @@
 const PromoCode = require('../models/PromoCode');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 
 // maxUses: undefined/null/'' = cheksiz (null); aks holda butun son >= 1. 0 "cheksiz"ga aylanmaydi (D31).
 // @returns { value } yoki { error }
@@ -12,8 +13,8 @@ const normalizeMaxUses = (raw) => {
 /** @route GET /api/admin/promos | @access Admin */
 const listPromoCodes = async (req, res) => {
   try {
-    const page   = parseInt(req.query.page)  || 1;
-    const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page   = boundedPage(req.query.page);
+    const limit  = boundedLimit(req.query.limit, 20, 100);
     const search = (req.query.search || '').trim();
     const status = req.query.status; // 'active' | 'inactive' | ''
 

@@ -1,6 +1,7 @@
 const Course = require('../models/Course');
 const UserStats = require('../models/UserStats');
 const User = require('../models/User');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 const { nextWeeklyReset } = require('../utils/tashkentDate');
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -34,7 +35,7 @@ const getRankTitle = (level) => {
  */
 const getTopCourses = async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const limit = boundedLimit(req.query.limit, 10, 50);
     const category = req.query.category || null;
 
     const filter = { isActive: true };
@@ -66,8 +67,8 @@ const getTopCourses = async (req, res) => {
  */
 const getTopUsers = async (req, res) => {
   try {
-    const limit    = Math.min(parseInt(req.query.limit) || 20, 100);
-    const page     = Math.min(Math.max(1, parseInt(req.query.page) || 1), 100); // P-B10: chuqur skip cheklangan
+    const limit    = boundedLimit(req.query.limit, 20, 100);
+    const page     = boundedPage(req.query.page, 100); // P-B10: chuqur skip cheklangan
     const category = req.query.category ? String(req.query.category).slice(0, 50) : null; // e.g. javascript, react, python
     const skip     = (page - 1) * limit;
 

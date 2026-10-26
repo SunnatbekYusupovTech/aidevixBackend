@@ -1,5 +1,6 @@
 const axios = require('axios');
 const schedulerState = require('./schedulerState');
+const { TelegramActionBudget, isTelegramActor, isPrivateActorChat, getTelegramAdminId, protectedTelegramPayload } = require('./telegramSecurity');
 
 // Telegram HTML parse_mode uchun user-controlled stringlarni xavfsizlash
 const escapeHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -18,6 +19,7 @@ class AidevixBot {
     this.apiUrl = `https://api.telegram.org/bot${token}`;
     this.offset = 0;
     this.channelCache = []; // inline panel uchun kanal indekslari
+    this.actionBudget = new TelegramActionBudget();
   }
 
   /** Long Polling ishga tushirish */
@@ -57,16 +59,19 @@ class AidevixBot {
   }
 
   async _handleUpdate(update) {
+    if (!update || typeof update !== 'object') return;
     if (update.message) {
       const { chat, from, text } = update.message;
+      // Account information and one-use login links must never reach a group.
+      if (!isPrivateActorChat(chat, from) || typeof text !== 'string' || text.length > 4096) return;
       const chatId = chat.id;
       const userId = from.id;
       const firstName = from.first_name;
       const username = from.username;
 
-      if (!text) return;
+      if (!text || !this.actionBudget.allow(userId, 'command')) return;
 
-      if (text.startsWith('/start')) {
+      if (/^\/start(?:\s|$)/.test(text)) {
         const parts = text.split(' ');
         if (parts.length > 1) {
           return this._handleVerifyToken(chatId, userId, username, parts[1]);
@@ -79,6 +84,8 @@ class AidevixBot {
       const effectiveText = aliased || text;
 
       const [cmd, ...args] = effectiveText.split(' ');
+      // Aliases and callbacks use the same sensitive-action counter.
+      if (cmd === '/login' && !this.actionBudget.consume(`login:${userId}`, 3)) return;
       switch (cmd) {
         case '/id': await this.sendMessage(chatId, `🆔 Sizning Telegram ID: <code>${userId}</code>`, { parse_mode: 'HTML' }); break;
         case '/login': await this._cmdLogin(chatId, userId, firstName); break;
@@ -108,6 +115,11 @@ class AidevixBot {
 
     if (update.callback_query) {
       const { id, data, from, message } = update.callback_query;
+      if (!isTelegramActor(from) || typeof id !== 'string' || typeof data !== 'string' || data.length > 64) return;
+      const reaction = /^(?:news|tip)_react_(?:fire|rocket|bulb)$/.test(data);
+      if (!reaction && !isPrivateActorChat(message?.chat, from)) return;
+      const action = data === 'cb_magic_login' ? 'login' : data === 'cb_check_sub' ? 'subscription' : 'command';
+      if (!this.actionBudget.allow(from.id, action)) return;
       const chatId = message?.chat?.id;
       const userId = from.id;
       const firstName = from.first_name;
@@ -128,8 +140,11 @@ class AidevixBot {
         case 'cb_courses': await this._cmdCourses(chatId, firstName); break;
         case 'cb_leaderboard': await this._cmdLeaderboard(chatId); break;
         case 'news_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); return;
+        case 'tip_react_fire': await this.answerCallbackQuery(id, 'Olov bo\'ldi! 🔥'); return;
         case 'news_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); return;
+        case 'tip_react_rocket': await this.answerCallbackQuery(id, 'Rahmat! 🚀'); return;
         case 'news_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); return;
+        case 'tip_react_bulb': await this.answerCallbackQuery(id, 'Foydali bo\'ldi! 💡'); return;
       }
       await this.answerCallbackQuery(id, '');
     }
@@ -139,8 +154,9 @@ class AidevixBot {
 
   async _handleMyChatMember(update) {
     const { chat, new_chat_member } = update;
+    if (!chat || !['channel', 'supergroup', 'group'].includes(chat.type) || !Number.isSafeInteger(chat.id) || chat.id >= 0) return;
     const BotChannel = require('../models/BotChannel');
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
 
     const chatId   = String(chat.id);
     const username = chat.username ? `@${chat.username}` : null;
@@ -150,6 +166,8 @@ class AidevixBot {
     const status = new_chat_member?.status;
 
     if (status === 'administrator') {
+      // Adding this bot to an arbitrary channel does not authorize broadcasts.
+      if (!adminId || !isTelegramActor(update.from) || String(update.from.id) !== adminId) return;
       // Bot admin qilindi → ro'yxatga qo'shish
       await BotChannel.findOneAndUpdate(
         { chatId },
@@ -161,7 +179,7 @@ class AidevixBot {
       // Adminga xabar
       await this.sendMessage(adminId,
         `✅ <b>Yangi kanal ro'yxatga qo'shildi!</b>\n\n` +
-        `📢 <b>${title}</b>\n` +
+        `📢 <b>${escapeHtml(title)}</b>\n` +
         `🆔 ID: <code>${chatId}</code>\n` +
         `🔗 Username: ${username || 'Yo\'q (private)'}\n` +
         `📁 Turi: ${type}\n\n` +
@@ -173,9 +191,10 @@ class AidevixBot {
       await BotChannel.findOneAndUpdate({ chatId }, { isActive: false });
       console.log(`[Bot] Kanal o'chirildi: ${title} (${chatId})`);
 
+      if (!adminId) return;
       await this.sendMessage(adminId,
         `⚠️ <b>Kanal ro'yxatdan chiqdi</b>\n\n` +
-        `📢 <b>${title}</b> (${chatId})\n` +
+        `📢 <b>${escapeHtml(title)}</b> (${chatId})\n` +
         `Sabab: Bot adminlikdan olib tashlandi.`,
         { parse_mode: 'HTML' }
       );
@@ -234,7 +253,7 @@ class AidevixBot {
 
   /** Doimiy reply keyboard'ni ko'rsatish */
   async _showMainMenu(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     const isAdmin = String(userId) === adminId;
 
     const rows = [
@@ -285,7 +304,7 @@ class AidevixBot {
       { command: 'login', description: '🔐 Saytga kirish (parolsiz)' },
       { command: 'help', description: 'ℹ️ Yordam va buyruqlar' },
     ];
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
 
     try {
       // Hammaga ko'rinadigan buyruqlar
@@ -648,7 +667,7 @@ class AidevixBot {
 
   /** /channels — Admin: barcha ro'yxatdagi kanallar */
   async _cmdChannels(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     try {
@@ -689,7 +708,7 @@ class AidevixBot {
    * Misol: /settopic @mychannel claude,cursor
    */
   async _cmdSetTopic(chatId, userId, args) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     if (args.length < 2) {
@@ -749,7 +768,7 @@ class AidevixBot {
    * Misol: /settype @mychannel news
    */
   async _cmdSetType(chatId, userId, args) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     if (args.length < 2) {
@@ -811,7 +830,7 @@ class AidevixBot {
    *        /setschedule @mychannel 12        → kuniga 1 marta
    */
   async _cmdSetSchedule(chatId, userId, args) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     if (args.length < 2) {
@@ -883,7 +902,7 @@ class AidevixBot {
    * /toggle [news|challenge|all] — Scheduler yoqish/o'chirish
    */
   async _cmdToggle(chatId, userId, args) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     const target = (args[0] || '').toLowerCase();
@@ -922,7 +941,7 @@ class AidevixBot {
    * /status — Barcha scheduler holati
    */
   async _cmdStatus(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     const state = schedulerState.getState();
@@ -966,7 +985,7 @@ class AidevixBot {
    * Misol: /logs 10
    */
   async _cmdLogs(chatId, userId, args) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
 
     const limit = Math.min(parseInt(args[0]) || 15, 50);
@@ -995,7 +1014,7 @@ class AidevixBot {
 
   /** /admin — Inline admin panel */
   async _cmdAdminPanel(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return;
     const { text, keyboard } = await this._buildAdminHome();
     await this.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard });
@@ -1050,7 +1069,7 @@ class AidevixBot {
 
   /** Barcha adm_* callbacklarni boshqarish */
   async _handleAdminCallback(queryId, data, chatId, userId, message) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) {
       return this.answerCallbackQuery(queryId, '⛔ Kirish taqiqlangan');
     }
@@ -1309,7 +1328,7 @@ class AidevixBot {
 
   /** /help — Kategoriya bo'yicha tartiblangan yordam */
   async _cmdHelp(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     const isAdmin = String(userId) === adminId;
 
     let msg =
@@ -1363,14 +1382,12 @@ class AidevixBot {
   }
 
   async _cmdLogin(chatId, userId) {
+    if (String(chatId) !== String(userId) || !/^\d+$/.test(String(userId)) || Number(userId) <= 0) return;
     try {
       const User = require('../models/User');
-      const user = await User.findOne({
-        $or: [
-          { telegramUserId: String(userId) },
-          { 'socialSubscriptions.telegram.telegramUserId': String(userId) },
-        ],
-      });
+      // Only the top-level ID is backed by verified ownership. Legacy social
+      // subscription claims are not sufficient evidence to mint a login token.
+      const user = await User.findOne({ telegramUserId: String(userId) });
       if (!user) return this.sendMessage(chatId, "⚠️ Hisob topilmadi.");
 
       // Opaque single-use token — JWT URL fragment o'rniga (xavfsizroq, revocable, DB-backed)
@@ -1389,7 +1406,7 @@ class AidevixBot {
   }
 
   async _cmdPostNews(chatId, userId) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     if (String(userId) !== adminId) return this.sendMessage(chatId, "⛔ Kirish taqiqlangan.");
     
     try {
@@ -1403,8 +1420,9 @@ class AidevixBot {
   // ═══════════════════════════ NOTIFICATIONS ═══════════════════════════
 
   async notifySubscriptionVerified(user, platform) {
-    const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || '697727022').trim();
+    const adminId = getTelegramAdminId();
     const platformLabel = platform === 'telegram' ? '📱 Telegram' : '📸 Instagram';
+    if (!adminId) return;
     const username = user.username || user.firstName || user._id;
     try {
       await this.sendMessage(
@@ -1479,21 +1497,21 @@ class AidevixBot {
   }
 
   async sendMessage(chatId, text, opts = {}) {
-    try { await axios.post(`${this.apiUrl}/sendMessage`, { chat_id: chatId, text, ...opts }); } catch (e) {
+    try { await axios.post(`${this.apiUrl}/sendMessage`, protectedTelegramPayload({ chat_id: chatId, text, ...opts }), { timeout: 10000 }); } catch (e) {
       console.warn('[Bot] sendMessage error:', e.response?.data?.description || e.message);
     }
   }
 
   async editMessage(chatId, messageId, text, opts = {}) {
     try {
-      await axios.post(`${this.apiUrl}/editMessageText`, { chat_id: chatId, message_id: messageId, text, ...opts });
+      await axios.post(`${this.apiUrl}/editMessageText`, { chat_id: chatId, message_id: messageId, text, ...opts }, { timeout: 10000 });
     } catch (e) {
       console.warn('[Bot] editMessage error:', e.response?.data?.description || e.message);
     }
   }
 
   async answerCallbackQuery(id, text) {
-    try { await axios.post(`${this.apiUrl}/answerCallbackQuery`, { callback_query_id: id, text }); } catch (e) {
+    try { await axios.post(`${this.apiUrl}/answerCallbackQuery`, { callback_query_id: id, text }, { timeout: 10000 }); } catch (e) {
       console.warn('[Bot] answerCallbackQuery error:', e.response?.data?.description || e.message);
     }
   }

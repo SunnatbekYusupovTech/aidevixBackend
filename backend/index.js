@@ -20,7 +20,8 @@ const swaggerSpec = require('./config/swagger');
 const swaggerAdminSpec = require('./config/swaggerAdmin');
 const swaggerAuth = require('./middleware/swaggerAuth');
 const connectDB = require('./config/database');
-const { apiLimiter, docsLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter, apiBurstLimiter, accountApiLimiter, docsLimiter } = require('./middleware/rateLimiter');
+const apiResponseSecurity = require('./middleware/apiResponseSecurity');
 const csrfProtection = require('./middleware/csrfProtection');
 
 // Initialize Express app
@@ -42,6 +43,7 @@ app.set('trust proxy', _trustProxyVal);
 // Express 5'da read-only req.query'ni tozalay olmaydi — bu parser gap'ni yopadi.
 // Frontend nested query ishlatmaydi (tekshirildi), shuning uchun xavfsiz.
 app.set('query parser', 'simple');
+app.disable('x-powered-by');
 
 // Connect to database (async - won't block server start)
 connectDB().then(async () => {
@@ -236,6 +238,10 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Google OAuth popup uchun
 }));
 
+// Reject floods before body parsing, sanitization, database access and handlers.
+// This also covers direct Railway requests and every Vercel proxy alias.
+app.use('/api', apiResponseSecurity, apiBurstLimiter, apiLimiter, accountApiLimiter);
+
 // 4️⃣ Body parsers — strict limits (DoS via large body himoyasi)
 // JSON API uchun 100KB yetarli. Upload routelar Multer'dan o'tadi, body parser'siz.
 // `verify` callback — body parse bo'lmasdan oldin Content-Length tekshiriladi.
@@ -270,9 +276,6 @@ app.use((req, res, next) => {
   });
   next();
 });
-
-// Global API rate limiter
-app.use('/api/', apiLimiter);
 
 // ═══════════════════════════════════════════════════════════════════
 // Swagger UI Documentation — ALOHIDA serve instansiyalar
@@ -368,7 +371,7 @@ app.use('/api/forum',        require('./routes/forumRoutes'));
   const { issueSocketToken } = require('./sockets/socketAuth');
   app.get('/api/socket-token', authenticate, (req, res) => {
     res.set('Cache-Control', 'no-store');
-    res.json({ success: true, token: issueSocketToken(req.user) });
+    res.json({ success: true, token: issueSocketToken(req.user, req.authSessionId) });
   });
 }
 

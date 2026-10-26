@@ -5,9 +5,19 @@ const UserStats = require('../models/UserStats');
 const User = require('../models/User');
 const { addXp } = require('../utils/awardXp');
 const { startOfDay } = require('../utils/tashkentDate');
+const { boundedLimit, boundedPage } = require('../utils/queryBounds');
 
 const PROMPT_XP = 30;
 const PROMPT_XP_DAILY_LIMIT = 3;
+
+// Preserve the existing client `likes.includes(myId)` contract while keeping
+// every other user's engagement IDs out of read responses.
+const promptForReader = (prompt, req) => {
+  const data = typeof prompt.toObject === 'function' ? prompt.toObject() : { ...prompt };
+  const ownId = req.user?._id?.toString();
+  data.likes = ownId && (data.likes || []).some((id) => id.toString() === ownId) ? [ownId] : [];
+  return data;
+};
 
 // COM-16: yashirilgan (isPublic:false) prompt faqat muallif yoki admin uchun
 const visibleFilter = (req, id) =>
@@ -31,8 +41,8 @@ const getPrompts = async (req, res) => {
       views: { viewsCount: -1 },
     };
 
-    const lim = Math.min(Math.max(1, parseInt(limit) || 20), 100);
-    const pg = Math.max(1, parseInt(page) || 1);
+    const lim = boundedLimit(limit, 20, 100);
+    const pg = boundedPage(page);
 
     const prompts = await Prompt.find(filter)
       .populate('author', 'username firstName avatar aiStack')
@@ -42,7 +52,7 @@ const getPrompts = async (req, res) => {
 
     const total = await Prompt.countDocuments(filter);
 
-    res.json({ success: true, data: { prompts, total, page: pg, pages: Math.ceil(total / lim) } });
+    res.json({ success: true, data: { prompts: prompts.map((p) => promptForReader(p, req)), total, page: pg, pages: Math.ceil(total / lim) } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
@@ -56,7 +66,7 @@ const getFeaturedPrompts = async (req, res) => {
       .populate('author', 'username firstName avatar')
       .sort({ likesCount: -1 })
       .limit(6);
-    res.json({ success: true, data: prompts });
+    res.json({ success: true, data: prompts.map((p) => promptForReader(p, req)) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });
@@ -69,8 +79,8 @@ const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getSavedPrompts = async (req, res) => {
   try {
     const userId = req.user._id;
-    const page = Math.max(1, +req.query.page || 1);
-    const limit = Math.min(50, Math.max(1, +req.query.limit || 12));
+    const page = boundedPage(req.query.page);
+    const limit = boundedLimit(req.query.limit, 12, 50);
     const category = req.query.category;
     const search = String(req.query.search || '').trim();
 
@@ -132,7 +142,7 @@ const getSavedPrompts = async (req, res) => {
 
     const result = await SavedPrompt.aggregate(pipeline);
     const row = result[0] || { data: [], totalCount: [] };
-    const prompts = row.data;
+    const prompts = row.data.map((p) => promptForReader(p, req));
     const total = row.totalCount[0]?.c || 0;
     res.json({
       success: true,
@@ -192,7 +202,7 @@ const getPrompt = async (req, res) => {
       .lean();
 
     if (!prompt) return res.status(404).json({ success: false, message: 'Prompt topilmadi' });
-    res.json({ success: true, data: prompt });
+    res.json({ success: true, data: promptForReader(prompt, req) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: process.env.NODE_ENV !== 'production' ? err.message : 'Server xatosi' });

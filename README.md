@@ -82,7 +82,9 @@ aidevixBackend/
 └── .github/workflows/   # CI + E2E pipelines
 ```
 
-**Request flow:** the browser calls `/api/proxy/*` on the Next.js app, which rewrites to the Express API. Auth cookies therefore stay first-party, and the API URL never needs to be exposed to the client. Mobile clients authenticate with bearer tokens via the `X-Client-Type: mobile` header.
+**Request flow:** the browser calls `/api/proxy/*` on the Next.js app, which rewrites to the Express API. Auth cookies therefore stay first-party, and the API URL never needs to be exposed to the client. Native clients requesting raw JSON tokens must send `X-Client-Type: mobile` and a valid `X-Mobile-Secret` matching `MOBILE_API_SECRET`. Production bearer authentication additionally requires the explicit `ALLOW_BEARER_AUTH` setting.
+
+Security changes, verification, compatibility and deployment follow-up are recorded in [SECURITY-HARDENING.md](SECURITY-HARDENING.md). API abuse limits run in Express and in `frontend/src/middleware.ts`; keep the Edge middleware beside `src/app` so Next.js includes it in production builds.
 
 ## Getting started
 

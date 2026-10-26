@@ -55,7 +55,11 @@ const authenticate = async (req, res, next) => {
     // AUTH-10: access token'dagi sid bo'yicha sessiya hali mavjudligini parallel tekshiramiz.
     const [user, sessionAlive] = await Promise.all([
       User.findById(decoded.userId).select(AUTH_USER_FIELDS),
-      decoded.sid ? Session.exists({ _id: decoded.sid, userId: decoded.userId }) : Promise.resolve(true),
+      decoded.sid ? Session.exists({
+        _id: decoded.sid,
+        userId: decoded.userId,
+        absoluteExpiresAt: { $gt: new Date() },
+      }) : Promise.resolve(true),
     ]);
 
     if (!user) {
@@ -87,6 +91,7 @@ const authenticate = async (req, res, next) => {
     }
 
     req.user = user;
+    req.authSessionId = decoded.sid || null;
     next();
   } catch (error) {
     return unauthorized(res, 'Authentication failed.');

@@ -18,6 +18,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const schedulerState = require('./schedulerState');
+const { protectedTelegramPayload } = require('./telegramSecurity');
 
 const parser = new RssParser({
   timeout: 15000,
@@ -326,15 +327,15 @@ async function sendNewsToChat(botToken, chatId, item, aiData) {
 
   // sendPhoto caption limiti 1024 — oshsa oddiy xabar (4096) sifatida yuboriladi
   if (item.image && safeLink(item.image) && message.length <= TG_CAPTION_LIMIT) {
-    await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendPhoto`, protectedTelegramPayload({
       chat_id: chatId, photo: item.image, caption: message,
       parse_mode: 'HTML', reply_markup: keyboard,
-    });
+    }));
   } else {
-    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
       chat_id: chatId, text: message, parse_mode: 'HTML',
       disable_web_page_preview: false, reply_markup: keyboard,
-    });
+    }));
   }
 }
 

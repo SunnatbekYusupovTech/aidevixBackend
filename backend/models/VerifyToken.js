@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const VERIFY_TOKEN_TTL_SECONDS = 300;
 
 const verifyTokenSchema = new mongoose.Schema({
   token: {
@@ -24,11 +25,16 @@ const verifyTokenSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  used: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 300, // TTL — 5 daqiqadan keyin avtomatik o'chiriladi
+    expires: VERIFY_TOKEN_TTL_SECONDS,
   },
 });
 
 module.exports = mongoose.model('VerifyToken', verifyTokenSchema);
+module.exports.VERIFY_TOKEN_TTL_SECONDS = VERIFY_TOKEN_TTL_SECONDS;

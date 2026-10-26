@@ -14,6 +14,7 @@
 
 const axios = require('axios');
 const schedulerState = require('./schedulerState');
+const { protectedTelegramPayload } = require('./telegramSecurity');
 const { runWithLock, tashkentDateKey } = require('./schedulerLock');
 const tashkentDate = require('./tashkentDate');
 
@@ -201,9 +202,9 @@ async function sendChallengeToChannel(challenge) {
   let sentCount = 0;
   for (const chatId of channels) {
     try {
-      await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
         chat_id: chatId, text: message, parse_mode: 'HTML', reply_markup: keyboard,
-      });
+      }));
       sentCount++;
       schedulerState.addLog('challenge', chatId, challenge.title, true);
     } catch (err) {
@@ -251,9 +252,9 @@ async function weeklyReset() {
           `Mukofot: <b>+${prize.xp} XP</b> va <b>${prize.badge.name}</b> badge 🎉\n\n` +
           `Keyingi haftada ham faol bo'ling! 💪\n#Aidevix #HaftalikTurnir`;
         try {
-          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
             chat_id: chatId, text: msg, parse_mode: 'HTML',
-          });
+          }));
         } catch (e) {
           console.warn('[ChallengeScheduler] prize notify failed:', e.response?.data?.description || e.message);
         }
@@ -316,14 +317,14 @@ async function sendStreakReminders() {
             `<a href="https://aidevix.uz">aidevix.uz</a>`;
 
         try {
-          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, protectedTelegramPayload({
             chat_id: chatId,
             text: msg,
             parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [[{ text: '▶ Hoziroq o\'rganish', url: 'https://aidevix.uz/courses' }]],
             },
-          });
+          }));
         } catch (e) {
           // 403 (bot blocked) va 400 (invalid chat) — kutilgan holat, log qilmaylik
           if (e.response?.status !== 403 && e.response?.status !== 400) {

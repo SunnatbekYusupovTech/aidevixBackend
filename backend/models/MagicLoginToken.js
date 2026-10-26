@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const MAGIC_LOGIN_TTL_SECONDS = 900;
 
 /**
  * MagicLoginToken — Telegram bot "Magic Login" uchun bir martalik opaque token.
@@ -24,8 +25,9 @@ const magicLoginTokenSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 900, // TTL — 15 daqiqadan keyin avtomatik o'chiriladi
+    expires: MAGIC_LOGIN_TTL_SECONDS,
   },
 });
 
 module.exports = mongoose.model('MagicLoginToken', magicLoginTokenSchema);
+module.exports.MAGIC_LOGIN_TTL_SECONDS = MAGIC_LOGIN_TTL_SECONDS;

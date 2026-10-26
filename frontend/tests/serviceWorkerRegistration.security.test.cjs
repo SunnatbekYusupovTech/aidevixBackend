@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function registrationHarness(initialController) {
+function registrationHarness(initialController, readyState = 'loading') {
   const windowEvents = {};
   const workerEvents = {};
   let reloads = 0;
@@ -22,13 +22,15 @@ function registrationHarness(initialController) {
       dispatchEvent() {},
     },
     navigator: { serviceWorker },
+    document: { readyState },
     setInterval() {},
     CustomEvent: class {},
   });
-  windowEvents.load();
+  if (readyState !== 'complete') windowEvents.load();
   return {
     replaceController() { serviceWorker.controller = {}; workerEvents.controllerchange(); },
     reloadCount: () => reloads,
+    hasStarted: () => typeof workerEvents.controllerchange === 'function',
   };
 }
 
@@ -52,4 +54,11 @@ test('later updates still refresh a page that initially had no controller', () =
   harness.replaceController();
   harness.replaceController();
   assert.equal(harness.reloadCount(), 1);
+});
+
+test('registration still starts when afterInteractive script arrives after window load', () => {
+  const harness = registrationHarness(null, 'complete');
+  assert.equal(harness.hasStarted(), true, 'Late script must not wait for an already-fired load event');
+  harness.replaceController();
+  assert.equal(harness.reloadCount(), 0);
 });

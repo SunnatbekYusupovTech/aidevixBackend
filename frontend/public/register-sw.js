@@ -6,7 +6,7 @@
   if (!('serviceWorker' in navigator)) return;
   if (window.location.hostname === 'localhost' && !window.__SW_DEV) return;
 
-  window.addEventListener('load', function () {
+  function registerServiceWorker() {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then(function (reg) {
@@ -44,5 +44,12 @@
       refreshed = true;
       window.location.reload();
     });
-  });
+  }
+
+  // Next's afterInteractive script can arrive after the load event has fired.
+  if (document.readyState === 'complete') {
+    registerServiceWorker();
+  } else {
+    window.addEventListener('load', registerServiceWorker, { once: true });
+  }
 })();

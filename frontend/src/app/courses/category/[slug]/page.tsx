@@ -23,9 +23,10 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ): Promise<Metadata> {
-  const cat = getCategory(params.slug);
+  const { slug } = await params;
+  const cat = getCategory(slug);
   if (!cat) return { title: 'Kategoriya topilmadi' };
 
   const url = `${BASE}/courses/category/${cat.slug}`;
@@ -74,12 +75,13 @@ async function getCoursesByCategory(slug: string): Promise<Course[]> {
 }
 
 export default async function CategoryPage(
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const cat = getCategory(params.slug);
+  const { slug } = await params;
+  const cat = getCategory(slug);
   if (!cat) notFound();
 
-  const courses = await getCoursesByCategory(params.slug);
+  const courses = await getCoursesByCategory(slug);
   const url = `${BASE}/courses/category/${cat.slug}`;
   const faq = buildCategoryFaq(cat);
 

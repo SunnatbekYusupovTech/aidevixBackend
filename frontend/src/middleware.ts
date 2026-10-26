@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Keep beside src/app: Next.js 14 discovers middleware in the app directory's
+// Keep beside src/app: Next.js discovers middleware in the app directory's
 // parent. A middleware.ts at frontend/ is ignored when this project uses src/app.
 
 type Bucket = {
@@ -18,11 +18,9 @@ const MAX_BUCKETS = 10_000;
 let nextCleanupAt = 0;
 
 // The site runs on Vercel (not behind Cloudflare), so `cf-connecting-ip` is
-// client-controlled and must not be trusted. Vercel sets req.ip / x-real-ip /
+// client-controlled and must not be trusted. Vercel sets x-real-ip /
 // x-forwarded-for itself and overwrites client-supplied values.
 function getClientIp(req: NextRequest): string {
-  if (req.ip) return req.ip;
-
   const realIp = req.headers.get('x-real-ip');
   if (realIp) return realIp;
 

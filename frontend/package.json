@@ -4,16 +4,16 @@
   "description": "Aidevix - Online kurs platformasi frontend (React + Tailwind + DaisyUI + Redux + GSAP)",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests next.config.mjs eslint.config.mjs",
+    "typecheck": "next typegen && tsc --noEmit",
     "test:security": "node --test tests/*.security.test.cjs",
-    "test:security:build": "node --test tests/middleware.build.test.cjs",
+    "test:security:build": "node --test tests/*.build.test.cjs",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:headed": "npx playwright test --headed",
@@ -29,13 +29,15 @@
     "@react-oauth/google": "^0.13.5",
     "@reduxjs/toolkit": "^2.2.7",
     "@sankyu/react-circle-flags": "^1.6.7",
-    "@sentry/nextjs": "^10.62.0",
+    "@sentry/nextjs": "^10.75.2",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
+    "dompurify": "3.4.17",
     "framer-motion": "^11.3.19",
     "gsap": "^3.12.5",
-    "next": "^14.2.35",
+    "monaco-editor": "0.57.0",
+    "next": "^16.4.3",
     "react": "^18.2.0",
     "react-confetti": "^6.4.0",
     "react-dom": "^18.2.0",
@@ -47,6 +49,11 @@
     "socket.io-client": "^4.8.3",
     "swiper": "^12.2.0"
   },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "3.4.17"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@types/node": "^20",
@@ -54,8 +61,8 @@
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.20",
     "daisyui": "^4.12.10",
-    "eslint": "^8",
-    "eslint-config-next": "^14.2.35",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.3",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",

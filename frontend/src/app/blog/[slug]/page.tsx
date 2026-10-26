@@ -12,9 +12,10 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ): Promise<Metadata> {
-  const article = getArticle(params.slug);
+  const { slug } = await params;
+  const article = getArticle(slug);
   if (!article) return { title: 'Maqola topilmadi' };
 
   const url = `${BASE}/blog/${article.slug}`;
@@ -46,10 +47,11 @@ export async function generateMetadata(
   };
 }
 
-export default function ArticlePage(
-  { params }: { params: { slug: string } },
+export default async function ArticlePage(
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const article = getArticle(params.slug);
+  const { slug } = await params;
+  const article = getArticle(slug);
   if (!article) notFound();
 
   const url = `${BASE}/blog/${article.slug}`;

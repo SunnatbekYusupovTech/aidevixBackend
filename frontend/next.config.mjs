@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
 /** Vercel env da ba'zida `.../api` qo‘shib yuboriladi — rewrite allaqachon `/api` qo‘shadi, shuning uchun 404. */
 const normalizeBackendOrigin = (raw) => {
   if (!raw) return raw;
@@ -23,12 +26,23 @@ const backendBaseUrl = (() => {
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  webpack(config, { webpack }) {
+    // Monaco vendors DOMPurify inside its ESM source, so an npm override alone
+    // does not replace the vulnerable runtime copy (microsoft/monaco-editor#5517).
+    config.plugins.push(new webpack.NormalModuleReplacementPlugin(
+      /(^|[\\/])dompurify[\\/]dompurify\.js$/,
+      (resource) => {
+        if (/[\\/]monaco-editor[\\/]esm[\\/]/.test(resource.context)) {
+          resource.request = require.resolve('dompurify');
+        }
+      },
+    ));
+    return config;
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   experimental: {
-    // Enables instrumentation.ts (required on Next 14 for the Sentry register hook).
-    instrumentationHook: true,
     optimizePackageImports: [
       'react-icons',
       'framer-motion',
@@ -137,7 +151,7 @@ const nextConfig = {
 // Wrap with Sentry. Source maps are only uploaded when SENTRY_AUTH_TOKEN is
 // present (CI/prod); without it the build still succeeds and just skips upload.
 // Runtime error capture is independently gated on NEXT_PUBLIC_SENTRY_DSN.
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,

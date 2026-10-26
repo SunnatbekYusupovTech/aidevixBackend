@@ -10,7 +10,7 @@ import { useSelector } from 'react-redux';
 import dynamic from 'next/dynamic';
 
 // Monaco Editor server-side render bo'lmaydi (window API ishlatadi)
-const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+const Editor = dynamic(() => import('@/components/common/AuditedMonacoEditor'), { ssr: false });
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {

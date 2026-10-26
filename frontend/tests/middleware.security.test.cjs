@@ -26,7 +26,7 @@ function loadMiddleware() {
   return exports;
 }
 
-const req = (pathname, ip = '192.0.2.1') => ({ nextUrl: { pathname }, ip, headers: new Map() });
+const req = (pathname, ip = '192.0.2.1') => ({ nextUrl: { pathname }, headers: new Map([['x-real-ip', ip]]) });
 
 test('all three configured backend proxy aliases receive the Edge limiter', () => {
   const { config } = loadMiddleware();

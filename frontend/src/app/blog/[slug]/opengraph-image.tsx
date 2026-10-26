@@ -8,12 +8,13 @@ export const alt = 'Aidevix blog';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function BlogOpengraphImage({
+export default async function BlogOpengraphImage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const article = getArticle(params.slug);
+  const { slug } = await params;
+  const article = getArticle(slug);
   const title = article?.title || 'Aidevix blog';
   const category = article?.category || 'Maqola';
 

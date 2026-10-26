@@ -25,9 +25,10 @@ async function fetchCourse(id: string): Promise<{ title: string; category?: stri
 export default async function CourseOpengraphImage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const course = await fetchCourse(params.id);
+  const { id } = await params;
+  const course = await fetchCourse(id);
   const title = course?.title || 'Dasturlash kursi';
   const label = course?.category || 'Kurs';
 

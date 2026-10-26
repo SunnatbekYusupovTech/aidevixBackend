@@ -11,7 +11,7 @@ import CourseDetailClient from './CourseDetailClient';
 const OBJECT_ID_RE = /^[a-f0-9]{24}$/i;
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function fetchCourseForPage(id: string) {
@@ -29,15 +29,16 @@ async function fetchCourseForPage(id: string) {
 }
 
 export default async function CourseDetailPage({ params }: Props) {
+  const { id } = await params;
   // SSR fetch — layout.tsx bilan bir xil URL, Next.js cache'dan qaytadi
-  const initialCourse = await fetchCourseForPage(params.id);
+  const initialCourse = await fetchCourseForPage(id);
 
   // SEO-007: eski /courses/<ObjectId> URL'lari slug URL'ga 308 redirect —
   // Google'da bitta kurs uchun ikki xil URL indekslanmasin.
-  if (OBJECT_ID_RE.test(params.id) && initialCourse?.slug) {
+  if (OBJECT_ID_RE.test(id) && initialCourse?.slug) {
     permanentRedirect(`/courses/${initialCourse.slug}`);
   }
 
   // Client'dagi progress/projects API'lari ObjectId kutadi — slug emas.
-  return <CourseDetailClient id={initialCourse?._id ?? params.id} initialCourse={initialCourse} />;
+  return <CourseDetailClient id={initialCourse?._id ?? id} initialCourse={initialCourse} />;
 }

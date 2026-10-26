@@ -24,9 +24,10 @@ async function fetchQuestions(page = 1, sort = 'newest') {
   }
 }
 
-export default async function ForumPage({ searchParams }: { searchParams: { page?: string, sort?: string } }) {
-  const page = Number(searchParams.page) || 1;
-  const sort = searchParams.sort || 'newest';
+export default async function ForumPage({ searchParams }: { searchParams: Promise<{ page?: string, sort?: string }> }) {
+  const query = await searchParams;
+  const page = Number(query.page) || 1;
+  const sort = query.sort || 'newest';
   const { questions, total } = await fetchQuestions(page, sort);
 
   return (

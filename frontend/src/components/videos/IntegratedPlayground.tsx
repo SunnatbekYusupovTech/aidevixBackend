@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useLang } from '@/context/LangContext';
 
 // Monaco (~450KB) client-only lazy load — SSR yo'q, dastlabki yuklamani yengillashtiradi.
-const Editor = dynamic(() => import('@monaco-editor/react'), {
+const Editor = dynamic(() => import('@/components/common/AuditedMonacoEditor'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">

@@ -3,7 +3,7 @@ import { SSR_API_BASE_URL } from '@utils/constants';
 import { safeJsonLd } from '@utils/jsonLd';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
   children: React.ReactNode;
 }
 
@@ -27,7 +27,8 @@ function isoDuration(seconds: number | undefined): string | null {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const video = await fetchVideo(params.id);
+  const { id } = await params;
+  const video = await fetchVideo(id);
   if (!video) {
     return {
       title: 'Video topilmadi',
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     video.description?.slice(0, 160) ||
     `${video.title} — Aidevix platformasidagi video dars.`;
   const image = video.thumbnail || 'https://aidevix.uz/og-image.png';
-  const url = `https://aidevix.uz/videos/${params.id}`;
+  const url = `https://aidevix.uz/videos/${id}`;
 
   return {
     title,
@@ -71,7 +72,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function VideoLayout({ params, children }: Props) {
-  const video = await fetchVideo(params.id);
+  const { id } = await params;
+  const video = await fetchVideo(id);
 
   // VideoObject schema unlocks rich preview in Google Videos tab.
   const videoSchema = video
@@ -83,8 +85,8 @@ export default async function VideoLayout({ params, children }: Props) {
         thumbnailUrl: video.thumbnail ? [video.thumbnail] : ['https://aidevix.uz/Logo.jpg'],
         uploadDate: video.createdAt || new Date().toISOString(),
         ...(isoDuration(video.duration) ? { duration: isoDuration(video.duration) } : {}),
-        contentUrl: `https://aidevix.uz/videos/${params.id}`,
-        embedUrl: `https://aidevix.uz/videos/${params.id}`,
+        contentUrl: `https://aidevix.uz/videos/${id}`,
+        embedUrl: `https://aidevix.uz/videos/${id}`,
         publisher: {
           '@type': 'Organization',
           name: 'Aidevix',

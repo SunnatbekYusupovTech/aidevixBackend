@@ -10,7 +10,7 @@ Courses, an AI coach, gamified progress, real-time code battles and a developer 
 
 [![CI](https://github.com/SunnatbekYusupovTech/aidevixBackend/actions/workflows/ci.yml/badge.svg)](https://github.com/SunnatbekYusupovTech/aidevixBackend/actions/workflows/ci.yml)
 [![E2E](https://github.com/SunnatbekYusupovTech/aidevixBackend/actions/workflows/playwright.yml/badge.svg)](https://github.com/SunnatbekYusupovTech/aidevixBackend/actions/workflows/playwright.yml)
-![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%208-47A248?logo=mongodb&logoColor=white)
@@ -30,7 +30,7 @@ Aidevix teaches developers to build real products with modern tooling and AI ass
 This repository contains the full web stack:
 
 - **`backend/`** — Express 5 REST + Socket.io API on MongoDB and Redis
-- **`frontend/`** — Next.js 14 App Router web application and admin console
+- **`frontend/`** — Next.js 16 App Router web application and admin console
 
 The mobile client lives in a separate repository: [AidevixApp](https://github.com/SunnatbekYusupovTech/AidevixApp).
 
@@ -51,7 +51,7 @@ The mobile client lives in a separate repository: [AidevixApp](https://github.co
 
 | Layer | Technologies |
 |---|---|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript, Redux Toolkit, Tailwind CSS, daisyUI, Framer Motion, GSAP, Lenis, Recharts, Monaco Editor, socket.io-client |
+| Frontend | Next.js 16 (App Router), React 18, TypeScript, Redux Toolkit, Tailwind CSS, daisyUI, Framer Motion, GSAP, Lenis, Recharts, Monaco Editor, socket.io-client |
 | Backend | Node.js 20, Express 5, Mongoose 8, ioredis, Socket.io 4, Swagger (OpenAPI) |
 | Security | JWT access/refresh tokens in httpOnly cookies, CSRF protection, Helmet, Redis-backed rate limiting, mongo-sanitize, TOTP 2FA |
 | Integrations | Bunny.net Stream, Vercel Blob, Resend (email), Payme, Click, Groq, Anthropic, Google OAuth, Telegram, web-push |
@@ -88,7 +88,7 @@ Security changes, verification, compatibility and deployment follow-up are recor
 
 ## Getting started
 
-**Prerequisites:** Node.js 20 (`.nvmrc`), MongoDB, Redis (optional; enables distributed rate limiting).
+**Prerequisites:** Node.js 20.9+ (`.nvmrc` selects Node 20), MongoDB, Redis (optional; enables distributed rate limiting).
 
 ```bash
 git clone https://github.com/SunnatbekYusupovTech/aidevixBackend.git

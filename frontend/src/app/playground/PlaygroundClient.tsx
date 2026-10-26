@@ -15,7 +15,7 @@ import Link from 'next/link';
 // Monaco is ~450KB minified. Defer it until the user actually intends to edit
 // (click / focus / keyboard) so bounce visitors and slow-network users get
 // instant first paint with a read-only preview.
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+const MonacoEditor = dynamic(() => import('@/components/common/AuditedMonacoEditor'), { ssr: false });
 
 const LANGS: { value: string; label: string; sample: string }[] = [
   {

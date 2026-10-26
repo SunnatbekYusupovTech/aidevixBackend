@@ -3,7 +3,7 @@ import { SSR_API_BASE_URL } from '@utils/constants';
 import { safeJsonLd } from '@utils/jsonLd';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
   children: React.ReactNode;
 }
 
@@ -32,7 +32,8 @@ function isoDurationFromMinutes(totalMinutes: number | undefined): string | null
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const course = await fetchCourse(params.id);
+  const { id } = await params;
+  const course = await fetchCourse(id);
   if (!course) {
     return {
       title: 'Kurs topilmadi',
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     `${course.title} — O'zbek tilidagi professional dasturlash kursi.`);
   const image = absoluteUrl(course.thumbnail) || 'https://aidevix.uz/og-image.png';
   // SEO-007: canonical URL slug bilan (slug yo'q bo'lsa params.id)
-  const canonicalSlug = (course.slug as string | undefined) || params.id;
+  const canonicalSlug = (course.slug as string | undefined) || id;
   const url = `https://aidevix.uz/courses/${canonicalSlug}`;
 
   return {
@@ -85,11 +86,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CourseLayout({ params, children }: Props) {
-  const course = await fetchCourse(params.id);
+  const { id } = await params;
+  const course = await fetchCourse(id);
   if (!course) return <>{children}</>;
 
   // SEO-007: JSON-LD'da ham canonical slug URL
-  const canonicalSlug = (course.slug as string | undefined) || params.id;
+  const canonicalSlug = (course.slug as string | undefined) || id;
   const url = `https://aidevix.uz/courses/${canonicalSlug}`;
   // thumbnail ba'zan nisbiy yo'l (`/course-logos/x.svg`) — schema.org absolut URL talab qiladi
   const image = absoluteUrl(course.thumbnail) || 'https://aidevix.uz/og-image.png';

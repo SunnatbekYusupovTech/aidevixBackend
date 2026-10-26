@@ -18,10 +18,11 @@ async function fetchProfile(username: string) {
   }
 }
 
-export async function generateMetadata({ params }: { params: { username: string } }): Promise<Metadata> {
-  const profile = await fetchProfile(params.username);
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const profile = await fetchProfile(username);
   if (!profile) return { title: 'Foydalanuvchi topilmadi', robots: { index: false, follow: false } };
-  const url = `https://aidevix.uz/u/${params.username}`;
+  const url = `https://aidevix.uz/u/${username}`;
   return {
     // Brandsiz — root template "| Aidevix" qo'shadi (aks holda "X — Aidevix | Aidevix")
     title: profile.user.username,
@@ -52,11 +53,12 @@ export async function generateMetadata({ params }: { params: { username: string 
   };
 }
 
-export default async function PublicProfilePage({ params }: { params: { username: string } }) {
-  const profile = await fetchProfile(params.username);
+export default async function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  const profile = await fetchProfile(username);
   if (!profile) notFound();
 
-  const url = `https://aidevix.uz/u/${params.username}`;
+  const url = `https://aidevix.uz/u/${username}`;
   const fullName =
     profile.user.firstName
       ? `${profile.user.firstName}${profile.user.lastName ? ` ${profile.user.lastName}` : ''}`

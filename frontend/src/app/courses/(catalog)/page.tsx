@@ -52,10 +52,11 @@ async function getInitialCourses(category?: string, search?: string): Promise<Co
 export default async function CoursesPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const category = typeof searchParams?.category === 'string' ? searchParams.category : undefined
-  const search   = typeof searchParams?.search === 'string' ? searchParams.search : undefined
+  const query = await searchParams
+  const category = typeof query?.category === 'string' ? query.category : undefined
+  const search   = typeof query?.search === 'string' ? query.search : undefined
 
   const { courses, total, pages } = await getInitialCourses(category, search)
 

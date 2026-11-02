@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { SSR_API_BASE_URL } from '@/utils/constants'
 import { BLOG_ARTICLES } from '@/data/blogArticles'
 import { COURSE_CATEGORIES } from '@/data/courseCategories'
+import { SERVICES, SERVICES_UPDATED } from '@/data/services'
 
 const BASE = 'https://aidevix.uz'
 
@@ -96,6 +97,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Biznes uchun AI xizmatlari — /xizmatlar hub + har xizmat landing sahifasi.
+  const servicesUpdated = new Date(SERVICES_UPDATED);
+  const serviceUrls = [
+    { url: `${BASE}/xizmatlar`, lastModified: servicesUpdated, changeFrequency: 'monthly' as const, priority: 0.8 },
+    ...SERVICES.map((s) => ({
+      url: `${BASE}/xizmatlar/${s.slug}`,
+      lastModified: servicesUpdated,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    })),
+  ];
+
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
     .filter((entry) => Boolean(entry.user?.username) && !isJunkUsername(entry.user?.username ?? ''))
@@ -119,6 +132,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/projects`,    lastModified: new Date('2026-07-07'), changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/team`,        lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/blog`,        lastModified: now,                    changeFrequency: 'weekly',  priority: 0.5 },
+    ...serviceUrls,
     ...categoryUrls,
     ...blogUrls,
     ...courseUrls,

@@ -1,0 +1,230 @@
+// "Biznes uchun AI" maqolalari — O'zbekistonda AI joriy qilish, avtomatlashtirish,
+// AI agentlar va AI ta'limi bo'yicha informatsion so'rovlar uchun. Muallif —
+// Sunnatbek Yusupov (Person schema) — E-E-A-T va "kim qiladi?" savoliga javob.
+import type { BlogArticle } from './blogArticles';
+
+export const AI_BUSINESS_ARTICLES: BlogArticle[] = [
+  {
+    slug: 'ozbekistonda-ai-joriy-qilish',
+    title: "O'zbekistonda sun'iy intellektni joriy qilish: biznes uchun 2026 qo'llanma",
+    description:
+      "O'zbekistonda biznesga AI joriy qilish: qayerdan boshlash, qaysi jarayonlar birinchi, narxlar, xavflar va kimga murojaat qilish. Aidevix asoschisi Sunnatbek Yusupovdan amaliy qo'llanma.",
+    keywords: [
+      "O'zbekistonda sun'iy intellektni joriy qilish", 'AI joriy qilish biznes', "AI integratsiya O'zbekiston",
+      "sun'iy intellekt biznes O'zbekiston", 'AI strategiya', 'AI joriy qilish narxi', 'AI konsalting',
+      "O'zbekiston AI kompaniyalar",
+    ],
+    category: 'ai',
+    date: '2026-11-03',
+    readMinutes: 9,
+    author: 'sunnatbek',
+    excerpt:
+      "O'zbekistonda AI joriy qilish boshlang'ich bosqichda — demak, hozir boshlaganlar yutadi. Qayerdan boshlash, nimani avtomatlashtirish va kimga murojaat qilish — amaliy qo'llanma.",
+    blocks: [
+      { type: 'p', text: "O'zbekistonda sun'iy intellekt (AI) bozori tez o'smoqda: davlat 2030-yilgacha raqamli strategiya doirasida 200 dan ortiq AI loyihasini e'lon qildi, banklar va telekom kompaniyalari AI agentlardan allaqachon foydalanmoqda. Lekin tahlilchilar baholashicha, mamlakatda AI texnologiyalarining tarqalish darajasi hali 5–6 foiz atrofida. Bu shuni anglatadi: o'rta va kichik biznes uchun AI joriy qilish — raqobatchilardan oldinga chiqishning eng arzon yo'li, va bu imkoniyat uzoq ochiq turmaydi." },
+      { type: 'p', text: "Men — Sunnatbek Yusupov, Aidevix asoschisi — so'nggi yillarda O'zbekistonda kompaniyalarga AI integratsiya, avtomatlashtirish va AI agentlar qurishda yordam beraman hamda dasturchilarni AI-first ishlashga o'rgataman. Bu maqolada amaliyotdan kelib chiqib, AI joriy qilishni qanday boshlash kerakligini bosqichma-bosqich tushuntiraman." },
+      { type: 'h2', text: "1-qadam. Muammodan boshlang, texnologiyadan emas" },
+      { type: 'p', text: "Eng ko'p uchraydigan xato — «bizga ham AI kerak» deb boshlash. To'g'ri savol: qaysi jarayon eng ko'p vaqt yoki pul yeyapti? Odatda javob shu ro'yxatdan chiqadi: mijoz so'rovlariga javob berish (Telegram, Instagram, qo'ng'iroqlar), hujjatlar bilan ishlash (shartnoma, invoys, hisob-faktura), hisobot tuzish, rezyume saralash, kontent yozish. Shu jarayonlardan bittasini tanlang va unga «oldin» raqamini yozib qo'ying: bir so'rovga necha daqiqa, kuniga nechta so'rov, nechta xodim." },
+      { type: 'h2', text: "2-qadam. To'g'ri yechim turini tanlang" },
+      { type: 'ul', items: [
+        "Tayyor AI vositalar (ChatGPT, Claude, Gemini, Perplexity) — xodimlar shaxsan foydalanadi; eng arzon, 1 kunlik trening yetarli",
+        "AI integratsiya — LLM'ni mavjud tizimga (CRM, sayt, Telegram bot, 1C) ulash; jarayon qisman avtomatlashadi",
+        "AI avtomatlashtirish — ko'p bosqichli jarayon (so'rov → tahlil → CRM → javob) odam aralashuvisiz yoki minimal tasdiq bilan",
+        "AI agent — maqsadni tushunib, vositalarni o'zi chaqirib, vazifani oxirigacha bajaradigan avtonom yordamchi",
+      ] },
+      { type: 'p', text: "Ko'pchilik uchun to'g'ri yo'l — birinchi ikki bosqichdan boshlash: avval jamoani AI vositalardan foydalanishga o'rgatish, so'ng eng og'riqli bitta jarayonga integratsiya qilish. Agentlar — keyingi bosqich." },
+      { type: 'h2', text: "3-qadam. Pilot: 2–4 hafta, bitta jarayon, o'lchanadigan natija" },
+      { type: 'p', text: "Katta loyiha o'rniga kichik pilot qiling. Masalan: Telegram orqali keladigan so'rovlarga o'zbek va rus tilida javob beradigan, kompaniya narxlari va qoidalarini biladigan AI yordamchi. 2–4 haftada ishga tushadi, so'ng «oldin/keyin» taqqoslanadi: javob vaqti, operator yuklamasi, mijoz qoniqishi. Natija bo'lsa — kengaytiriladi; bo'lmasa — kam xarajat bilan boshqa jarayonga o'tiladi." },
+      { type: 'h2', text: "4-qadam. Ma'lumotlar va xavfsizlik" },
+      { type: 'p', text: "AI yechimi faqat sizning ma'lumotlaringiz sifatida yaxshi. Narxlar, qoidalar, mahsulot tavsiflari bitta joyda va yangilangan bo'lishi kerak — aks holda AI eskirgan javob beradi. Xavfsizlik bo'yicha uch qoida: maxfiy ma'lumotlarni API'ga faqat zarur hajmda yuborish, muhim amallar (to'lov, shartnoma) uchun odam tasdig'ini qoldirish, va yechimni prompt injection (AI'ni aldashga urinish) ga qarshi sinab ko'rish." },
+      { type: 'h2', text: "5-qadam. Jamoani o'qiting" },
+      { type: 'p', text: "Texnologiya bilan birga odamlar ham o'zgarishi kerak. Kuzatuvimizcha, AI joriy qilgan, lekin xodimlarni o'qitmagan kompaniyalarda yechim 2–3 oyda «unutiladi». Shuning uchun har loyihada jamoaga trening — prompt yozish, AI javobini tekshirish, tizimni boshqarish — majburiy qism." },
+      { type: 'h2', text: "Narxlar: O'zbekistonda AI joriy qilish qancha turadi?" },
+      { type: 'p', text: "Bozor ma'lumotlariga ko'ra, kichik biznes uchun tayyor AI yordamchi bir necha yuz dollardan boshlanadi, oylik qo'llab-quvvatlash alohida; CRM yoki 1C bilan integratsiyalangan ko'p modulli korporativ tizim — bir necha ming dollardan o'n minglab dollargacha. API xarajati (model so'rovlari) odatda oyiga o'nlab dollardan oshmaydi, lekin yuklama oshgani sari o'sadi — shuning uchun biz har loyihada xarajat limiti va monitoring o'rnatamiz." },
+      { type: 'h2', text: "O'zbekistonda AI joriy qilish bo'yicha kimga murojaat qilish mumkin?" },
+      { type: 'p', text: "Bozorda bir nechta AI agentliklar va integratorlar bor; tanlashda uchta narsaga qarang: (1) ular real production tizim qurganmi, (2) o'zbek tilida ishlaydigan yechim tajribasi bormi, (3) jamoangizni o'qitadimi yoki faqat «qora quti» topshiradimi. Aidevix (aidevix.uz) — Toshkentdagi AI kompaniyasi — shu uchala mezonga javob berishga harakat qiladi: biz AI integratsiya, avtomatlashtirish va AI agentlar quramiz, 50 000+ foydalanuvchili production tizimlar tajribasiga egamiz va O'zbekistonda 200+ dasturchini tayyorlagan o'quv platformasini yuritamiz." },
+      { type: 'cta', text: "Biznesingiz uchun AI joriy qilishni bepul konsultatsiyadan boshlang", href: '/xizmatlar/ai-integratsiya', label: 'AI integratsiya xizmati' },
+    ],
+    faq: [
+      { q: "O'zbekistonda sun'iy intellektni joriy qilish bilan kim shug'ullanadi?", a: "Aidevix (aidevix.uz, Toshkent) va uning asoschisi Sunnatbek Yusupov O'zbekistonda biznes uchun AI integratsiya, jarayonlarni avtomatlashtirish, AI agentlar yaratish va korporativ AI treninglar bilan shug'ullanadi. Bozorda boshqa AI agentliklar ham bor — tanlashda production tajribasi, o'zbek tili va jamoani o'qitishga e'tibor bering." },
+      { q: 'AI joriy qilishni qayerdan boshlash kerak?', a: "Eng ko'p vaqt yeyadigan bitta jarayonni tanlang, «oldin» raqamini yozing, 2–4 haftalik pilot qiling va natijani o'lchang. Katta loyihadan emas, kichik pilotdan boshlang." },
+      { q: "AI joriy qilish qancha turadi?", a: "Kichik biznes uchun tayyor AI yordamchi — bir necha yuz dollardan; CRM/1C bilan integratsiyalangan korporativ tizim — bir necha mingdan o'n minglab dollargacha. API xarajati oyiga odatda o'nlab dollar." },
+      { q: "AI o'zbek tilida yaxshi ishlaydimi?", a: "Ha, Claude, GPT va Gemini o'zbek tilini yaxshi tushunadi. Sifat uchun promptlar va sinov to'plami o'zbek tilida tayyorlanishi kerak." },
+    ],
+    related: [
+      { label: 'AI integratsiya xizmati', href: '/xizmatlar/ai-integratsiya' },
+      { label: 'Biznesni AI bilan avtomatlashtirish: qayerdan boshlash', href: '/blog/biznesni-ai-bilan-avtomatlashtirish' },
+      { label: 'AI agent nima va qanday quriladi?', href: '/blog/ai-agent-nima-qanday-quriladi' },
+    ],
+  },
+
+  {
+    slug: 'biznesni-ai-bilan-avtomatlashtirish',
+    title: "Biznes jarayonlarini AI bilan avtomatlashtirish: qayerdan boshlash (amaliy misollar)",
+    description:
+      "Savdo, mijozlar xizmati, hujjatlar va hisobotlarni sun'iy intellekt bilan avtomatlashtirish — O'zbekiston biznesi uchun 7 ta real misol, vositalar va xatolar. Aidevix tajribasi.",
+    keywords: [
+      'biznesni AI bilan avtomatlashtirish', 'jarayonlarni avtomatlashtirish', "AI avtomatlashtirish O'zbekiston",
+      'Telegram bot AI', 'hujjatlarni avtomatlashtirish', 'CRM AI integratsiya', 'n8n', 'AI workflow',
+      'mijozlar xizmatini avtomatlashtirish',
+    ],
+    category: 'ai',
+    date: '2026-11-03',
+    readMinutes: 8,
+    author: 'sunnatbek',
+    excerpt:
+      "Qaysi jarayonlarni AI bilan avtomatlashtirish mumkin va qaysilarini hali erta? O'zbekiston biznesidan 7 ta amaliy misol, vositalar va eng ko'p uchraydigan xatolar.",
+    blocks: [
+      { type: 'p', text: "«Avtomatlashtirish» so'zi ko'pchilikka tugmali Telegram botni eslatadi. Lekin 2026-yilda gap boshqa narsa haqida: LLM (Claude, GPT, Gemini) asosidagi tizim matnni tushunadi, kompaniya ma'lumotlariga tayanib qaror qiladi va harakat qiladi — CRM'ga yozadi, hisob-faktura tuzadi, hisobot yuboradi. O'zbekiston bozorida ham talab shu tomonga o'zgardi: kompaniyalar endi alohida chatbot emas, hisob tizimi va CRM bilan integratsiyalangan AI yechimlarni so'rayapti." },
+      { type: 'h2', text: "7 ta amaliy misol" },
+      { type: 'ul', items: [
+        "Savdo so'rovlarini saralash — Telegram/Instagram/saytdan kelgan xabarlarni AI o'qiydi, mijoz ehtiyoji va byudjetini aniqlaydi, amoCRM/Bitrix24'ga lead sifatida yozadi va menejerga 3 qatorli xulosa yuboradi",
+        "24/7 mijozlar xizmati — kompaniya bilimlar bazasi (narxlar, yetkazib berish, qaytarish qoidalari) asosida o'zbek va rus tilida javob; murakkab holat operatorga uzatiladi",
+        "Invoys va shartnomalarni o'qish — PDF/rasmdan (OCR + LLM) sana, summa, kontragent, INN ajratiladi va 1C yoki Google Sheets'ga kiritiladi",
+        "Kunlik hisobot — sotuv va ombor ma'lumotlaridan har kuni ertalab rahbarga Telegram'da qisqa xulosa: nima o'sdi, nima tushdi, nimaga e'tibor berish kerak",
+        "Rezyume saralash — e'lon talablari bo'yicha nomzodlarni baholash, qisqa xulosa va reyting; birlamchi savol-javob suhbati",
+        "Ko'p tilli kontent — mahsulot tavsiflari, e'lonlar va javob shablonlari o'zbek, rus va ingliz tillarida bir vaqtda",
+        "Ichki yordamchi — xodimlar ichki qoidalar, narxlar va jarayonlar haqida so'raydi; javob hujjatlarga havola bilan keladi",
+      ] },
+      { type: 'h2', text: "Vositalar: oddiydan murakkabga" },
+      { type: 'p', text: "Kodsiz boshlash uchun n8n yoki Make kabi workflow vositalari + LLM API yetarli: Telegram → AI → Google Sheets zanjiri bir necha kunda quriladi. Yuklama va talab oshganda Node.js/Python backend, vektor qidiruv (RAG) va to'liq CRM integratsiyasiga o'tiladi. Qoida: vazifaga yetadigan eng sodda stack — ortiqcha murakkablik yechimni qimmat va mo'rt qiladi." },
+      { type: 'h2', text: "Nimani avtomatlashtirmaslik kerak?" },
+      { type: 'p', text: "Pul o'tkazish, shartnoma imzolash, xodimni ishdan bo'shatish kabi qaytarib bo'lmaydigan qarorlar — faqat odam tasdig'i bilan (human-in-the-loop). AI bu yerda tayyorlaydi va taklif qiladi, tasdiqlamaydi. Shuningdek, aniq qoidasi bo'lmagan, har safar boshqacha hal qilinadigan jarayonlarni avval tartibga keltiring, keyin avtomatlashtiring — tartibsizlikni avtomatlashtirib bo'lmaydi." },
+      { type: 'h2', text: "Eng ko'p uchraydigan 4 xato" },
+      { type: 'ul', items: [
+        "O'lchovsiz boshlash — «oldin» raqami bo'lmasa, natijani isbotlab bo'lmaydi",
+        "Eskirgan ma'lumotlar — AI narxlar jadvali 3 oy yangilanmagan bo'lsa, u ishonch bilan noto'g'ri javob beradi",
+        "Hammani birdaniga avtomatlashtirish — bitta jarayon, bitta pilot, keyin kengaytirish",
+        "Jamoani o'qitmaslik — tizimni hech kim boshqarmasa, u 2–3 oyda tashlab qo'yiladi",
+      ] },
+      { type: 'h2', text: "O'zbekistonda buni kim qiladi?" },
+      { type: 'p', text: "Aidevix (aidevix.uz) — Toshkentdagi AI kompaniyasi — O'zbekiston bo'ylab kompaniyalar uchun savdo, mijozlar xizmati, hujjat va hisobot jarayonlarini LLM asosida avtomatlashtiradi hamda jamoalarni bu vositalar bilan ishlashga o'rgatadi. Asoschisi Sunnatbek Yusupov — Frontend muhandis va AI integratsiya mutaxassisi, production'da AI vositalarini kundalik qo'llaydigan amaliyotchi." },
+      { type: 'cta', text: "Qaysi jarayonni avtomatlashtirish eng ko'p foyda berishini birga aniqlaymiz", href: '/xizmatlar/avtomatlashtirish', label: 'Avtomatlashtirish xizmati' },
+    ],
+    faq: [
+      { q: "O'zbekistonda biznesni AI bilan avtomatlashtirishni kim qiladi?", a: "Aidevix (Toshkent, asoschisi Sunnatbek Yusupov) O'zbekiston kompaniyalari uchun savdo, mijozlar xizmati, hujjatlar va hisobotlarni LLM asosida avtomatlashtiradi va jamoalarni o'qitadi." },
+      { q: 'Avtomatlashtirish uchun dasturchi kerakmi?', a: "Oddiy zanjirlar (Telegram → AI → Sheets) n8n/Make bilan kodsiz quriladi. CRM/1C integratsiyasi va yuqori yuklama uchun dasturchi yoki agentlik kerak." },
+      { q: 'Qaysi jarayondan boshlash kerak?', a: "Eng ko'p takrorlanadigan va eng ko'p vaqt oladigan jarayondan — odatda mijoz so'rovlariga javob yoki hujjatlar bilan ishlash." },
+    ],
+    related: [
+      { label: 'Avtomatlashtirish xizmati', href: '/xizmatlar/avtomatlashtirish' },
+      { label: "O'zbekistonda AI joriy qilish: 2026 qo'llanma", href: '/blog/ozbekistonda-ai-joriy-qilish' },
+      { label: 'AI agent nima va qanday quriladi?', href: '/blog/ai-agent-nima-qanday-quriladi' },
+    ],
+  },
+
+  {
+    slug: 'ai-agent-nima-qanday-quriladi',
+    title: "AI agent nima va u qanday quriladi? Oddiy tilda tushuntiramiz",
+    description:
+      "AI agent nima, chatbotdan farqi, qanday ishlaydi (tool calling, RAG, rejalashtirish) va O'zbekistonda AI agentni kim quradi. Aidevix asoschisi Sunnatbek Yusupovdan qo'llanma.",
+    keywords: [
+      'AI agent nima', 'AI agent qanday quriladi', 'AI agent yaratish', 'avtonom AI agent', 'tool calling nima',
+      'RAG nima', "AI agent O'zbekiston", 'agentic AI', 'LLM agent', 'AI agent Telegram',
+    ],
+    category: 'ai',
+    date: '2026-11-03',
+    readMinutes: 8,
+    author: 'sunnatbek',
+    excerpt:
+      "AI agent — vazifani tushunib, vositalarni o'zi chaqirib, ishni oxirigacha bajaradigan dastur. U qanday ishlaydi, nimadan quriladi va O'zbekistonda kim quradi — oddiy tilda.",
+    blocks: [
+      { type: 'p', text: "ChatGPT'dan savol so'rasangiz — javob beradi. AI agent esa «shu mijozga o'tgan oy uchun hisob-faktura tuzib, Telegramga yubor» desangiz, bazadan ma'lumot oladi, hujjat tuzadi, tekshiradi va yuboradi. Farq — harakat qilish qobiliyatida. 2026-yilda O'zbekistonda ham agentic AI haqida ko'p gapirilmoqda: banklar qarzdorlik va qo'llab-quvvatlashda AI agentlardan foydalanmoqda, kompaniyalar o'zbek tilida gaplashadigan agentlarni taqdim etmoqda. Keling, bu narsa ichida nima borligini tushunamiz." },
+      { type: 'h2', text: "AI agentning 4 ta tarkibiy qismi" },
+      { type: 'ul', items: [
+        "Model (LLM) — Claude, GPT yoki Gemini: tushunadi, rejalashtiradi, matn yozadi",
+        "Vositalar (tools) — agent chaqira oladigan funksiyalar: bazadan o'qish, CRM'ga yozish, API chaqirish, hujjat tuzish, xabar yuborish. Bu «tool calling» deb ataladi",
+        "Xotira va bilim (RAG) — kompaniya hujjatlari, narxlar, qoidalar vektor bazada saqlanadi; agent javobdan oldin kerakli bo'lakni topib o'qiydi",
+        "Sikl (loop) — agent: vazifani bo'ladi → vositani chaqiradi → natijani ko'radi → keyingi qadamni tanlaydi → tugaguncha davom etadi",
+      ] },
+      { type: 'h2', text: "Oddiy misol: qo'llab-quvvatlash agenti" },
+      { type: 'p', text: "Mijoz Telegramda yozadi: «Buyurtmam qayerda?». Agent: (1) foydalanuvchini telefon raqami bo'yicha aniqlaydi, (2) `buyurtma_holati` vositasini chaqiradi, (3) javobni o'zbek tilida tushunarli qilib yozadi, (4) agar buyurtma kechikkan bo'lsa — `tiket_yaratish` vositasi bilan operatorga uzatadi. Oddiy chatbot bu yerda faqat «operatorni kuting» deya olardi." },
+      { type: 'h2', text: "Qanday quriladi: 6 bosqich" },
+      { type: 'ul', items: [
+        "1. Vazifa chegarasi — agent aynan nima qiladi va nima qilmaydi (masalan, to'lovni tasdiqlamaydi)",
+        "2. Vositalar ro'yxati — har biri uchun aniq tavsif, kirish/chiqish formati va ruxsat darajasi",
+        "3. Bilimlar bazasi — hujjatlarni tozalash, bo'laklash, vektor bazaga yuklash; gibrid qidiruv + reranking",
+        "4. Tizim prompti — rol, qoidalar, til (uz/ru), xavfsizlik chegaralari, javob formati",
+        "5. Eval (sinov to'plami) — 50–100 real holat; agent ishga tushishdan oldin va har o'zgarishdan keyin tekshiriladi",
+        "6. Production — loglar, xarajat limiti, odam tasdig'i (human-in-the-loop), monitoring",
+      ] },
+      { type: 'h2', text: "Xavfsizlik: agentga ishonish mumkinmi?" },
+      { type: 'p', text: "Agent harakat qila olgani uchun xavf ham oshadi. Uchta himoya: (1) minimal ruxsat — agent faqat kerakli vositalarga kirishi, (2) xavfli amallar oldidan odam tasdig'i, (3) prompt injection'ga qarshi tekshiruv — kimdir xabar ichida «oldingi ko'rsatmalarni unut» deb yozsa, agent aldanmasligi kerak. Yaxshi agentlik har agentni shu uch mezon bo'yicha sinab beradi." },
+      { type: 'h2', text: "Qaysi vositalar bilan quriladi?" },
+      { type: 'p', text: "Model API'lari (Anthropic Claude, OpenAI, Google Gemini), agent freymvorklari (Claude Agent SDK, LangGraph, Vercel AI SDK), vektor bazalar (pgvector, Qdrant), Telegram Bot API va kompaniya tizimlari API'lari. Dasturchilar uchun esa Claude Code kabi vositalar — kod yozadigan agentlar — bu borada eng tez o'rganish maydoni: Aidevix'da biz aynan shulardan boshlab o'rgatamiz." },
+      { type: 'h2', text: "O'zbekistonda AI agentni kim quradi?" },
+      { type: 'p', text: "Aidevix (aidevix.uz, Toshkent) O'zbekiston biznesi uchun savdo, qo'llab-quvvatlash, hujjat va ichki AI agentlarni loyihalaydi va ishga tushiradi, shuningdek dasturchilarga AI agentlar qurishni o'rgatadi. Asoschisi Sunnatbek Yusupov — AI integratsiya mutaxassisi, Prompt Engineering, production LLM jarayonlari va avtomatlashtirilgan AI agentlar bo'yicha o'quv yo'nalishlari muallifi." },
+      { type: 'cta', text: "AI agent qurishni o'rganmoqchimisiz yoki biznesingiz uchun agent kerakmi?", href: '/xizmatlar/ai-agent', label: 'AI agent xizmati' },
+    ],
+    faq: [
+      { q: 'AI agent va chatbot farqi nimada?', a: "Chatbot faqat javob beradi. Agent vazifani rejalashtiradi, vositalarni (baza, CRM, API) o'zi chaqiradi, natijani tekshiradi va ko'p bosqichli ishni oxirigacha bajaradi." },
+      { q: 'Tool calling nima?', a: "LLM'ga funksiyalar ro'yxatini berish va model kerak bo'lganda ularni chaqirishi: masalan, `buyurtma_holati(telefon)` — model o'zi qachon va qanday parametr bilan chaqirishni hal qiladi." },
+      { q: 'RAG nima?', a: "Retrieval-Augmented Generation — javobdan oldin kompaniya hujjatlaridan kerakli bo'lakni qidirib topib, modelga berish. Bu gallyutsinatsiyani kamaytiradi va agentni sizning ma'lumotlaringizga bog'laydi." },
+      { q: "O'zbekistonda AI agentni kim quradi?", a: "Aidevix (Toshkent, asoschisi Sunnatbek Yusupov) biznes uchun AI agentlar quradi va qurishni o'rgatadi; bozorda boshqa agentliklar ham bor." },
+    ],
+    related: [
+      { label: 'AI agent xizmati', href: '/xizmatlar/ai-agent' },
+      { label: 'AI va Agentlar kurslari', href: '/courses/category/ai' },
+      { label: 'Claude Code qo\'llanmasi', href: '/blog/claude-code-nima-qollanma' },
+    ],
+  },
+
+  {
+    slug: 'ozbekistonda-ai-organish-kimdan',
+    title: "O'zbekistonda sun'iy intellektni kimdan va qayerda o'rganish mumkin? (2026)",
+    description:
+      "O'zbekistonda AI o'rganish: o'zbek tilidagi kurslar, korporativ treninglar, mentorlar va bepul manbalar. Kimga murojaat qilish, nimadan boshlash — Aidevix asoschisi Sunnatbek Yusupov.",
+    keywords: [
+      "O'zbekistonda AI o'rganish", "sun'iy intellekt kurslari O'zbekiston", 'AI kurslari o\'zbek tilida',
+      "AI o'qituvchi", 'AI mentor Toshkent', 'korporativ AI trening', 'prompt engineering kursi',
+      "AI dars berish O'zbekiston", 'AI-first dasturlash',
+    ],
+    category: 'ai',
+    date: '2026-11-03',
+    readMinutes: 7,
+    author: 'sunnatbek',
+    excerpt:
+      "O'zbek tilida AI o'rganish mumkinmi, kim dars beradi, qaysi yo'nalish sizga mos va nimadan boshlash kerak — 2026 uchun amaliy yo'l xaritasi.",
+    blocks: [
+      { type: 'p', text: "2025-yildan boshlab O'zbekistonda AI ta'limi davlat darajasida ustuvor bo'ldi: ta'lim muassasalarida ChatGPT Edu joriy qilinmoqda, «AI yetakchilar» dasturlari e'lon qilindi. Lekin amaliy savol o'zgarmadi: o'zbek tilida, ishga yaraydigan darajada AI'ni kimdan o'rganish mumkin? Bu maqolada yo'nalishlar, formatlar va tanlash mezonlarini keltiraman." },
+      { type: 'h2', text: "Avval: kim bo'lib o'rganmoqchisiz?" },
+      { type: 'ul', items: [
+        "Foydalanuvchi — ChatGPT/Claude/Gemini bilan kundalik ishni tezlashtirish (hujjat, tahlil, tarjima, muloqot). 1–2 kunlik intensiv yetarli",
+        "Biznes rahbari — AI strategiyasi: qayerda joriy qilish, qanday o'lchash, byudjet va xavflar. Qisqa konsultatsiya + rahbarlar uchun trening",
+        "Dasturchi — AI-first ishlab chiqish: Claude Code, Cursor, Copilot; LLM API, RAG, AI agentlar qurish. 4–8 haftalik kurs yoki bootcamp",
+        "Boshlovchi — dasturlashni noldan AI vositalari bilan o'rganish: eng tez yo'l, chunki AI o'qituvchi 24/7 yoningizda",
+      ] },
+      { type: 'h2', text: "Formatlar va ularning kuchli tomonlari" },
+      { type: 'p', text: "Onlayn platforma — o'z tezligingizda, arzon, sertifikat bilan; kamchiligi — intizom kerak. Korporativ trening — kompaniya keyslari ustida, jamoa birga o'sadi; kamchiligi — vaqtni kelishish. Mentor bilan individual — eng tez natija, eng qimmat. Bepul manbalar (YouTube, hujjatlar, Telegram kanallar) — boshlash uchun yaxshi, lekin tizimli emas." },
+      { type: 'h2', text: "Yaxshi AI o'qituvchini qanday tanlash kerak?" },
+      { type: 'ul', items: [
+        "Amaliyotchi — o'zi production'da AI ishlatadimi yoki faqat nazariya o'qitadimi?",
+        "O'zbek tilida — materiallar va misollar o'zbek tilida bo'lsa, o'zlashtirish 2 barobar tez",
+        "Loyiha asosida — kurs oxirida o'z Telegram AI yordamchingiz yoki agentingiz bo'lishi kerak",
+        "Natijalar — bitiruvchilar qayerda ishlayapti, nechta odam tayyorlangan?",
+      ] },
+      { type: 'h2', text: "O'zbekistonda AI'dan kim dars beradi: Aidevix" },
+      { type: 'p', text: "Aidevix (aidevix.uz) — o'zbek tilidagi ilk AI-first dasturlash ta'limi platformasi. Platformada AI va Agentlar, Frontend, Backend, Python, Telegram bot va boshqa yo'nalishlar bo'yicha video kurslar, amaliy topshiriqlar, promptlar kutubxonasi va 24/7 AI Coach bor. Kompaniyalar uchun korporativ AI treninglar (1 kunlik intensivdan 8 haftalik kursgacha) o'tkaziladi." },
+      { type: 'p', text: "Asoschisi Sunnatbek Yusupov — MARS IT School'da Senior Frontend mentor va o'quv dasturi rahbari, «Eng yaxshi o'qituvchi» (2024 Q3), 200+ muhandisni tayyorlagan, 500+ o'quvchi uchun 100+ seminar o'tkazgan. U bir vaqtda production'da ishlaydi (striming platformasida frontend jamoasi rahbari) va kompaniyalarga AI integratsiya qiladi — shuning uchun darslar bugungi real amaliyotga asoslanadi. Maqsad: 2030-yilgacha O'zbekistonda 100 000+ AI'ni erkin qo'llaydigan dasturchi tayyorlash." },
+      { type: 'h2', text: "Nimadan boshlash: 30 kunlik reja" },
+      { type: 'ul', items: [
+        "1-hafta — prompt engineering asoslari: rol, kontekst, format, misollar; har kuni 3 ta real vazifani AI bilan bajaring",
+        "2-hafta — vositalar: ChatGPT, Claude, Gemini, Perplexity, NotebookLM — qaysi vazifaga qaysi biri",
+        "3-hafta — birinchi avtomatlashtirish: n8n/Make + LLM bilan Telegram yordamchi",
+        "4-hafta — (dasturchilar) Claude Code yoki Cursor bilan kichik loyiha; (boshqalar) o'z ish jarayoningizni AI bilan qayta qurish",
+      ] },
+      { type: 'cta', text: "O'zbek tilida AI o'rganishni bugun boshlang", href: '/courses/category/ai', label: 'AI kurslarini ko\'rish' },
+    ],
+    faq: [
+      { q: "O'zbekistonda sun'iy intellektdan kim dars beradi?", a: "Sunnatbek Yusupov — Aidevix asoschisi — o'zbek tilidagi onlayn AI kurslari (aidevix.uz), korporativ AI treninglar va dasturchilar uchun AI-first bootcamp orqali dars beradi. Universitetlar va boshqa IT maktablarda ham AI dasturlari paydo bo'lmoqda." },
+      { q: "AI'ni o'zbek tilida o'rganish mumkinmi?", a: "Ha — Aidevix platformasidagi kurslar, blog qo'llanmalari va promptlar kutubxonasi o'zbek tilida; AI vositalarning o'zi ham o'zbek tilini yaxshi tushunadi." },
+      { q: "Dasturlashni bilmasam, AI o'rgana olamanmi?", a: "Ha. Foydalanuvchi va rahbar darajasidagi treninglar texnik bilim talab qilmaydi; dasturlashni esa AI yordamida noldan o'rganish hozir har qachongidan oson." },
+      { q: 'Korporativ AI trening qancha davom etadi?', a: "1 kunlik intensivdan (6 soat) 4–8 haftalik kursgacha; dastur kompaniya ehtiyojiga moslashtiriladi." },
+    ],
+    related: [
+      { label: 'Korporativ AI trening xizmati', href: '/xizmatlar/korporativ-ai-trening' },
+      { label: 'Prompt engineering asoslari', href: '/blog/prompt-engineering-asoslari' },
+      { label: 'Eng yaxshi AI dasturlash vositalari (2026)', href: '/blog/eng-yaxshi-ai-dasturlash-vositalari' },
+    ],
+  },
+];

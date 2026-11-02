@@ -7,6 +7,7 @@ import localFont from 'next/font/local';
 import { Providers } from '@components/Providers';
 import ClientLayoutWrapper from '@components/layout/ClientLayoutWrapper';
 import { safeJsonLd } from '@/utils/jsonLd';
+import { SERVICES } from '@/data/services';
 
 // P-F03: the real UI fonts are served via next/font (self-hosted, preloaded,
 // size-adjusted fallback => less CLS). Plus Jakarta Sans comes as latin-subset
@@ -40,7 +41,8 @@ export const metadata: Metadata = {
     'dasturlash kurslari', 'onlayn dasturlash kurslari', 'frontend kurslari',
     'aidevix', 'dasturlash', 'online ta\'lim', 'uzbek tilida', 'backend kurslari',
     'react', 'nextjs', 'javascript', 'backend o\'rganish', 'frontend kurslar',
-    'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish'
+    'python uzbekcha', 'it kurslar', 'AI kurslari', 'kodlashni o\'rganish',
+    'AI integratsiya', 'sun\'iy intellektni joriy qilish', 'AI avtomatlashtirish', 'AI agent yaratish', 'korporativ AI trening', 'AI kompaniya Toshkent'
   ],
   authors: [{ name: 'Aidevix Team' }],
   creator: 'Aidevix',
@@ -120,7 +122,27 @@ const organizationSchema = {
   },
   image: 'https://aidevix.uz/Logo.jpg',
   description:
-    "O'zbek tilidagi eng yirik AI va dasturlash o'quv platformasi. Claude Code, Cursor, GitHub Copilot va boshqa AI vositalar bilan amaliy dasturlashni o'rganing.",
+    "Toshkentdagi AI kompaniyasi: o'zbek tilidagi AI va dasturlash o'quv platformasi hamda biznes uchun AI xizmatlari — sun'iy intellektni joriy qilish, AI integratsiya, jarayonlarni avtomatlashtirish, AI agentlar yaratish va korporativ AI treninglar.",
+  additionalType: 'https://schema.org/ProfessionalService',
+  knowsAbout: [
+    'Artificial Intelligence',
+    'AI Integration',
+    'Business Process Automation',
+    'AI Agents',
+    'Large Language Models',
+    'Programming Education',
+  ],
+  // Biznes uchun AI xizmatlari — /xizmatlar sahifalari bilan bir xil @id.
+  makesOffer: SERVICES.map((s) => ({
+    '@type': 'Offer',
+    itemOffered: {
+      '@type': 'Service',
+      '@id': `https://aidevix.uz/xizmatlar/${s.slug}#service`,
+      name: s.shortTitle,
+      serviceType: s.serviceType,
+      url: `https://aidevix.uz/xizmatlar/${s.slug}`,
+    },
+  })),
   foundingDate: '2024',
   slogan: "Kelajakni kodlashni boshlang",
   knowsLanguage: ['uz', 'ru', 'en'],
@@ -158,11 +180,12 @@ const organizationSchema = {
     name: 'Sunnatbek Yusupov',
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',
-    jobTitle: 'Founder & CEO',
+    jobTitle: ['Founder & CEO', 'AI Integration & Automation Specialist'],
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     worksFor: { '@id': 'https://aidevix.uz/#organization' },
-    url: 'https://aidevix.uz/team',
+    url: 'https://sunnatbekyusupov.uz',
     sameAs: [
+      'https://sunnatbekyusupov.uz',
       'https://www.linkedin.com/in/sunnatbekyusupov/',
       'https://github.com/SunnatbekYusupovTech',
       'https://www.instagram.com/sunnatbekyusupov.tech',

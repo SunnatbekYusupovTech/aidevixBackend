@@ -33,10 +33,16 @@ const founderSchema = {
     jobTitle: 'Founder & CEO',
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     description:
-      "Aidevix asoschisi va bosh direktori (Founder & CEO). Frontend Engineer — React, " +
-      "Next.js, TypeScript. O'zbekistonda AI-first dasturlash ta'limini rivojlantirmoqda.",
+      "Aidevix asoschisi va bosh direktori (Founder & CEO). AI integratsiya va avtomatlashtirish " +
+      "mutaxassisi, Frontend Engineer (React, Next.js, TypeScript). O'zbekistonda biznesga sun'iy " +
+      "intellektni joriy qiladi, AI agentlar quradi va AI-first dasturlashdan dars beradi.",
     knowsAbout: [
       'Artificial Intelligence',
+      'AI Integration',
+      'Business Process Automation',
+      'AI Agents',
+      'Prompt Engineering',
+      'Corporate AI Training',
       'Software Engineering',
       'Frontend Development',
       'React',
@@ -62,9 +68,10 @@ const founderSchema = {
       name: 'Aidevix',
       url: 'https://aidevix.uz',
     },
-    url: 'https://aidevix.uz/team',
+    url: 'https://sunnatbekyusupov.uz',
     mainEntityOfPage: 'https://aidevix.uz/team',
     sameAs: [
+      'https://sunnatbekyusupov.uz',
       'https://www.linkedin.com/in/sunnatbekyusupov/',
       'https://github.com/SunnatbekYusupovTech',
       'https://www.instagram.com/sunnatbekyusupov.tech',

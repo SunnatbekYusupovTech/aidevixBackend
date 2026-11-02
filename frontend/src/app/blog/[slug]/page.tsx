@@ -66,7 +66,16 @@ export default async function ArticlePage(
     datePublished: article.date,
     dateModified: article.updated || article.date,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
-    author: { '@type': 'Organization', name: 'Aidevix', '@id': `${BASE}/#organization` },
+    author: article.author === 'sunnatbek'
+      ? {
+          '@type': 'Person',
+          '@id': `${BASE}/team#sunnatbek`,
+          name: 'Sunnatbek Yusupov',
+          jobTitle: 'Founder & CEO, Aidevix',
+          url: `${BASE}/team`,
+          sameAs: ['https://sunnatbekyusupov.uz', 'https://www.linkedin.com/in/sunnatbekyusupov/'],
+        }
+      : { '@type': 'Organization', name: 'Aidevix', '@id': `${BASE}/#organization` },
     publisher: { '@id': `${BASE}/#organization` },
     image: `${url}/opengraph-image`,
     keywords: article.keywords.join(', '),
@@ -131,6 +140,12 @@ export default async function ArticlePage(
             <time dateTime={article.date}>{formattedDate}</time>
             <span>•</span>
             <span>{article.readMinutes} daqiqa o&apos;qish</span>
+            {article.author === 'sunnatbek' && (
+              <>
+                <span>•</span>
+                <span>Muallif: <Link href="/team" className="hover:text-primary">Sunnatbek Yusupov</Link></span>
+              </>
+            )}
           </div>
         </header>
 

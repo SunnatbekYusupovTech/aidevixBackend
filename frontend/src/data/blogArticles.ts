@@ -18,13 +18,18 @@ export type BlogArticle = {
   date: string; // ISO
   updated?: string; // ISO
   readMinutes: number;
+  // Muallif — Person schema (E-E-A-T). Belgilanmasa Organization (Aidevix).
+  author?: 'sunnatbek';
   excerpt: string;
   blocks: ArticleBlock[];
   faq?: { q: string; a: string }[];
   related?: { label: string; href: string }[];
 };
 
+import { AI_BUSINESS_ARTICLES } from './blogArticlesAi';
+
 export const BLOG_ARTICLES: BlogArticle[] = [
+  ...AI_BUSINESS_ARTICLES,
   {
     slug: 'claude-code-nima-qollanma',
     title: 'Claude Code nima va undan qanday foydalanish kerak',

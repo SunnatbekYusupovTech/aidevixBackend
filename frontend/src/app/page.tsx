@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   // ≤60 belgi — SERP'da kesilmaydi. Root segment: template qo'llanmaydi, brend qo'lda.
   title: 'Dasturlash kurslari o\'zbek tilida — onlayn IT ta\'lim | Aidevix',
   description: 'O\'zbek tilidagi onlayn dasturlash kurslari: Frontend, Backend va AI (Claude Code, Cursor). Noldan professional darajagacha — amaliy loyihalar bilan.',
-  keywords: ['onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'it kurslari', 'dasturlashni o\'rganish', 'o\'zbek tilida dasturlash'],
+  keywords: ['onlayn dasturlash kurslari', 'dasturlash kurslari', 'frontend kurslari', 'it kurslari', 'dasturlashni o\'rganish', 'o\'zbek tilida dasturlash', 'AI integratsiya', 'sun\'iy intellektni joriy qilish', 'AI agent yaratish', 'AI kompaniya Toshkent'],
   alternates: {
     canonical: 'https://aidevix.uz',
     languages: {

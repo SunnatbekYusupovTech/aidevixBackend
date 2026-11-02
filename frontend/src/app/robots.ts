@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const ALLOW = ['/', '/courses', '/prompts', '/leaderboard', '/challenges', '/playground', '/blog', '/team', '/projects', '/u/', '/llms.txt', '/llms-full.txt'];
+const ALLOW = ['/', '/courses', '/prompts', '/leaderboard', '/challenges', '/playground', '/blog', '/team', '/projects', '/xizmatlar', '/u/', '/llms.txt', '/llms-full.txt'];
 
 const DISALLOW = [
   '/profile/',

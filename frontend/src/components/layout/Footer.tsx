@@ -32,6 +32,7 @@ export default function Footer() {
       title: t('footer.platform'),
       links: [
         { label: t('footer.fCourses'), to: ROUTES.COURSES },
+        { label: lang === 'ru' ? 'AI-услуги для бизнеса' : lang === 'en' ? 'AI services for business' : 'Biznes uchun AI xizmatlari', to: '/xizmatlar' },
         { label: 'Muhokamalar (Q&A)', to: '/forum' },
         { label: 'Code Battle', to: '/battle' },
         { label: 'Top Prompts', to: '/prompts' },

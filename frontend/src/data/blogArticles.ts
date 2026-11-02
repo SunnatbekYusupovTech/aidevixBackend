@@ -239,7 +239,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
       ] },
       { type: 'h2', text: 'Muhim eslatma' },
       { type: 'p', text: "AI vositalari kuchli, lekin ular dasturlash asoslarini bilishni o'rnini bosmaydi. Avval o'zingiz tushunib, keyin AI'ni tezlashtiruvchi vosita sifatida ishlating. Eng yaxshi natija — bilim va AI'ning birikuvi." },
-      { type: 'cta', text: "Bu vositalar uchun tayyor promptlarni Prompt kutubxonasidan oling", href: '/prompts', label: 'Prompt kutubxonasi' },
+      { type: 'cta', text: "Bu vositalar bilan ishlashni amaliy o'rganing — AI va Agentlar kurslari o'zbek tilida", href: '/courses/category/ai', label: 'AI kurslari' },
     ],
     faq: [
       { q: 'AI dasturchilarni ishsiz qoldiradimi?', a: "Yo'q. AI rutina ishlarni tezlashtiradi, lekin masalani tushunish, arxitektura va qaror qabul qilish baribir insondan talab qilinadi. AI'dan foydalana oladigan dasturchilar afzal." },
@@ -286,7 +286,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         "Rol bering: \"sen tajribali matematika o'qituvchisisan\"",
         "Bosqichma-bosqich so'rang — bitta ulkan savoldan ko'ra kichik savollar zanjiri yaxshiroq",
       ] },
-      { type: 'cta', text: "AI bilan ishlashni chuqurroq o'rganmoqchimisiz? Amaliy AI kurslarimizni ko'ring", href: '/courses/category/ai', label: 'AI kurslari' },
+      { type: 'cta', text: "Jamoangizni ChatGPT, Claude va Gemini bilan samarali ishlashga o'rgatamiz — kompaniyalar uchun korporativ AI trening", href: '/xizmatlar/korporativ-ai-trening', label: 'Korporativ AI trening' },
     ],
     faq: [
       { q: 'ChatGPT bepulmi?', a: "Ha, asosiy versiyasi bepul. Pullik rejada kuchliroq modellar, tezroq javob va qo'shimcha imkoniyatlar beriladi." },
@@ -332,7 +332,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
       { type: 'p', text: "AI muhandisi, ma'lumotlar olimi (data scientist), ML muhandisi, prompt muhandisi va AI mahsulot menejeri — bular dunyoda eng tez o'sayotgan va eng yuqori maosh to'lanadigan kasblar qatorida. O'zbekistonda ham bu mutaxassislarga talab yildan-yilga oshmoqda." },
       { type: 'h2', text: "AI'ni o'rganishni nimadan boshlash kerak?" },
       { type: 'p', text: "Birinchi qadam — dasturlash asoslari, ayniqsa Python. Keyin matematika (ehtimollik, chiziqli algebra) va machine learning kutubxonalari. Parallel ravishda tayyor AI vositalaridan (ChatGPT, Claude) samarali foydalanishni o'rganing — bu har qanday kasbda ustunlik beradi." },
-      { type: 'cta', text: "AI va zamonaviy dasturlashni o'zbek tilida o'rganing", href: '/courses/category/ai', label: 'AI kurslarini ko\'rish' },
+      { type: 'cta', text: "Biznesingizga sun'iy intellektni joriy qilmoqchimisiz? Aidevix O'zbekistonda AI integratsiya, avtomatlashtirish va AI agentlar bo'yicha yordam beradi", href: '/xizmatlar/ai-integratsiya', label: 'AI integratsiya xizmati' },
     ],
     faq: [
       { q: 'Sun\'iy intellekt insonni ishsiz qoldiradimi?', a: "Ba'zi rutina vazifalar avtomatlashadi, lekin yangi kasblar ham paydo bo'lmoqda. Eng xavfsiz yo'l — AI'dan foydalanishni o'rganish: AI sizni emas, AI'ni biladigan mutaxassis siz o'rningizni egallashi mumkin." },

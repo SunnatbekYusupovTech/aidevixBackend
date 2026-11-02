@@ -83,6 +83,29 @@ const faqSchema = {
   })),
 };
 
+// Ochiq, tekshirib bo'ladigan namunalar. Natija raqamlari o'ylab topilmaydi —
+// faqat mavjud, ishlab turgan tizimlar va ularning maqomi yoziladi.
+const PROOFS = [
+  {
+    kind: 'Production LLM',
+    name: 'Aidevix AI Coach',
+    text: "O'quvchilar kodini real vaqtda tahlil qiladigan, o'zbek tilida javob beradigan LLM yordamchi — aidevix.uz platformasida ishlab turibdi (Playground).",
+    href: '/playground',
+  },
+  {
+    kind: 'Ochiq kod',
+    name: 'Aidevix CLI',
+    text: "47 ta AI dasturlash CLI'sini (Claude Code, Gemini CLI, Codex va b.) bitta buyruqdan tanlab, o'rnatib va ishga tushiradigan ochiq kodli vosita (bash/zsh, MIT).",
+    href: 'https://github.com/SUNNATBEE/sunnatbeeCLI',
+  },
+  {
+    kind: 'Production web',
+    name: 'econur.uz · autokran.uz',
+    text: "Aidevix jamoasi qurgan va qo'llab-quvvatlayotgan biznes saytlari — dizayn, frontend, SEO; AI integratsiya uchun tayyor asos.",
+    href: '/projects',
+  },
+];
+
 export default function ServicesHubPage() {
   return (
     <div className="min-h-screen bg-base-100 text-base-content pt-24 pb-20">
@@ -123,6 +146,26 @@ export default function ServicesHubPage() {
             </Link>
           ))}
         </div>
+
+        <section className="mt-16">
+          <h2 className="font-display text-2xl font-bold mb-2 tracking-[-0.02em]">Namunalar va dalillar</h2>
+          <p className="text-sm text-base-content/60 mb-5">Biz qurgan, ishlab turgan AI va production tizimlar — har birini ochib ko&apos;rish mumkin.</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {PROOFS.map((p) => (
+              <a
+                key={p.href}
+                href={p.href}
+                target={p.href.startsWith('http') ? '_blank' : undefined}
+                rel={p.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="rounded-2xl border border-base-content/10 bg-base-200/50 p-5 transition-colors hover:border-primary/40"
+              >
+                <span className="block text-[11px] font-bold uppercase tracking-[0.18em] text-primary mb-2">{p.kind}</span>
+                <span className="block font-bold mb-1">{p.name}</span>
+                <span className="block text-sm text-base-content/70 leading-relaxed">{p.text}</span>
+              </a>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold mb-5 tracking-[-0.02em]">Ko&apos;p beriladigan savollar</h2>

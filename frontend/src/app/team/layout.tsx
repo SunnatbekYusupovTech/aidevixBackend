@@ -25,7 +25,7 @@ const founderSchema = {
   url: 'https://aidevix.uz/team',
   mainEntity: {
     '@type': 'Person',
-    '@id': 'https://aidevix.uz/team#sunnatbek',
+    '@id': 'https://sunnatbekyusupov.uz/#person',
     name: 'Sunnatbek Yusupov',
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',

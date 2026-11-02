@@ -74,7 +74,7 @@ export default async function ServicePage(
       '@type': 'WebPage',
       '@id': url,
       dateModified: SERVICES_UPDATED,
-      author: { '@id': `${BASE}/team#sunnatbek` },
+      author: { '@id': 'https://sunnatbekyusupov.uz/#person' },
       publisher: { '@id': `${BASE}/#organization` },
     },
   };

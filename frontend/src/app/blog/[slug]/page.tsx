@@ -69,7 +69,7 @@ export default async function ArticlePage(
     author: article.author === 'sunnatbek'
       ? {
           '@type': 'Person',
-          '@id': `${BASE}/team#sunnatbek`,
+          '@id': 'https://sunnatbekyusupov.uz/#person',
           name: 'Sunnatbek Yusupov',
           jobTitle: 'Founder & CEO, Aidevix',
           url: `${BASE}/team`,

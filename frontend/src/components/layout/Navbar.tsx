@@ -74,7 +74,8 @@ export default function Navbar() {
   const navMore = useMemo<{ label: string; to: string }[]>(() => [
     { label: `🧠 ${t('nav.founders')}`, to: ROUTES.TEAM },
     { label: `🚀 ${navLocalText.projects}`, to: ROUTES.PROJECTS },
-  ], [t, navLocalText])
+    { label: lang === 'ru' ? '🤖 AI для бизнеса' : lang === 'en' ? '🤖 AI services' : '🤖 AI xizmatlari', to: '/xizmatlar' },
+  ], [t, navLocalText, lang])
   const allNavMobile = [...navPrimary, ...navMore]
   const isMoreGroupActive = navMore.some((l) => l.to === pathname)
 

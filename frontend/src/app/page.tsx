@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { SSR_API_BASE_URL } from '@/utils/constants';
 import { safeJsonLd } from '@/utils/jsonLd';
+import AiServicesStrip from '@/components/home/AiServicesStrip';
 
 // Professional Metadata for SEO
 export const metadata: Metadata = {
@@ -109,6 +110,7 @@ export default async function HomePage() {
         initialVideos={initialVideos}
         initialStats={initialStats}
       />
+      <AiServicesStrip />
     </>
   );
 }

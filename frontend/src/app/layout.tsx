@@ -143,7 +143,7 @@ const organizationSchema = {
       url: `https://aidevix.uz/xizmatlar/${s.slug}`,
     },
   })),
-  foundingDate: '2024',
+  foundingDate: '2024-08',
   slogan: "Kelajakni kodlashni boshlang",
   knowsLanguage: ['uz', 'ru', 'en'],
   areaServed: {

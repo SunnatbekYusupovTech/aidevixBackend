@@ -180,9 +180,11 @@ const organizationSchema = {
     name: 'Sunnatbek Yusupov',
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',
-    jobTitle: ['Founder & CEO', 'AI Integration & Automation Specialist'],
+    // /team/layout.tsx dagi Person bilan bir xil @id — jobTitle ro'yxati ikkala joyda bir xil bo'lishi shart.
+    jobTitle: ['Founder & CEO', 'CTO & Project Manager', 'AI Integration & Automation Specialist'],
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     worksFor: { '@id': 'https://aidevix.uz/#organization' },
+    affiliation: [{ '@type': 'Organization', name: 'CEO AI' }],
     url: 'https://sunnatbekyusupov.uz',
     sameAs: [
       'https://sunnatbekyusupov.uz',

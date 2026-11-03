@@ -210,12 +210,13 @@ const en: Record<string, string> = {
 
     'cta.title1': 'Code the future ',
     'cta.titleHighlight': 'with us!',
-    'cta.subtitle': 'Join thousands of successful graduates and start your professional career today.',
+    'cta.subtitle': 'Sign up, pick a course and start learning with hands-on projects today.',
     'cta.start': 'Start Free',
     'cta.allCourses': 'All Courses',
 
-    'footer.desc': 'The largest and most modern programming education platform in Uzbek language.',
+    'footer.desc': 'Uzbek-language learning platform for programming and AI: video courses, hands-on projects, AI agents and AI services for business.',
     'footer.platform': 'Platform',
+    'footer.directions': 'Course tracks',
     'footer.fCourses': 'Courses',
     'footer.fMentors': 'Mentors',
     'footer.fPricing': 'Pricing',

@@ -46,9 +46,10 @@ async function fetchJson<T>(url: string, key: string): Promise<T[]> {
 // `new Date()` o'rniga qo'yiladi — haqiqatan o'zgarmaydigan statik sahifalar uchun.
 const STATIC_LAST_MODIFIED = new Date('2026-06-24');
 
-// Asoschi identifikatsiyasi sahifasi (Person schema + sameAs) 2026-07-08da
-// yangilandi — yangi lastmod Google'ni /team'ni qayta indekslashga undaydi.
-const FOUNDER_PAGES_UPDATED = new Date('2026-07-08');
+// Asoschi profili (/team) oxirgi marta 2026-11-03 da yangilandi (AI Coach keysi,
+// rol va sameAs). lastmod shu sanaga mos bo'lishi kerak — aks holda Google
+// sahifani eskirgan deb hisoblab qayta indekslamaydi.
+const FOUNDER_PAGES_UPDATED = new Date('2026-11-03');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all dynamic content types in parallel — sitemap render must stay fast.

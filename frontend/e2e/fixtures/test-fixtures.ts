@@ -24,6 +24,9 @@ export const test = base.extend<{
 }>({
   withMockedAPIs: [async ({ page }, use) => {
     await page.addInitScript(() => {
+      // Exercise the app as a returning visitor with consent already recorded.
+      localStorage.setItem('aidevix_cookie_consent', 'rejected');
+      localStorage.setItem('aidevix_beta_welcome_dismissed', '1');
       // Prevent DailyRewardModal from blocking pointer events in tests.
       sessionStorage.setItem('daily_reward_dismissed', new Date().toISOString().slice(0, 10));
     });

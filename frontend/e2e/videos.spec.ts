@@ -88,7 +88,7 @@ test.describe('Video Detail — Subscription Gate', () => {
     const gate = page.locator('.fixed.inset-0.z-50');
     await expect(gate).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
     await expect(
-      gate.getByText(/Instagram obunasi|Telegram obunasi|Instagram subscription|Telegram subscription|Подписка/i),
+      gate.getByText(/Instagram.{0,4}obuna|Telegram.{0,4}(obuna|ulaning)|Follow on Instagram|Connect Telegram|Instagram subscription|Telegram subscription|Подпис|Подключите/i),
     ).toBeVisible({ timeout: TIMEOUTS.API_RESPONSE });
   });
 

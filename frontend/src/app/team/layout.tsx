@@ -30,12 +30,13 @@ const founderSchema = {
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',
     alternateName: 'Sunnatbek Yusupov | Aidevix Founder',
-    jobTitle: 'Founder & CEO',
+    jobTitle: ['Founder & CEO', 'CTO & Project Manager'],
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     description:
       "Aidevix asoschisi va bosh direktori (Founder & CEO). AI integratsiya va avtomatlashtirish " +
       "mutaxassisi, Frontend Engineer (React, Next.js, TypeScript). O'zbekistonda biznesga sun'iy " +
-      "intellektni joriy qiladi, AI agentlar quradi va AI-first dasturlashdan dars beradi.",
+      "intellektni joriy qiladi, AI agentlar quradi va AI-first dasturlashdan dars beradi. " +
+      "CEO AI kompaniyasida CTO va loyiha menejeri: biznes uchun AI integratsiya va AI agent loyihalarini boshqaradi.",
     knowsAbout: [
       'Artificial Intelligence',
       'AI Integration',
@@ -68,6 +69,14 @@ const founderSchema = {
       name: 'Aidevix',
       url: 'https://aidevix.uz',
     },
+    // CEO AI hali ochiq veb-sayt/ijtimoiy tarmoqsiz (2026-11) — URL'siz Organization.
+    affiliation: [
+      { '@type': 'Organization', name: 'CEO AI', description: "O'zbekiston biznesi uchun AI integratsiya va AI agentlar" },
+    ],
+    hasOccupation: [
+      { '@type': 'Occupation', name: 'Chief Technology Officer' },
+      { '@type': 'Occupation', name: 'Project Manager' },
+    ],
     url: 'https://sunnatbekyusupov.uz',
     mainEntityOfPage: 'https://aidevix.uz/team',
     sameAs: [

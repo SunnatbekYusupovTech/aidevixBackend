@@ -41,9 +41,9 @@ const TEAM_MEMBERS: TeamMember[] = [
     hideAge: true,
     roleBadge: { uz: 'CEO / ASOSCHI', en: 'CEO / FOUNDER', ru: 'CEO / ОСНОВАТЕЛЬ' },
     details: {
-      uz: 'Aidevix asoschisi. AI qatlami: Aidevix AI Coach (LLM chat + 18 tilda kod tahlili, Claude/GPT-4o/Llama) arxitekturasi va prompt dizayni; biznes uchun AI integratsiya, AI agentlar va korporativ AI treninglar. Mahsulot yo\'nalishi va frontend arxitekturasi.',
-      en: 'Founder of Aidevix. AI layer: architecture and prompt design of Aidevix AI Coach (LLM chat + code review in 18 languages, Claude/GPT-4o/Llama); AI integration, AI agents and corporate AI training for businesses. Product direction and frontend architecture.',
-      ru: 'Основатель Aidevix. AI-слой: архитектура и prompt-дизайн Aidevix AI Coach (LLM-чат + разбор кода на 18 языках, Claude/GPT-4o/Llama); AI-интеграция, AI-агенты и корпоративное обучение AI для бизнеса. Направление продукта и архитектура фронтенда.'
+      uz: 'Aidevix asoschisi. AI qatlami: Aidevix AI Coach (LLM chat + 18 tilda kod tahlili, Claude/GPT-4o/Llama) arxitekturasi va prompt dizayni; biznes uchun AI integratsiya, AI agentlar va korporativ AI treninglar. Mahsulot yo\'nalishi va frontend arxitekturasi. Shu bilan birga CEO AI kompaniyasida CTO va loyiha menejeri: O\'zbekiston bizneslari uchun AI integratsiya va AI agent loyihalarini boshqaradi (2026-yil noyabr holatiga 17 ta mijoz loyihasi, shundan 3 tasi yakunlangan).',
+      en: 'Founder of Aidevix. AI layer: architecture and prompt design of Aidevix AI Coach (LLM chat + code review in 18 languages, Claude/GPT-4o/Llama); AI integration, AI agents and corporate AI training for businesses. Product direction and frontend architecture. Also CTO and project manager at CEO AI, leading AI integration and AI agent projects for businesses in Uzbekistan (17 client projects as of November 2026, 3 of them completed).',
+      ru: 'Основатель Aidevix. AI-слой: архитектура и prompt-дизайн Aidevix AI Coach (LLM-чат + разбор кода на 18 языках, Claude/GPT-4o/Llama); AI-интеграция, AI-агенты и корпоративное обучение AI для бизнеса. Направление продукта и архитектура фронтенда. Также CTO и проектный менеджер в CEO AI: руководит проектами AI-интеграции и AI-агентов для бизнеса в Узбекистане (17 клиентских проектов на ноябрь 2026, 3 из них завершены).'
     },
     stack: ['LLM integratsiya', 'AI agentlar', 'Claude / OpenAI API', 'React', 'TypeScript', 'Next.js'],
     asset: '/team/sunnatbee.jpg',

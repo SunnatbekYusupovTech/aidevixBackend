@@ -30,7 +30,7 @@ const founderSchema = {
     givenName: 'Sunnatbek',
     familyName: 'Yusupov',
     alternateName: 'Sunnatbek Yusupov | Aidevix Founder',
-    jobTitle: ['Founder & CEO', 'CTO & Project Manager'],
+    jobTitle: ['Founder & CEO', 'CTO & Project Manager', 'AI Integration & Automation Specialist'],
     image: 'https://aidevix.uz/team/sunnatbee.jpg',
     description:
       "Aidevix asoschisi va bosh direktori (Founder & CEO). AI integratsiya va avtomatlashtirish " +

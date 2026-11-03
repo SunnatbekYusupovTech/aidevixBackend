@@ -69,7 +69,8 @@ export const CASE_STUDIES: CaseStudy[] = [
         heading: 'Xavfsizlik va xarajat nazorati',
         bullets: [
           "Faqat tizimga kirgan foydalanuvchilar: /api/coach sessiyani backend orqali tekshiradi (fail-closed — tekshiruv xato bersa, pullik model chaqirilmaydi).",
-          "Limitlar: IP bo'yicha 20 so'rov/daqiqa; foydalanuvchi bo'yicha 10/daqiqa va 100/sutka; Playground — 15 tahlil/15 daqiqa; xabar 2 000 belgigacha; model javobi 800 tokengacha; 15 soniya timeout.",
+          "Limitlar (chat, /api/coach): IP bo'yicha 20 so'rov/daqiqa; foydalanuvchi bo'yicha 10/daqiqa va 100/sutka; xabar 2 000 belgigacha; model javobi 800 tokengacha; 15 soniya timeout.",
+          "Limitlar (Playground, /api/playground/review): foydalanuvchi bo'yicha 15 tahlil/15 daqiqa; kod 8 000 belgigacha; model javobi 1 500 tokengacha; 25 soniya timeout.",
           "Suhbat tarixi ishonchsiz kirish sifatida qaraladi: faqat user/assistant rollari, navbatma-navbat tartib, uzunlik cheklovi, faqat oxirgi 2 ta assistant javobi matni saqlanadi — soxta tarix orqali promptni boshqarish (prompt injection) qiyinlashtirilgan. Playground prompt'ida «oldingi ko'rsatmalarni unut» kabi buyruqlar va secret so'rovlari e'tiborsiz qoldiriladi.",
           "API kalitlari faqat serverda (private env), brauzer bundle'iga chiqmaydi.",
         ],
@@ -83,7 +84,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       {
         heading: 'Natija qanday tekshirildi?',
         bullets: [
-          "Kod ochiq: route handler va playground controller GitHub'da — har bir da'voni manba kodidan tekshirish mumkin (quyidagi havolalar).",
+          "Kod ochiq: route handler va playground controller GitHub'da — texnik implementatsiya tafsilotlarini (provider zanjiri, prompt qoidalari, limitlar, sanitizatsiya) manba kodidan tekshirish mumkin (quyidagi havolalar). Mualliflik taqsimoti va haqiqiy foydalanish natijasini kodning o'zi isbotlamaydi — ular alohida dalil talab qiladi.",
           "Ichki LLM-xavfsizlik ro'yxati bo'yicha ko'rib chiqilgan: katalog gallyutsinatsiyasi, xarajat nazorati, tarix orqali injection, kalit sizishi.",
           "Jonli ishlash: aidevix.uz'da ro'yxatdan o'tib, Playground'da kod yuborish yoki chat vidjetida savol berish orqali.",
           "Foydalanish statistikasi (so'rovlar soni, qoniqish) hali ochiq e'lon qilinmagan — bu yerda o'lchanmagan raqam keltirilmaydi.",
@@ -95,7 +96,7 @@ export const CASE_STUDIES: CaseStudy[] = [
           "Mentor o'rnini bosmaydi: murakkab arxitektura savollari va baholash odam tekshiruvi bilan.",
           "Model katalogni bilmaydi (ataylab) — kurs haqidagi aniq savolga faqat qidiruv topgan kartalar javob beradi.",
           "Javob oqim (streaming) shaklida emas — to'liq javob kelguncha kutiladi.",
-          "Rate-limit hisoblagichlari har bir server instansida alohida (in-memory); global kvota uchun Redis rejalashtirilgan.",
+          "Chat (/api/coach) rate-limit hisoblagichlari har bir server instansida alohida (in-memory); global kvota uchun Redis rejalashtirilgan. Playground limiti esa REDIS_URL sozlanganda Redis'da (instanslar o'rtasida umumiy), aks holda xotirada saqlanadi.",
           "Playground kodni bajarmaydi, faqat statik tahlil qiladi; o'zbekcha javob sifati tanlangan modelga bog'liq.",
         ],
       },
@@ -128,7 +129,7 @@ export const CASE_STUDIES: CaseStudy[] = [
       },
       {
         q: "AI Coach kurs narxlarini to'qib chiqarmaydimi?",
-        a: "Yo'q — system prompt modelga katalog berilmaganini aniq aytadi va o'ylab topishni taqiqlaydi; kurs/video kartalari serverdagi haqiqiy qidiruvdan keyin qo'shiladi. Bu qoidalar manba kodida ochiq.",
+        a: "To'liq kafolat yo'q, lekin xavf ataylab kamaytirilgan: system prompt modelga katalog berilmaganini aniq aytadi va narx/kurs o'ylab topishni taqiqlaydi; kurs/video kartalari esa serverdagi haqiqiy qidiruvdan keyin qo'shiladi. Erkin matnda model baribir xato qilishi mumkin — shuning uchun aniq kurs savollari /courses sahifasiga yo'naltiriladi. Qoidalar manba kodida ochiq.",
       },
       {
         q: 'Shunday yordamchini bizning biznesimiz uchun qurish mumkinmi?',

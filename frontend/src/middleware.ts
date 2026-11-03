@@ -117,10 +117,12 @@ async function redirectLegacyCourseUrl(req: NextRequest): Promise<NextResponse |
   }
 }
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest): NextResponse | Promise<NextResponse> {
   const { pathname } = req.nextUrl;
+  // Faqat kurs yo'li async (backend'dan slug). API yo'llari sinxron qoladi —
+  // tests/middleware.security.test.cjs limiterni sinxron chaqiradi.
   if (pathname.startsWith('/courses/')) {
-    return (await redirectLegacyCourseUrl(req)) ?? NextResponse.next();
+    return redirectLegacyCourseUrl(req).then((res) => res ?? NextResponse.next());
   }
   const now = Date.now();
   cleanupBuckets(now);

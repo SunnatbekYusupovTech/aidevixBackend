@@ -89,8 +89,8 @@ const PROOFS = [
   {
     kind: 'Production LLM',
     name: 'Aidevix AI Coach',
-    text: "O'quvchilar kodini real vaqtda tahlil qiladigan, o'zbek tilida javob beradigan LLM yordamchi — aidevix.uz platformasida ishlab turibdi (Playground).",
-    href: '/playground',
+    text: "O'zbek tilida javob beradigan LLM yordamchi + 18 tilda AI kod tahlili — aidevix.uz'da production'da. Claude/GPT-4o/Llama provider zanjiri, rate-limit va prompt-injection himoyasi; manba kodi ochiq. Batafsil keys →",
+    href: '/keyslar/ai-coach',
   },
   {
     kind: 'Ochiq kod',
@@ -164,6 +164,9 @@ export default function ServicesHubPage() {
                 <span className="block text-sm text-base-content/70 leading-relaxed">{p.text}</span>
               </a>
             ))}
+          </div>
+          <div className="mt-5">
+            <Link href="/keyslar" className="text-sm font-semibold text-primary hover:underline">Barcha keyslar — muammo, yechim, cheklovlar, manba kodi →</Link>
           </div>
         </section>
 

@@ -3,6 +3,7 @@ import { SSR_API_BASE_URL } from '@/utils/constants'
 import { BLOG_ARTICLES } from '@/data/blogArticles'
 import { COURSE_CATEGORIES } from '@/data/courseCategories'
 import { SERVICES, SERVICES_UPDATED } from '@/data/services'
+import { CASE_STUDIES, CASES_UPDATED } from '@/data/caseStudies'
 
 const BASE = 'https://aidevix.uz'
 
@@ -109,6 +110,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // Keyslar — /keyslar hub + har keys sahifasi (dalillar).
+  const casesUpdated = new Date(CASES_UPDATED);
+  const caseUrls = [
+    { url: `${BASE}/keyslar`, lastModified: casesUpdated, changeFrequency: 'monthly' as const, priority: 0.7 },
+    ...CASE_STUDIES.map((c) => ({
+      url: `${BASE}/keyslar/${c.slug}`,
+      lastModified: new Date(c.dateModified),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
+  ];
+
   const profileUrls = rankedUsers
     .filter((entry) => (entry.xp ?? 0) >= MIN_PROFILE_XP)
     .filter((entry) => Boolean(entry.user?.username) && !isJunkUsername(entry.user?.username ?? ''))
@@ -133,6 +146,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/team`,        lastModified: FOUNDER_PAGES_UPDATED,  changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/blog`,        lastModified: now,                    changeFrequency: 'weekly',  priority: 0.5 },
     ...serviceUrls,
+    ...caseUrls,
     ...categoryUrls,
     ...blogUrls,
     ...courseUrls,

@@ -38,6 +38,9 @@ export default function AiServicesStrip() {
           >
             Barcha AI xizmatlari →
           </Link>
+          <Link href="/keyslar/ai-coach" className="ml-4 inline-flex items-center text-sm font-semibold text-indigo-400 hover:underline">
+            Keys: Aidevix AI Coach qanday qurilgan →
+          </Link>
         </div>
       </div>
     </section>

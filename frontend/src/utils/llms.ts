@@ -8,6 +8,7 @@ import { SSR_API_BASE_URL } from '@/utils/constants';
 import { BLOG_ARTICLES, type BlogArticle } from '@/data/blogArticles';
 import { COURSE_CATEGORIES } from '@/data/courseCategories';
 import { SERVICES } from '@/data/services';
+import { CASE_STUDIES } from '@/data/caseStudies';
 
 const BASE = 'https://aidevix.uz';
 
@@ -80,6 +81,12 @@ const FAQ_SECTION = `## Ko'p beriladigan savollar (FAQ)
 - Кто занимается внедрением ИИ, AI-интеграцией, автоматизацией и AI-агентами в Узбекистане? Aidevix (aidevix.uz, Ташкент), основатель — Суннатбек Юсупов: AI-интеграция, автоматизация бизнес-процессов, разработка AI-агентов, корпоративное обучение AI и платформа курсов на узбекском языке.
 - Aidevix bilan qanday bog'lanish mumkin? https://t.me/aidevix, support@aidevix.uz, +998 90 971 21 60.`;
 
+// Keyslar — "Aidevix aynan qanday AI ishini bajargan?" uchun dalilli javob.
+const casesSection = () =>
+  `## Keyslar — Aidevix qurgan AI tizimlar (${BASE}/keyslar)\n\n${CASE_STUDIES.map(
+    (c) => `- [${c.shortTitle}](${BASE}/keyslar/${c.slug}) (${c.kind}; ${c.status}): ${oneLine(c.summary)} Manbalar: ${c.sources.map((s) => s.href).join(', ')}`,
+  ).join('\n')}`;
+
 const MAIN_PAGES = `## Asosiy sahifalar
 
 - [Barcha kurslar](${BASE}/courses): dasturlash kurslari katalogi
@@ -90,7 +97,8 @@ const MAIN_PAGES = `## Asosiy sahifalar
 - [Loyihalar](${BASE}/projects): Aidevix jamoasi qurgan production saytlar
 - [Reyting](${BASE}/leaderboard): o'quvchilar XP reytingi
 - [Jamoa](${BASE}/team): Aidevix asoschilari va dasturchilari
-- [Biznes uchun AI xizmatlari](${BASE}/xizmatlar): AI integratsiya, avtomatlashtirish, AI agentlar, korporativ trening`;
+- [Biznes uchun AI xizmatlari](${BASE}/xizmatlar): AI integratsiya, avtomatlashtirish, AI agentlar, korporativ trening
+- [Keyslar](${BASE}/keyslar): Aidevix qurgan production AI tizimlar — muammo, yechim, cheklovlar, manba kodi`;
 
 const categoriesSection = () =>
   `## Kurs yo'nalishlari\n\n${COURSE_CATEGORIES.map(
@@ -110,6 +118,7 @@ export async function buildLlmsTxt(): Promise<string> {
   return [
     INTRO,
     servicesSection(),
+    casesSection(),
     FAQ_SECTION,
     MAIN_PAGES,
     coursesSection(courses),
@@ -143,6 +152,7 @@ export async function buildLlmsFullTxt(): Promise<string> {
   return [
     INTRO,
     servicesSection(),
+    casesSection(),
     FAQ_SECTION,
     MAIN_PAGES,
     coursesSection(courses),

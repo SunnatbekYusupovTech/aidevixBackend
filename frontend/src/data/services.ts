@@ -38,7 +38,7 @@ export const SERVICES: ServiceMeta[] = [
     blocks: [
       { type: 'h2', text: 'AI integratsiya nima va u biznesga nima beradi?' },
       { type: 'p', text: "AI integratsiya — bu sun'iy intellekt modellarini (ChatGPT, Claude, Gemini) kompaniyaning mavjud tizimlariga ulash: CRM, sayt, Telegram bot, 1C yoki ichki admin panel. Natijada xodimlar takroriy ishlarga emas, qarorlarga vaqt sarflaydi: mijoz so'roviga javob soniyalarda tayyor bo'ladi, hujjatlar avtomatik tahlil qilinadi, hisobotlar o'zi tuziladi." },
-      { type: 'p', text: "O'zbekistonda AI joriy qilish hali boshlang'ich bosqichda — tadqiqotlarga ko'ra kompaniyalarning atigi 5–6 foizi AI'dan tizimli foydalanadi. Bu raqobatchilardan oldinga chiqish uchun eng qulay payt: birinchi bo'lib joriy qilganlar mijozlar xizmati sifati va xarajatlar bo'yicha sezilarli ustunlikka ega bo'ladi." },
+      { type: 'p', text: "O'zbekistonda ko'p kompaniyalar AI'ni hali tizimli ishlatmaydi — bu ko'pincha alohida xodimlarning ChatGPT'dagi shaxsiy tajribasi bilan chegaralangan. Tizimli joriy qilish — aniq jarayon, o'lchov va odam nazorati — aynan shu farqni beradi: mijoz so'rovi tezroq yopiladi, takroriy ishlar kamayadi, natijani raqamda ko'rish mumkin bo'ladi." },
       { type: 'h2', text: 'Aidevix qanday AI integratsiya xizmatlarini ko\'rsatadi?' },
       { type: 'ul', items: [
         "AI audit va strategiya — qaysi jarayonlarda AI eng ko'p foyda beradi, ROI hisob-kitobi, yo'l xaritasi",
@@ -70,6 +70,7 @@ export const SERVICES: ServiceMeta[] = [
     related: [
       { label: 'Biznes jarayonlarini AI bilan avtomatlashtirish', href: '/xizmatlar/avtomatlashtirish' },
       { label: 'AI agentlar yaratish', href: '/xizmatlar/ai-agent' },
+      { label: 'Keys: Aidevix AI Coach — production LLM yordamchi (manba kodi bilan)', href: '/keyslar/ai-coach' },
       { label: "O'zbekistonda AI joriy qilish: qo'llanma", href: '/blog/ozbekistonda-ai-joriy-qilish' },
     ],
   },
@@ -107,7 +108,7 @@ export const SERVICES: ServiceMeta[] = [
     ],
     faq: [
       { q: "O'zbekistonda biznesni AI bilan avtomatlashtirishni kim qiladi?", a: "Aidevix — Toshkentdagi AI kompaniyasi (asoschisi Sunnatbek Yusupov) — O'zbekiston bo'ylab kompaniyalar uchun savdo, mijozlar xizmati, hujjatlar va hisobotlarni LLM asosida avtomatlashtiradi hamda jamoalarni bu vositalar bilan ishlashga o'rgatadi." },
-      { q: 'Kichik biznes uchun ham mosmi?', a: "Ha. Ko'pincha eng katta samara aynan kichik jamoalarda bo'ladi: bitta Telegram AI yordamchi 1–2 xodim ishini oladi. Kichik pilotdan boshlab kengaytirish mumkin." },
+      { q: 'Kichik biznes uchun ham mosmi?', a: "Ha. Kichik jamoada bitta Telegram AI yordamchi takroriy savollarning katta qismini operatorsiz yopadi, murakkab holatlarni esa odamga uzatadi. Kichik pilotdan boshlab, natijani o'lchab, keyin kengaytirish mumkin." },
       { q: "Mavjud CRM yoki 1C bilan ishlaydimi?", a: "Ha — amoCRM, Bitrix24, 1C, Google Sheets va API'si bor istalgan tizim bilan integratsiya qilamiz. API bo'lmasa, oraliq yechim (Sheets/webhook) orqali ulaymiz." },
       { q: "AI xato qilsa nima bo'ladi?", a: "Muhim qarorlar (to'lov, shartnoma) doim odam tasdig'i bilan bajariladi (human-in-the-loop). Avtomatlashtirish ishonchlilik darajasiga qarab bosqichma-bosqich kengaytiriladi." },
     ],
@@ -145,7 +146,7 @@ export const SERVICES: ServiceMeta[] = [
       { type: 'h2', text: 'Arxitektura va xavfsizlik' },
       { type: 'p', text: "Agentlar ishonchli bo'lishi uchun biz aniq chegaralar qo'yamiz: har bir vosita (tool) uchun ruxsatlar ro'yxati, xavfli amallar oldidan odam tasdig'i, barcha qadamlar logi, xarajat limitlari va prompt injection'ga qarshi himoya. Kompaniya ma'lumotlari ustida RAG — gibrid qidiruv (kalit so'z + vektor) va reranking bilan — gallyutsinatsiyani sezilarli kamaytiradi. Har agent ishga tushishdan oldin eval (sinov to'plami) orqali tekshiriladi." },
       { type: 'h2', text: 'Nima uchun aynan hozir?' },
-      { type: 'p', text: "2025–2026-yillarda O'zbekistonda agentic AI tez o'smoqda: banklar va yirik kompaniyalar allaqachon AI agentlardan qarzdorlik, savdo va qo'llab-quvvatlashda foydalanmoqda. O'rta va kichik biznes uchun esa bu texnologiya endigina ochiq — hozir joriy qilganlar bozorda birinchi bo'ladi." },
+      { type: 'p', text: "O'zbekistonda agentic AI endi ommalashmoqda: yirik kompaniyalar AI agentlarni mijozlar xizmati va savdoda sinab ko'rmoqda, o'rta va kichik biznes uchun esa bu texnologiya endigina qulay narxda ochildi. Biz uni kichik, o'lchanadigan pilotdan boshlashni tavsiya qilamiz — natija raqamda ko'ringach kengaytiriladi." },
       { type: 'cta', text: "Biznesingiz uchun qanday AI agent kerakligini birga loyihalaymiz", href: 'https://t.me/aidevix', label: 'Agent haqida gaplashish' },
     ],
     faq: [
@@ -155,6 +156,7 @@ export const SERVICES: ServiceMeta[] = [
       { q: 'AI agent yaratish qancha vaqt oladi?', a: "Oddiy agent (bitta vazifa, 2–3 vosita) — 2–3 hafta; CRM va bazaga ulangan ko'p bosqichli agent — 1–2 oy. Avval pilot, keyin kengaytirish." },
     ],
     related: [
+      { label: 'Keys: Aidevix AI Coach — production LLM yordamchi (manba kodi bilan)', href: '/keyslar/ai-coach' },
       { label: 'AI agent nima va qanday quriladi? (maqola)', href: '/blog/ai-agent-nima-qanday-quriladi' },
       { label: 'AI va Agentlar kurslari', href: '/courses/category/ai' },
       { label: 'AI integratsiya xizmati', href: '/xizmatlar/ai-integratsiya' },
@@ -178,7 +180,7 @@ export const SERVICES: ServiceMeta[] = [
       { type: 'h2', text: 'Kimlar uchun?' },
       { type: 'ul', items: [
         "Kompaniyalar va jamoalar — xodimlarni ChatGPT/Claude bilan samarali ishlashga, hujjat, tahlil va muloqotni AI bilan tezlashtirishga o'rgatish",
-        "Dasturchilar jamoasi — Claude Code, Cursor, GitHub Copilot bilan AI-first ishlab chiqish; sprint tezligini 30% gacha oshirgan amaliyot",
+        "Dasturchilar jamoasi — Claude Code, Cursor, GitHub Copilot bilan AI-first ishlab chiqish: real loyihada kundalik amaliyot (kod tahlili, refaktoring, test yozish)",
         "Rahbarlar — AI strategiyasi: qayerda joriy qilish, qanday o'lchash, xavflar va byudjet",
         "Yakka o'quvchilar — aidevix.uz dagi o'zbek tilidagi AI va dasturlash kurslari, 24/7 AI Coach bilan",
       ] },
@@ -208,6 +210,7 @@ export const SERVICES: ServiceMeta[] = [
       { q: 'Sertifikat beriladimi?', a: "Ha, Aidevix sertifikati beriladi; onlayn kurslarda tekshiriladigan sertifikat mavjud." },
     ],
     related: [
+      { label: 'Keys: Aidevix AI Coach — production LLM yordamchi (manba kodi bilan)', href: '/keyslar/ai-coach' },
       { label: 'AI va Agentlar kurslari', href: '/courses/category/ai' },
       { label: 'Prompt engineering asoslari', href: '/blog/prompt-engineering-asoslari' },
       { label: 'Claude Code qo\'llanmasi', href: '/blog/claude-code-nima-qollanma' },

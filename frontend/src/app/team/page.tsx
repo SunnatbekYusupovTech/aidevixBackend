@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { FaInstagram, FaTelegram, FaLinkedin, FaGithub, FaFacebook } from 'react-icons/fa';
+import { FaInstagram, FaTelegram, FaLinkedin, FaGithub, FaFacebook, FaGlobe } from 'react-icons/fa';
 import { useLang } from '@/context/LangContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -30,6 +30,7 @@ type TeamMember = {
   linkedin?: string;
   github?: string;
   facebook?: string;
+  website?: string; // shaxsiy sayt (Person @id manbasi)
 };
 
 const TEAM_MEMBERS: TeamMember[] = [
@@ -40,12 +41,13 @@ const TEAM_MEMBERS: TeamMember[] = [
     hideAge: true,
     roleBadge: { uz: 'CEO / ASOSCHI', en: 'CEO / FOUNDER', ru: 'CEO / ОСНОВАТЕЛЬ' },
     details: {
-      uz: 'Aidevix strategiyasi, mahsulot yo\'nalishi va frontend arxitekturasi.',
-      en: 'Aidevix strategy, product direction, and frontend architecture.',
-      ru: 'Стратегия Aidevix, направление продукта и архитектура фронтенда.'
+      uz: 'Aidevix asoschisi. AI qatlami: Aidevix AI Coach (LLM chat + 18 tilda kod tahlili, Claude/GPT-4o/Llama) arxitekturasi va prompt dizayni; biznes uchun AI integratsiya, AI agentlar va korporativ AI treninglar. Mahsulot yo\'nalishi va frontend arxitekturasi.',
+      en: 'Founder of Aidevix. AI layer: architecture and prompt design of Aidevix AI Coach (LLM chat + code review in 18 languages, Claude/GPT-4o/Llama); AI integration, AI agents and corporate AI training for businesses. Product direction and frontend architecture.',
+      ru: 'Основатель Aidevix. AI-слой: архитектура и prompt-дизайн Aidevix AI Coach (LLM-чат + разбор кода на 18 языках, Claude/GPT-4o/Llama); AI-интеграция, AI-агенты и корпоративное обучение AI для бизнеса. Направление продукта и архитектура фронтенда.'
     },
-    stack: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
+    stack: ['LLM integratsiya', 'AI agentlar', 'Claude / OpenAI API', 'React', 'TypeScript', 'Next.js'],
     asset: '/team/sunnatbee.jpg',
+    website: 'https://sunnatbekyusupov.uz',
     telegram: 'https://t.me/SUNNATBEE',
     instagram: 'https://www.instagram.com/sunnatbekyusupov.tech',
     linkedin: 'https://www.linkedin.com/in/sunnatbekyusupov/',
@@ -442,8 +444,21 @@ function TeamCard({
             <span className="w-1.5 h-1.5 bg-red-500 animate-ping rounded-none" />
             JOIN_US_NODE // CONNECT
           </a>
-        ) : member.telegram || member.instagram || member.linkedin || member.github || member.facebook ? (
+        ) : member.telegram || member.instagram || member.linkedin || member.github || member.facebook || member.website ? (
           <div className={`flex gap-2 pt-2 border-t ${dividerBorder}`}>
+            {member.website && (
+              <a
+                href={member.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${member.name} shaxsiy sayti`}
+                title={member.website.replace(/^https?:\/\//, '')}
+                onClick={(e) => e.stopPropagation()}
+                className={`p-1.5 border ${socialBg} transition-all duration-300 rounded-none flex items-center justify-center ${socialClass}`}
+              >
+                <FaGlobe size={13} />
+              </a>
+            )}
             {member.linkedin && (
               <a
                 href={member.linkedin}

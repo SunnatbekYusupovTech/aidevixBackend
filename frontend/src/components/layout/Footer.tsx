@@ -193,7 +193,7 @@ export default function Footer() {
           style={{ borderTop: `1px solid ${borderClr}` }}
         >
           <h4 className={`text-xs font-bold uppercase tracking-[0.2em] mb-4 mt-10 ${headingText}`}>
-            {t('footer.directions') || 'Kurs yo\'nalishlari'}
+            {t('footer.directions')}
           </h4>
           <div className="flex flex-wrap gap-2">
             {COURSE_CATEGORIES.map((c) => (

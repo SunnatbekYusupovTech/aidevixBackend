@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BACKEND_ORIGIN } from '@/utils/constants';
 
 // Keep beside src/app: Next.js discovers middleware in the app directory's
 // parent. A middleware.ts at frontend/ is ignored when this project uses src/app.
@@ -76,8 +77,53 @@ function cleanupBuckets(now: number): void {
   }
 }
 
-export function middleware(req: NextRequest) {
+// SEO-007 (HTTP darajasi): eski `/courses/<ObjectId>` → `/courses/<slug>` 308.
+// Sahifa ichidagi `permanentRedirect` `loading.tsx` Suspense chegarasi tufayli
+// shell yuborilgandan keyin ishlaydi va 308 o'rniga 200 + `<meta refresh>`
+// qaytaradi — Google uni redirect deb hisoblamaydi va ObjectId URL'ni canonical
+// qilib tanlaydi (2026-11-03 audit). Middleware javob boshlanmasdan oldin
+// ishlaydi, shuning uchun haqiqiy 308 beradi. Sahifadagi redirect zaxira sifatida qoladi.
+const LEGACY_COURSE_PATH_RE = /^\/courses\/([a-f0-9]{24})\/?$/i;
+const COURSE_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SLUG_LOOKUP_TIMEOUT_MS = 3_000;
+
+async function redirectLegacyCourseUrl(req: NextRequest): Promise<NextResponse | null> {
+  const match = LEGACY_COURSE_PATH_RE.exec(req.nextUrl.pathname);
+  if (!match) return null;
+  const id = match[1];
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SLUG_LOOKUP_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BACKEND_ORIGIN}/api/courses/${id}`, {
+      headers: { accept: 'application/json' },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    const course = (data as { data?: { course?: { slug?: unknown } } })?.data?.course;
+    const slug = course?.slug;
+    if (typeof slug !== 'string' || !COURSE_SLUG_RE.test(slug) || slug.toLowerCase() === id.toLowerCase()) {
+      return null;
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = `/courses/${slug}`;
+    return NextResponse.redirect(url, 308);
+  } catch {
+    // Backend javob bermasa sahifa odatdagidek render bo'ladi (zaxira redirect o'sha yerda).
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function middleware(req: NextRequest): NextResponse | Promise<NextResponse> {
   const { pathname } = req.nextUrl;
+  // Faqat kurs yo'li async (backend'dan slug). API yo'llari sinxron qoladi —
+  // tests/middleware.security.test.cjs limiterni sinxron chaqiradi.
+  if (pathname.startsWith('/courses/')) {
+    return redirectLegacyCourseUrl(req).then((res) => res ?? NextResponse.next());
+  }
   const now = Date.now();
   cleanupBuckets(now);
 
@@ -108,5 +154,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/proxy/:path*', '/api-proxy/:path*', '/api/:path*'],
+  matcher: ['/api/proxy/:path*', '/api-proxy/:path*', '/api/:path*', '/courses/:id'],
 };

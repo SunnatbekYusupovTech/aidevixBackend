@@ -218,13 +218,14 @@ const uz: Record<string, string> = {
     // ─── Footer CTA ───
     'cta.title1': 'Kelajakni biz bilan ',
     'cta.titleHighlight': 'kodlang!',
-    'cta.subtitle': "Minglab muvaffaqiyatli bitiruvchilarga qo'shiling va professional karyerangizni bugun boshlang.",
+    'cta.subtitle': "Ro'yxatdan o'ting, kursni tanlang va amaliy loyihalar bilan o'rganishni bugun boshlang.",
     'cta.start': 'Bepul boshlash',
     'cta.allCourses': 'Barcha kurslar',
 
     // ─── Footer ───
-    'footer.desc': "O'zbek tilidagi eng yirik va zamonaviy dasturlash o'quv platformasi. Biz bilan kelajak kasbini o'rganing.",
+    'footer.desc': "O'zbek tilida dasturlash va sun'iy intellekt bo'yicha o'quv platforma: video kurslar, amaliy loyihalar, AI agentlar va biznes uchun AI xizmatlari.",
     'footer.platform': 'Platforma',
+    'footer.directions': "Kurs yo'nalishlari",
     'footer.fCourses': 'Kurslar',
     'footer.fMentors': 'Mentorlar',
     'footer.fPricing': 'Narxlar',

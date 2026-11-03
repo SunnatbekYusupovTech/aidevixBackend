@@ -17,11 +17,15 @@ interface Props {
   className?: string;
 }
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '').trim();
 
 // P-F08: the Google GSI script is loaded only where a Google button is rendered,
 // not app-wide from Providers.
 export default function GoogleAuthButton(props: Props) {
+  // Google GSI throws during initialization when client_id is empty.
+  // Optional OAuth configuration must not take down the email/password form.
+  if (!GOOGLE_CLIENT_ID) return null;
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <GoogleAuthButtonInner {...props} />

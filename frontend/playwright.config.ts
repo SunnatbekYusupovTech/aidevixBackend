@@ -62,7 +62,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
+    // CI: production server (build step runs before tests) — dev-mode per-route
+    // compilation made the 109-test suite exceed the 30-minute job limit.
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: BASE_URL,
     reuseExistingServer: false,
     timeout: 120_000,

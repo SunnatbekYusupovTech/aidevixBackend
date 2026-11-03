@@ -143,6 +143,111 @@ export const CASE_STUDIES: CaseStudy[] = [
       { label: 'AI agent nima va qanday quriladi? (maqola)', href: '/blog/ai-agent-nima-qanday-quriladi' },
     ],
   },
+  {
+    slug: 'biolife',
+    title: "Biolife (IMIR-TRADE GROUP) — ichimlik suvi ishlab chiqaruvchida buyurtma, savdo, hisobot va call-center bo'limlarini AI bilan avtomatlashtirish",
+    shortTitle: "Biolife — biznes bo'limlarini AI avtomatlashtirish",
+    description:
+      "Keys: O'zbekistonning yirik ichimlik suvi ishlab chiqaruvchisi Biolife (IMIR-TRADE GROUP) uchun Telegram AI buyurtma boti, CRM'ga ulangan savdo agenti, 1C/ombor asosida hisobot avtomatlashtirish va call-center qo'ng'iroqlarini matnga o'girib tahlil qilish. Claude va Gemini. Natija raqamlari e'lon qilinmagan.",
+    keywords: [
+      'biznesda AI joriy etish', "O'zbekistonda AI integratsiya", 'Telegram AI bot buyurtma', 'CRM AI agent',
+      '1C AI hisobot', 'call-center STT', 'ishlab chiqarish AI avtomatlashtirish', 'Biolife AI', 'IMIR-TRADE GROUP',
+      'Sunnatbek Yusupov AI loyiha', 'CEO AI',
+    ],
+    kind: 'AI integratsiya · FMCG / ishlab chiqarish',
+    status: 'Yakunlangan — mijozga topshirilgan (2026-noyabr holatiga)',
+    datePublished: '2026-11-03',
+    dateModified: '2026-11-03',
+    product: { name: "Biolife biznes-bo'limlari uchun AI avtomatlashtirish tizimi", url: 'https://aidevix.uz/keyslar/biolife', category: 'BusinessApplication' },
+    summary:
+      "Biolife — \"IMIR-TRADE GROUP\" MChJ (2004-yildan ishlaydi, O'zbekistonda 4 ta ishlab chiqarish maydoni, chakana, ulgurji, HoReCa va davlat buyurtmalari bo'yicha ~90 kishilik savdo jamoasi) ichimlik suvi brendi. Loyihada kompaniyaning to'rt bo'limi AI bilan avtomatlashtirildi: (1) Telegram'da buyurtma qabul qiladigan va mijoz savollariga javob beradigan AI bot, (2) CRM'ga ulangan savdo AI agenti, (3) 1C/ombor ma'lumotlari asosida hisobotlarni avtomatik tayyorlash, (4) call-center qo'ng'iroqlarini matnga o'girib (STT) tahlil qilish. LLM: Claude (Anthropic) va Gemini (Google). Loyihani Sunnatbek Yusupov CEO AI kompaniyasida CTO va loyiha menejeri sifatida boshqargan.",
+    sections: [
+      {
+        heading: 'Mijoz kim?',
+        paragraphs: [
+          "IMIR-TRADE GROUP — Toshkentdagi (Bektemir tumani) alkogolsiz ichimliklar ishlab chiqaruvchisi; Biolife brendi 2015-yildan bozorda, gazli va gazsiz suv 0,33 litrdan 10 litrgacha. Ishlab chiqarish Toshkent, Keles, Denov va Samarqandda; savdo kanallari — do'konlar, supermarketlar, ulgurji, HoReCa va davlat tashkilotlari. 5 va 10 litrlik suv Toshkent bo'ylab uyga va ofisga yetkazib beriladi, buyurtma kanallaridan biri — Telegram bot.",
+          "Bunday ko'lamda har kuni bir xil turdagi ko'p ish takrorlanadi: buyurtmani qabul qilish va tizimga kiritish, savdo xodimlarining mijoz bilan yozishmasi va CRM'ni to'ldirishi, 1C va ombordan hisobot yig'ish, call-center qo'ng'iroqlarini sifat bo'yicha tekshirish. Aynan shu takrorlanuvchi, qoidaga asoslangan ishlar AI uchun eng mos nuqta.",
+        ],
+      },
+      {
+        heading: 'Qanday muammo bor edi?',
+        bullets: [
+          "Buyurtma va mijoz savollari odam operator orqali o'tardi: ish vaqtidan tashqarida javob kechikardi, bir xil savollarga (narx, hajm, yetkazib berish hududi) qayta-qayta qo'lda javob berilardi.",
+          "Savdo jamoasi vaqtining bir qismi sotuvga emas, CRM'ga yozish, yozishma qoralamasi va kunlik xulosa tayyorlashga ketardi.",
+          "Hisobotlar 1C va ombor ma'lumotlaridan qo'lda yig'ilardi — kechikadi va xatoga moyil.",
+          "Call-center qo'ng'iroqlari yozib olinardi, lekin tizimli tahlil qilinmasdi: murojaat sabablari va sifat muammolari ko'rinmasdi.",
+        ],
+      },
+      {
+        heading: 'Nima ishlab chiqildi?',
+        bullets: [
+          "Telegram AI bot: buyurtmani (hajm, miqdor, manzil, vaqt) suhbat orqali qabul qiladi, yetkazib berish va mahsulot bo'yicha savollarga javob beradi; narx va mavjudlik ma'lumoti model tomonidan o'ylab topilmaydi — faqat mijoz tizimidan olinadi; murakkab holat odam operatorga o'tkaziladi.",
+          "Savdo AI agenti: CRM'ga ulangan — murojaatlarni saralaydi, mijoz bilan yozishma qoralamasini tayyorlaydi, kartochkani to'ldiradi va kunlik xulosa beradi. Yakuniy qaror va yuborish — savdo xodimida.",
+          "Hisobot avtomatlashtirish: 1C/ombor ma'lumotlari va Google Sheets asosida belgilangan jadval bo'yicha hisobotlar avtomatik tayyorlanadi; LLM raqamni hisoblamaydi, tayyor ma'lumotni izohlaydi va formatlaydi.",
+          "Call-center: qo'ng'iroq yozuvlari matnga o'giriladi (STT), so'ng LLM murojaat sababini tasniflaydi va sifat mezonlari bo'yicha belgilaydi — rahbariyat uchun umumiy manzara.",
+          "LLM qatlami: Claude (Anthropic) va Gemini (Google). Arxitektura provayderga bog'lanmagan; har bo'lim uchun alohida prompt qoidalari va ruxsat chegaralari.",
+        ],
+      },
+      {
+        heading: 'Natija qanday tekshirildi?',
+        bullets: [
+          "Tizim mijozga topshirilgan va to'rtta bo'lim bo'yicha ishga tushirilgan (loyiha holati: yakunlangan).",
+          "Natija ko'rsatkichlari (javob vaqti, operator yuki, hisobot tayyorlash vaqti) mijoz ichida o'lchanadi va hali ochiq e'lon qilinmagan — shu sababli bu sahifada raqam yoki foiz keltirilmaydi. Mijoz ruxsati bilan o'lchangan ko'rsatkichlar qo'shiladi.",
+          "Mijoz haqidagi faktlar (tarix, ishlab chiqarish joylari, savdo kanallari, yetkazib berish) kompaniyaning ochiq manbalaridan olingan (quyidagi havolalar).",
+        ],
+      },
+      {
+        heading: 'Cheklovlar',
+        bullets: [
+          "Bot va agent qaror qabul qilmaydi: to'lov, chegirma va nostandart buyurtmalar odam tasdig'i bilan.",
+          "Hisobot moduli manba ma'lumot sifatiga bog'liq: 1C/omborda kechikkan yozuv hisobotga ham kechikib tushadi.",
+          "STT sifati ovoz yozuvi sifatiga va o'zbek/rus aralash nutqqa bog'liq; shubhali tasniflar qo'lda ko'rib chiqiladi.",
+          "Mijoz ichki ma'lumotlari (buyurtmalar, mijozlar bazasi, yozishmalar) ochiq e'lon qilinmaydi.",
+        ],
+      },
+      {
+        heading: 'Hozirgi holati',
+        paragraphs: [
+          "Yakunlangan va mijozga topshirilgan. Loyiha CEO AI jamoasi tomonidan bajarilgan; Sunnatbek Yusupov — CTO va loyiha menejeri (arxitektura, LLM qatlami, integratsiya rejasi, jamoa boshqaruvi). Sahifa 2026-yil noyabrda e'lon qilindi.",
+        ],
+      },
+    ],
+    stack: [
+      'Anthropic API (Claude)', 'Google Gemini API', 'Telegram Bot API', 'CRM integratsiyasi (amoCRM / Bitrix24)',
+      "1C / ombor ma'lumotlari", 'Google Sheets API', 'Speech-to-Text (call-center)', 'Node.js',
+    ],
+    sources: [
+      { label: 'IMIR-TRADE GROUP — rasmiy sayt, ishlab chiqarish', href: 'https://imirtradegroup.uz/proizvodstvo' },
+      { label: "Biolife 5 va 10 l yetkazib berish (Telegram bot ko'rsatilgan)", href: 'https://imirtradegroup.uz/dostavka-vody-biolife-5l-i-10l-na-dom-i-v-ofis/' },
+      { label: 'Biolife Instagram', href: 'https://www.instagram.com/biolife.water/' },
+      { label: 'Sunnatbek Yusupov — profil va rollar', href: 'https://aidevix.uz/team' },
+    ],
+    faq: [
+      {
+        q: 'Biolife loyihasida qaysi AI modellar ishlatilgan?',
+        a: "Claude (Anthropic) va Gemini (Google). Bo'limlar bo'yicha vazifaga qarab model tanlangan; arxitektura provayderga bog'lanmagan, shuning uchun modelni almashtirish mijoz jarayonini o'zgartirmaydi.",
+      },
+      {
+        q: "AI bot buyurtmani o'zi tizimga yozadimi?",
+        a: "Ha — bot buyurtma ma'lumotini suhbatdan ajratib, mijozning tizimiga uzatadi. Lekin narx, mavjudlik va yetkazib berish shartlarini model o'ylab topmaydi, faqat tizimdan oladi; to'lov va nostandart holatlar odam tasdig'i bilan.",
+      },
+      {
+        q: 'Natija raqamlari qani?',
+        a: "Ko'rsatkichlar mijoz ichida o'lchanadi va hali ochiq e'lon qilinmagan. Biz o'lchanmagan yoki tasdiqlanmagan raqamni keysga yozmaymiz; mijoz ruxsat bergach qo'shiladi.",
+      },
+      {
+        q: 'Bizning biznesga ham shunday tizim qurish mumkinmi?',
+        a: "Ha. Odatda bitta bo'limdan (ko'pincha buyurtma yoki mijoz savollari) boshlanadi, keyin CRM, hisobot va call-center qo'shiladi. Xizmatlar: AI integratsiya, AI agentlar va biznes jarayonlarini avtomatlashtirish.",
+      },
+    ],
+    related: [
+      { label: 'AI integratsiya xizmati', href: '/xizmatlar/ai-integratsiya' },
+      { label: 'AI agentlar yaratish', href: '/xizmatlar/ai-agent' },
+      { label: 'Biznes jarayonlarini avtomatlashtirish', href: '/xizmatlar/avtomatlashtirish' },
+      { label: 'Keys: Aidevix AI Coach', href: '/keyslar/ai-coach' },
+      { label: 'Biznesni AI bilan avtomatlashtirish (maqola)', href: '/blog/biznesni-ai-bilan-avtomatlashtirish' },
+    ],
+  },
 ];
 
 export const getCaseStudy = (slug: string) => CASE_STUDIES.find((c) => c.slug === slug);

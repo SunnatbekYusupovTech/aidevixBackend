@@ -15,8 +15,8 @@ on:
 jobs:
   e2e-tests:
     name: E2E Tests
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -27,9 +27,9 @@ jobs:
         project: [chromium, firefox, webkit]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -51,9 +51,10 @@ jobs:
         env:
           CI: true
           BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_API_BASE_URL: /api/proxy
 
       - name: Upload test report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-${{ matrix.project }}
@@ -61,7 +62,7 @@ jobs:
           retention-days: 14
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: test-results-${{ matrix.project }}

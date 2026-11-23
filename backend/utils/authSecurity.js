@@ -174,6 +174,7 @@ module.exports = {
   safeEqual,
   isTrustedMobileClient,
   parseCookies,
+  serializeCookie,
   generateCsrfToken,
   verifyCsrfToken,
 };

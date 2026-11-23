@@ -47,6 +47,7 @@ export default function ClientLayoutWrapper({
     '/reset-password',
   ].includes(pathname || '') || 
   (pathname || '').startsWith('/admin') || 
+  (pathname || '').startsWith('/metodika') ||
   isPlayground;
   
   const showAmbientWidgets = (pathname === '/' || pathname?.startsWith('/courses')) && !isPlayground;

@@ -10,6 +10,7 @@
 const crypto = require('crypto');
 const User = require('../models/User');
 const Session = require('../models/Session');
+const MetodikaAccess = require('../models/MetodikaAccess');
 
 const ANON_DOMAIN = 'deleted.aidevix.local';
 
@@ -73,6 +74,8 @@ const softDeleteUser = async (userId, requestedBy = 'self') => {
 
   // Revoke all sessions
   await Session.deleteMany({ userId });
+  // Maxfiy metodika ruxsati akkaunt bilan birga yo'qoladi.
+  await MetodikaAccess.deleteMany({ user: userId });
 
   return updated;
 };

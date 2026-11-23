@@ -18,6 +18,7 @@ import {
   FiShare2,
   FiMessageSquare,
   FiCheckSquare,
+  FiLock,
 } from 'react-icons/fi';
 
 export type AdminNavItem = {
@@ -91,6 +92,12 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: 'Sharhlar (Reviews)',
         hint: 'Foydalanuvchilar fikrlari',
         icon: <FiStar className="h-5 w-5" />,
+      },
+      {
+        href: '/admin/metodika',
+        label: 'Metodika (maxfiy)',
+        hint: 'Darslar, sahifalar, kirish ruxsatlari, jurnal',
+        icon: <FiLock className="h-5 w-5" />,
       },
       {
         href: '/admin/prompts',

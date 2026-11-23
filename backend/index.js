@@ -361,6 +361,7 @@ app.use('/api/spaced-repetition', require('./routes/spacedRepetitionRoutes'));
 app.use('/api/playground',   require('./routes/playgroundRoutes'));
 app.use('/api/push',         require('./routes/pushRoutes'));
 app.use('/api/forum',        require('./routes/forumRoutes'));
+app.use('/api/metodika',     require('./routes/metodikaRoutes'));
 
 // Socket.io handshake uchun qisqa muddatli (2 daqiqa) token. WS backend domeniga
 // to'g'ridan-to'g'ri ulanadi va first-party httpOnly cookie u yerga bormaydi —

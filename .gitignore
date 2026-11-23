@@ -80,3 +80,6 @@ frontend/public/*.zip
 .audit/
 # Local npm cache
 npm-cache/
+
+# Maxfiy kurs metodikasi (manba fayllar + seed kontenti) — hech qachon commit qilinmaydi
+/metodika/

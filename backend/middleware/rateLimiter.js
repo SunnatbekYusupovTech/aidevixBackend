@@ -252,6 +252,55 @@ const bugReportLimiter = rateLimit({
   keyGenerator: (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res)),
 });
 
+// ─── Maxfiy metodika ────────────────────────────────────────────────────────
+// Hammasi akkaunt bo'yicha keylanadi (route'lar authenticate'dan keyin): IP almashtirish
+// limitni aylanib o'tishga yordam bermaydi.
+const userKey = (req, res) => (req.user?._id ? String(req.user._id) : ipKey(req, res));
+
+// Parol taxmin qilish: 15 daqiqada 8 ta muvaffaqiyatsiz urinish (DB'dagi lockout'ga qo'shimcha).
+const metodikaUnlockLimiter = rateLimit({
+  ...baseOpts('metodika_unlock'),
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  message: jsonMessage('Juda ko\'p urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.'),
+  keyGenerator: userKey,
+  skipSuccessfulRequests: true,
+});
+
+// Skript bilan butun metodikani ko'chirib olishni sekinlashtiradi: odam 10 daqiqada
+// 40 ta sahifa o'qimaydi, skript esa shu yerda to'xtaydi.
+const metodikaReadLimiter = rateLimit({
+  ...baseOpts('metodika_read'),
+  windowMs: 10 * 60 * 1000,
+  max: 40,
+  message: jsonMessage('Juda tez o\'qiyapsiz. Bir necha daqiqadan so\'ng davom eting.'),
+  keyGenerator: userKey,
+});
+
+const metodikaAssetLimiter = rateLimit({
+  ...baseOpts('metodika_asset'),
+  windowMs: 10 * 60 * 1000,
+  max: 150,
+  message: jsonMessage('Juda ko\'p rasm so\'rovi. Bir oz kuting.'),
+  keyGenerator: userKey,
+});
+
+const metodikaEventLimiter = rateLimit({
+  ...baseOpts('metodika_event'),
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: jsonMessage('Juda ko\'p so\'rov.'),
+  keyGenerator: userKey,
+});
+
+const metodikaAdminLimiter = rateLimit({
+  ...baseOpts('metodika_admin'),
+  windowMs: 10 * 60 * 1000,
+  max: 300,
+  message: jsonMessage('Juda ko\'p so\'rov. Bir oz kuting.'),
+  keyGenerator: userKey,
+});
+
 module.exports = {
   apiLimiter,
   apiBurstLimiter,
@@ -274,6 +323,11 @@ module.exports = {
   reauthLimiter,
   bugReportLimiter,
   docsLimiter,
+  metodikaUnlockLimiter,
+  metodikaReadLimiter,
+  metodikaAssetLimiter,
+  metodikaEventLimiter,
+  metodikaAdminLimiter,
   otpIdentityKey,
   _redisClient: getRedisClient,
 };
